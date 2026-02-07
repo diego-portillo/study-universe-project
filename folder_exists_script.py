@@ -1,3 +1,5 @@
+# This is for trees
+
 def folder_exists(folder, folder_name):
     if folder == []:
         return False
