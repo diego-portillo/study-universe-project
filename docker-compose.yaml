@@ -1,0 +1,19 @@
+# version: '24.9.0'
+
+services:
+  backend:
+    image: backend_flask
+    build:
+      context: ./backend_flask
+      dockerfile: Dockerfile
+    ports:
+      - 8082:8082
+  frontend:
+    image: static_website
+    build:
+      context: ./static_website
+      dockerfile: Dockerfile
+    ports:
+      - 8080:80
+    depends_on:
+      - backend
