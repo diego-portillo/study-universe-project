@@ -5,10 +5,12 @@ This project was made to apply all my software studies in a mock start-up
 Technologies
 
 - Python
+- Docker
+- Javascript
+- HTML
 
 Topics:
 
-- [Graph Depth First Search](find_all_elements_once.py)
-- [N-ary Tree Search](folder_exists_script.py)
-- [Binary Tree Root to Leaves Sum](sum_root_to_leaves.py)
-- [Count Islands - DFS Recursive & Iterative](find_the_island.py)
+- Graphs and Trees algorithms: DFS, BFS, Backtracking
+- Fullstack App
+- Containers
