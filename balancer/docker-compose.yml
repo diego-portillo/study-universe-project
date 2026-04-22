@@ -1,0 +1,84 @@
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    deploy:
+      replicas: 3 
+      # this part programs the launch of a new replica if one of the existing ones fails
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - frontend
+
+  app:
+    image: frontend:latest
+    deploy:
+      replicas: 5
+      restart_policy:
+        condition: any
+    networks:
+      - frontend
+      - backend
+
+# Overlay network is the default for orchestrators
+networks:
+  frontend:
+    driver: overlay
+  backend:
+    driver: overlay
+  # proxy:
+  #   build: ./proxy
+  #   ports:
+  #     - "8080:80"
+  #   networks:
+  #     - red_balance
+
+  # site1:
+  #   build: ./site1
+  #   networks:
+  #     - red_balance
+
+  # site2:
+  #   build: ./site2
+  #   networks:
+  #     - red_balance
+
+  # site3:
+  #   build: ./site3
+  #   networks:
+  #     - red_balance
+  # web:
+  #   image: nginx:latest
+  #   depends_on:
+  #     - app
+  #   # ports:
+  #   #   - "80:80"
+  #   # volumes:
+  #   #   - ./html:/usr/share/nginx/html
+  
+  # app:
+  #   # image: aminespinoza/websiteplatzi:latest
+  #   build: frontend/
+  #   depends_on:
+  #    - db
+  #   # volumes:
+  #   #   - app_data:/app/data
+
+  # db:
+  #   image: mysql:5.7
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: example
+    # volumes:
+    #   - db_data:/var/lib/mysql 
+
+# networks:
+#   red_balance:
+#     driver: bridge
+
+# volumes:
+#   app_data: 
+#   db_data:   

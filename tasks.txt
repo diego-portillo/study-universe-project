@@ -1,1 +1,24 @@
 1. Vulnerabilidades docker scan
+2. Implementar AWS deployment de docker con 
+    - Amazon Elastic Container Services.
+    - Amazon Elastic Kubernetes Service.
+3. crear 1 backend customers
+4. crear 1 db
+5. crear un FE
+6. crear un backend
+7. crear un pipeline de CI/CD
+8. crear un loadbalancer
+9. configurar auto-scaling
+10. configurar monitoreo y alertas
+11. realizar pruebas de carga
+12. optimizar el rendimiento de la aplicación
+13. implementar seguridad en la aplicación
+14. realizar auditorías de seguridad
+15. actualizar dependencias y librerías
+16. documentar el proceso de desarrollo y despliegue
+17. realizar pruebas de integración
+18. configurar backups y recuperación ante desastres
+19. implementar un sistema de logging centralizado
+20. configurar un sistema de autenticación y autorización
+21. realizar pruebas de penetración
+22. implementar un sistema de cacheo para mejorar el rendimiento
