@@ -1,0 +1,15 @@
+name: Python Hello World
+
+on:
+  push:
+
+jobs:
+  hello-world:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Print Hello World
+        run: python -c "print('Hello, world!')"
