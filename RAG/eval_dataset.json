@@ -1,0 +1,94 @@
+[
+  {
+    "question": "Which file implements the days_for_rot function to compute how many days are needed for oranges to rot?",
+    "expected_source": "rotten_oranges.py"
+  },
+  {
+    "question": "Where is validate_segments implemented for recursively validating IP address segments?",
+    "expected_source": "find_ips.py"
+  },
+  {
+    "question": "Which file defines bfs_minesweeper for revealing cells after a click using BFS?",
+    "expected_source": "minesweeper.py"
+  },
+  {
+    "question": "Where is create_combinations implemented to build number combinations that sum to a target?",
+    "expected_source": "sum_combinations.py"
+  },
+  {
+    "question": "Which file implements minimum_knight_moves to find the least moves on a chessboard?",
+    "expected_source": "minimum_knight_moves.py"
+  },
+  {
+    "question": "Where is paint_image implemented for flood-fill style pixel recoloring?",
+    "expected_source": "color_pixels.py"
+  },
+  {
+    "question": "Which file contains min_movements_to_last_cell for solving snakes and ladders moves?",
+    "expected_source": "snake_stairs.py"
+  },
+  {
+    "question": "Where is folder_exists implemented to check for a folder name recursively?",
+    "expected_source": "folder_exists_script.py"
+  },
+  {
+    "question": "Which file defines get_letter_combinations for generating letter combinations recursively?",
+    "expected_source": "letter_combinations.py"
+  },
+  {
+    "question": "Where is count_closed_islands implemented to count islands fully enclosed by water?",
+    "expected_source": "count_closed_islands.py"
+  },
+  {
+    "question": "Which file implements n_queens and position_queens to generate valid queen boards?",
+    "expected_source": "n_queens.py"
+  },
+  {
+    "question": "Where are recursive_dfs and iterative_dfs implemented to traverse all graph elements once?",
+    "expected_source": "find_all_elements_once.py"
+  },
+  {
+    "question": "Which file contains shortest_bridge to connect two islands with minimum flips?",
+    "expected_source": "shortest_bridge_between_islands.py"
+  },
+  {
+    "question": "Where is check_courses implemented to validate courses with prerequisites?",
+    "expected_source": "course_time.py"
+  },
+  {
+    "question": "Which file defines count_ships to count battleships on a board?",
+    "expected_source": "battleship.py"
+  },
+  {
+    "question": "Where is get_permutations implemented to list all permutations of numbers?",
+    "expected_source": "permutations.py"
+  },
+  {
+    "question": "Which file contains the bfd function for breadth-first traversal from a root node?",
+    "expected_source": "bfs.py"
+  },
+  {
+    "question": "Where is sum_values implemented to sum root-to-leaf values in a tree?",
+    "expected_source": "sum_root_to_leaves.py"
+  },
+  {
+    "question": "Which file implements cheapest_travel to find low-cost flights with stop constraints?",
+    "expected_source": "cheap_fligths.py"
+  },
+  {
+    "question": "Where are find_word_in_matrix and recursive_search implemented for word search in a grid?",
+    "expected_source": "word_search.py"
+  },
+  {
+    "question": "Which file defines count_islands and count_islands_iterative for counting islands in a map?",
+    "expected_source": "find_the_island.py"
+  },
+  {
+    "question": "Where is parentheses_concat implemented to build binary tree parenthesis strings?",
+    "expected_source": "binary_tree_parentheses_concat.py"
+  },
+  {
+    "question": "Which file contains posible_letters_for_number and backtrack for phone digit letter combinations?",
+    "expected_source": "phone_letters_combination.py"
+  }
+]
