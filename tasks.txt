@@ -2,11 +2,14 @@
 2. Implementar AWS deployment de docker con 
     - Amazon Elastic Container Services.
     - Amazon Elastic Kubernetes Service.
+    - usar github actions https://github.com/marketplace/actions/deploy-docker-to-aws-ec2
 3. crear 1 backend customers
 4. crear 1 db
 5. crear un FE
 6. crear un backend
 7. crear un pipeline de CI/CD
+create tests for backend, fe and python server
+adapt ci pipeline in github actions
 8. crear un loadbalancer
 9. configurar auto-scaling
 10. configurar monitoreo y alertas
