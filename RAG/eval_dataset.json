@@ -90,5 +90,13 @@
   {
     "question": "Which file contains posible_letters_for_number and backtrack for phone digit letter combinations?",
     "expected_source": "phone_letters_combination.py"
+  },
+  {
+    "question": "In which file can I find the function that computes the minimum knight hops on a board?",
+    "expected_source": "minimum_knight_moves.py"
+  },
+  {
+    "question": "What file has the algorithm that links two islands with the fewest water-to-land flips?",
+    "expected_source": "shortest_bridge_between_islands.py"
   }
 ]

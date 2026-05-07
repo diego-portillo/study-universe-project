@@ -25,3 +25,6 @@ adapt ci pipeline in github actions
 20. configurar un sistema de autenticación y autorización
 21. realizar pruebas de penetración
 22. implementar un sistema de cacheo para mejorar el rendimiento
+23. owasp security
+24. para ataques de abuso del sitio, crear un mecanismo y ademas mostrar un mensaje de contratame si hacen demasiados requests
+25. crear un chat bot para demo en react, con un about page
