@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
+import {
+  applyLowDetailToImages,
+  messagesIncludeVision,
+} from "../lib/messages.js";
+
 export async function POST(request) {
   let body;
   try {
@@ -22,13 +27,30 @@ export async function POST(request) {
     );
   }
 
-  const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+  let normalized;
+  try {
+    normalized = applyLowDetailToImages(messages);
+  } catch (e) {
+    return NextResponse.json({ error: e.message ?? "Invalid messages" }, { status: 400 });
+  }
+
+  const hasVision = messagesIncludeVision(normalized);
+  // Text: default gpt-5-nano. Vision: gpt-4o-mini supports image_url + low detail efficiently.
+  const model = hasVision
+    ? (process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini")
+    : (process.env.OPENAI_MODEL ?? "gpt-5-nano");
+
+  const maxTokens = Math.min(
+    4096,
+    Math.max(64, Number(process.env.OPENAI_MAX_TOKENS) || 512)
+  );
 
   try {
     const client = new OpenAI({ apiKey });
     const completion = await client.chat.completions.create({
       model,
-      messages,
+      messages: normalized,
+      max_tokens: maxTokens,
     });
 
     const assistantMessage = completion.choices[0]?.message;
