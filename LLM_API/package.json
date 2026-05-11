@@ -1,17 +1,23 @@
 {
-  "name": "llm_api",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "llm-api",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "openai": "^6.36.0"
+    "next": "16.2.6",
+    "openai": "^6.37.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "tailwindcss": "^4"
   }
 }
