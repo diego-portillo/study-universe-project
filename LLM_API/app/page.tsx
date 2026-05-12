@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useRef, useState, KeyboardEvent } from 'react';
 
-type Mode = 'chat' | 'generate' | 'text_to_sound';
+type Mode = 'chat' | 'image' | 'audio';
 type SpeechVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 
 type TextPart = { type: 'text'; text: string };
@@ -142,8 +142,8 @@ export default function Page() {
   }
 
   function handleSend() {
-    if (mode === 'generate') return generateImage();
-    if (mode === 'text_to_sound') return handleAudio();
+    if (mode === 'image') return generateImage();
+    if (mode === 'audio') return handleAudio();
     return sendChat();
   }
 
@@ -204,7 +204,7 @@ export default function Page() {
       try {
         const formData = new FormData();
         formData.append('audio', audioFile);
-        const res = await fetch('/api/sound_to_text', {
+        const res = await fetch('/api/audio_to_text', {
           method: 'POST',
           body: formData,
           // no Content-Type header — browser sets it with boundary automatically
@@ -230,7 +230,7 @@ export default function Page() {
     setError('');
     setGeneratedAudioUrl('');
     try {
-      const res = await fetch('/api/text_to_sound', {
+      const res = await fetch('/api/text_to_audio', {
         method: 'POST',
         body: JSON.stringify({ text: trimmed, voice }),
         headers: { 'Content-Type': 'application/json' },
@@ -312,14 +312,14 @@ export default function Page() {
   const canSend =
     mode === 'chat'
       ? !loading && (!!input.trim() || !!imageFile)
-      : mode === 'generate'
+      : mode === 'image'
         ? !loading && (!!input.trim() || !!imageFile)
         : !loading && (!!input.trim() || !!audioFile);
 
   const placeholder =
     mode === 'chat'
       ? 'Ask anything...'
-      : mode === 'generate'
+      : mode === 'image'
         ? imageFile
           ? 'Ask something about the image...'
           : 'Describe the image to generate...'
@@ -364,8 +364,9 @@ export default function Page() {
         .layout {
           display: flex;
           flex-direction: column;
-          height: 100vh;
-          max-width: 760px;
+          height: 100dvh;
+          width: 100%;
+          max-width: 900px;    
           margin: 0 auto;
         }
 
@@ -399,9 +400,9 @@ export default function Page() {
           display: flex;
           justify-content: center;
           gap: 6px;
-          padding: 12px 16px;
-          border-bottom: 1px solid var(--border);
-          flex-shrink: 0;
+          padding: 10px 8px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
         }
 
         .tab {
@@ -547,8 +548,8 @@ export default function Page() {
 
         .input-area {
           flex-shrink: 0;
-          padding: 16px;
-          padding-bottom: 24px;
+          padding: 12px;
+          padding-bottom: 16px;
         }
 
         .input-wrapper {
@@ -635,7 +636,12 @@ export default function Page() {
           cursor: pointer;
         }
 
-        .textarea-row { display: flex; align-items: flex-end; gap: 8px; }
+        .textarea-row {
+          display: flex;
+          align-items: flex-end;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
 
         textarea {
           flex: 1;
@@ -710,8 +716,38 @@ export default function Page() {
         }
 
         @media (max-width: 600px) {
-          .bubble { max-width: 90%; }
+          .bubble {
+            max-width: 92%;
+            font-size: 14px;
+          }
           .empty-title { font-size: 20px; }
+        }
+        @media (max-width: 480px) {
+          .input-wrapper {
+            border-radius: 16px;
+            padding: 10px;
+          }
+
+          textarea {
+            font-size: 14px;
+          }
+
+          .send-btn {
+            width: 38px;
+            height: 38px;
+          }
+
+          .icon-btn {
+            padding: 8px;
+          }
+
+          .header {
+            padding: 12px 16px;
+          }
+
+          .header-title {
+            font-size: 13px;
+          }
         }
       `}</style>
 
@@ -723,7 +759,7 @@ export default function Page() {
 
         {/* Centered tabs: Text | Image | Audio */}
         <div className="mode-tabs">
-          {(['chat', 'generate', 'text_to_sound'] as Mode[]).map((m) => (
+          {(['chat', 'image', 'audio'] as Mode[]).map((m) => (
             <button
               key={m}
               className={`tab ${mode === m ? 'active' : ''}`}
@@ -731,7 +767,7 @@ export default function Page() {
             >
               {m === 'chat'
                 ? '💬 Text'
-                : m === 'generate'
+                : m === 'image'
                   ? '🎨 Image'
                   : '🔊 Audio'}
             </button>
@@ -798,7 +834,7 @@ export default function Page() {
             ))}
 
           {/* IMAGE mode */}
-          {mode === 'generate' && (
+          {mode === 'image' && (
             <div className="output-area">
               {loading ? (
                 <>
@@ -839,7 +875,7 @@ export default function Page() {
           )}
 
           {/* AUDIO mode */}
-          {mode === 'text_to_sound' && (
+          {mode === 'audio' && (
             <div className="output-area">
               {loading ? (
                 <>
@@ -912,7 +948,7 @@ export default function Page() {
             )}
 
             {/* Audio attachment preview */}
-            {audioFile && mode === 'text_to_sound' && (
+            {audioFile && mode === 'audio' && (
               <div className="attachment-preview">
                 <div className="audio-icon">
                   <svg
@@ -938,7 +974,7 @@ export default function Page() {
             )}
 
             {/* Voice selector — only in audio mode with no file */}
-            {mode === 'text_to_sound' && !audioFile && (
+            {mode === 'audio' && !audioFile && (
               <div className="voice-row">
                 <span className="voice-label">Voice:</span>
                 <select
@@ -972,12 +1008,12 @@ export default function Page() {
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
                 rows={1}
-                disabled={loading || (mode === 'text_to_sound' && !!audioFile)}
+                disabled={loading || (mode === 'audio' && !!audioFile)}
               />
 
               <div className="input-actions">
                 {/* Image upload — Text and Image modes */}
-                {(mode === 'chat' || mode === 'generate') && (
+                {mode === 'image' && (
                   <button
                     className="icon-btn"
                     title="Attach image"
@@ -1001,7 +1037,7 @@ export default function Page() {
                 )}
 
                 {/* Audio upload — Audio mode */}
-                {mode === 'text_to_sound' && (
+                {mode === 'audio' && (
                   <button
                     className="icon-btn"
                     title="Upload audio to transcribe"
