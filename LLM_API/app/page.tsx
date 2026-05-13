@@ -1,134 +1,149 @@
-"use client";
+'use client';
 
-import { ChangeEvent, useEffect, useRef, useState, KeyboardEvent } from "react";
+import { ChangeEvent, useEffect, useRef, useState, KeyboardEvent } from 'react';
 
-type Mode = "chat" | "generate" | "text_to_sound";
-type SpeechVoice = "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer";
+type Mode = 'chat' | 'generate' | 'text_to_sound';
+type SpeechVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 
-type TextPart = { type: "text"; text: string };
-type ImageUrlPart = { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+type TextPart = { type: 'text'; text: string };
+type ImageUrlPart = {
+  type: 'image_url';
+  image_url: { url: string; detail?: 'low' | 'high' | 'auto' };
+};
 type MessageContent = string | Array<TextPart | ImageUrlPart>;
-type Message = { role: "system" | "user" | "assistant"; content: MessageContent };
+type Message = {
+  role: 'system' | 'user' | 'assistant';
+  content: MessageContent;
+};
 
 const SYSTEM_MESSAGE: Message = {
-  role: "system",
-  content: "You are a helpful, concise assistant. Keep answers short. For audio only transcribe.",
+  role: 'system',
+  content:
+    'You are a helpful, concise assistant. Keep answers short. For audio only transcribe.',
 };
 
 const MAX_PROMPT_CHARS = 2000;
 const MAX_AUDIO_LENGTH = 60;
 
 function getTextContent(content: MessageContent): string {
-  if (typeof content === "string") return content;
-  return content.filter((p) => p.type === "text").map((p) => (p as TextPart).text).join(" ");
+  if (typeof content === 'string') return content;
+  return content
+    .filter((p) => p.type === 'text')
+    .map((p) => (p as TextPart).text)
+    .join(' ');
 }
 
 function hasImage(content: MessageContent): boolean {
-  if (typeof content === "string") return false;
-  return content.some((p) => p.type === "image_url");
+  if (typeof content === 'string') return false;
+  return content.some((p) => p.type === 'image_url');
 }
 
 export default function Page() {
   const [messages, setMessages] = useState<Message[]>([SYSTEM_MESSAGE]);
-  const [input, setInput] = useState("");
-  const [mode, setMode] = useState<Mode>("chat");
+  const [input, setInput] = useState('');
+  const [mode, setMode] = useState<Mode>('chat');
 
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState("");
+  const [imagePreview, setImagePreview] = useState('');
 
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [audioPreview, setAudioPreview] = useState("");
-  const [audioName, setAudioName] = useState("");
+  const [audioPreview, setAudioPreview] = useState('');
+  const [audioName, setAudioName] = useState('');
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
-  const [generatedImageUrl, setGeneratedImageUrl] = useState("");
-  const [generatedAudioUrl, setGeneratedAudioUrl] = useState("");
-  const [voice, setVoice] = useState<SpeechVoice>("alloy");
+  const [generatedImageUrl, setGeneratedImageUrl] = useState('');
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState('');
+  const [voice, setVoice] = useState<SpeechVoice>('alloy');
 
   const fileRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const visibleMessages = messages.filter((m) => m.role !== "system");
+  const visibleMessages = messages.filter((m) => m.role !== 'system');
   const isEmpty = visibleMessages.length === 0;
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
   useEffect(() => {
-    return () => { if (audioPreview) URL.revokeObjectURL(audioPreview); };
+    return () => {
+      if (audioPreview) URL.revokeObjectURL(audioPreview);
+    };
   }, [audioPreview]);
 
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
-    ta.style.height = "auto";
-    ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
   }, [input]);
 
   function switchMode(m: Mode) {
     setMode(m);
-    setError("");
-    setGeneratedImageUrl("");
-    setGeneratedAudioUrl("");
+    setError('');
+    setGeneratedImageUrl('');
+    setGeneratedAudioUrl('');
     clearImage();
     clearAudio();
   }
 
   function clearImage() {
     setImageFile(null);
-    setImagePreview("");
-    if (fileRef.current) fileRef.current.value = "";
+    setImagePreview('');
+    if (fileRef.current) fileRef.current.value = '';
   }
 
   function clearAudio() {
     setAudioFile(null);
     if (audioPreview) URL.revokeObjectURL(audioPreview);
-    setAudioPreview("");
-    setAudioName("");
-    if (audioRef.current) audioRef.current.value = "";
+    setAudioPreview('');
+    setAudioName('');
+    if (audioRef.current) audioRef.current.value = '';
   }
 
   function onPickFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setImageFile(file);
-    setImagePreview("");
-    if (!file?.type.startsWith("image/")) return;
+    setImagePreview('');
+    if (!file?.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = () => setImagePreview(typeof reader.result === "string" ? reader.result : "");
+    reader.onload = () =>
+      setImagePreview(typeof reader.result === 'string' ? reader.result : '');
     reader.readAsDataURL(file);
   }
 
   async function onPickAudio(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     if (!file) return;
-    const audio = document.createElement("audio");
+    const audio = document.createElement('audio');
     audio.src = URL.createObjectURL(file);
-    await new Promise<void>((r) => { audio.onloadedmetadata = () => r(); });
+    await new Promise<void>((r) => {
+      audio.onloadedmetadata = () => r();
+    });
     if (audio.duration > MAX_AUDIO_LENGTH) {
-      setError("Audio too long (max 60s)");
+      setError('Audio too long (max 60s)');
       return;
     }
     setAudioFile(file);
     setAudioPreview(audio.src);
     setAudioName(file.name);
-    setError("");
+    setError('');
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   }
 
   function handleSend() {
-    if (mode === "generate") return generateImage();
-    if (mode === "text_to_sound") return handleAudio();
+    if (mode === 'generate') return generateImage();
+    if (mode === 'text_to_sound') return handleAudio();
     return sendChat();
   }
 
@@ -137,43 +152,43 @@ export default function Page() {
     const trimmed = input.trim();
     if (!trimmed && !imageFile) return;
     setLoading(true);
-    setError("");
-    setGeneratedImageUrl("");
+    setError('');
+    setGeneratedImageUrl('');
     try {
       if (imageFile) {
         const dataUrl = await fileToLowResDataUrl(imageFile);
         const userMessage: Message = {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: trimmed || "Describe this image in detail." },
-            { type: "image_url", image_url: { url: dataUrl, detail: "low" } },
+            { type: 'text', text: trimmed || 'Describe this image in detail.' },
+            { type: 'image_url', image_url: { url: dataUrl, detail: 'low' } },
           ],
         };
         const payload = [SYSTEM_MESSAGE, userMessage];
-        const res = await fetch("/api/chat", {
-          method: "POST",
+        const res = await fetch('/api/chat', {
+          method: 'POST',
           body: JSON.stringify({ messages: payload }),
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Analysis failed");
+        if (!res.ok) throw new Error(data.error || 'Analysis failed');
         setGeneratedImageUrl(dataUrl);
         setMessages([SYSTEM_MESSAGE, userMessage, data.message]);
-        setInput("");
+        setInput('');
         clearImage();
       } else {
-        const res = await fetch("/api/image", {
-          method: "POST",
+        const res = await fetch('/api/image', {
+          method: 'POST',
           body: JSON.stringify({ prompt: trimmed }),
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Image generation failed");
+        if (!res.ok) throw new Error(data.error || 'Image generation failed');
         setGeneratedImageUrl(data.url);
-        setInput("");
+        setInput('');
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(e instanceof Error ? e.message : 'Error');
     } finally {
       setLoading(false);
     }
@@ -185,25 +200,25 @@ export default function Page() {
 
     if (audioFile) {
       setLoading(true);
-      setError("");
+      setError('');
       try {
         const formData = new FormData();
-        formData.append("audio", audioFile);
-        const res = await fetch("/api/sound_to_text", {
-          method: "POST",
+        formData.append('audio', audioFile);
+        const res = await fetch('/api/sound_to_text', {
+          method: 'POST',
           body: formData,
           // no Content-Type header — browser sets it with boundary automatically
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Transcription failed");
+        if (!res.ok) throw new Error(data.error || 'Transcription failed');
         setMessages((prev) => [
           ...prev,
-          { role: "user", content: `[Audio: ${audioName}]` },
-          { role: "assistant", content: data.text },
+          { role: 'user', content: `[Audio: ${audioName}]` },
+          { role: 'assistant', content: data.text },
         ]);
         clearAudio();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Error");
+        setError(e instanceof Error ? e.message : 'Error');
       } finally {
         setLoading(false);
       }
@@ -212,24 +227,24 @@ export default function Page() {
 
     if (!trimmed) return;
     setLoading(true);
-    setError("");
-    setGeneratedAudioUrl("");
+    setError('');
+    setGeneratedAudioUrl('');
     try {
-      const res = await fetch("/api/text_to_sound", {
-        method: "POST",
+      const res = await fetch('/api/text_to_sound', {
+        method: 'POST',
         body: JSON.stringify({ text: trimmed, voice }),
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "TTS failed");
+        throw new Error(data.error || 'TTS failed');
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setGeneratedAudioUrl(url);
-      setInput("");
+      setInput('');
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(e instanceof Error ? e.message : 'Error');
     } finally {
       setLoading(false);
     }
@@ -240,40 +255,41 @@ export default function Page() {
     const trimmed = input.trim().slice(0, MAX_PROMPT_CHARS);
     if (!trimmed && !imageFile) return;
     setLoading(true);
-    setError("");
+    setError('');
     try {
       let userMessage: Message;
       if (imageFile) {
         const dataUrl = await fileToLowResDataUrl(imageFile);
         userMessage = {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: trimmed || "Describe this image." },
-            { type: "image_url", image_url: { url: dataUrl, detail: "low" } },
+            { type: 'text', text: trimmed || 'Describe this image.' },
+            { type: 'image_url', image_url: { url: dataUrl, detail: 'low' } },
           ],
         };
       } else {
-        userMessage = { role: "user", content: trimmed };
+        userMessage = { role: 'user', content: trimmed };
       }
       const payload = [...messages, userMessage];
       setMessages(payload);
-      setInput("");
+      setInput('');
       clearImage();
-      const conversationId = "user-1"; // later replace with uuid or auth id
-      const res = await fetch("/api/chat", {
-        method: "POST",
+      const conversationId = 'user-1'; // later replace with uuid or auth id
+      const res = await fetch('/api/chat', {
+        method: 'POST',
         body: JSON.stringify({
-          messages: payload ,
+          messages: payload,
           conversationId,
         }),
-        headers: { 
-          "Content-Type": "application/json" },
+        headers: {
+          ' Content-Type': 'application/json',
+        },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
+      if (!res.ok) throw new Error(data.error || 'Request failed');
       setMessages((prev) => [...prev, data.message]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
+      setError(e instanceof Error ? e.message : 'Error');
     } finally {
       setLoading(false);
     }
@@ -283,25 +299,33 @@ export default function Page() {
     const bitmap = await createImageBitmap(file);
     const max = 512;
     const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
+    const canvas = document.createElement('canvas');
     canvas.width = bitmap.width * scale;
     canvas.height = bitmap.height * scale;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas error");
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas error');
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close?.();
-    return canvas.toDataURL("image/jpeg", 0.6);
+    return canvas.toDataURL('image/jpeg', 0.6);
   }
 
   const canSend =
-    mode === "chat" ? (!loading && (!!input.trim() || !!imageFile)) :
-    mode === "generate" ? (!loading && (!!input.trim() || !!imageFile)) :
-    (!loading && (!!input.trim() || !!audioFile));
+    mode === 'chat'
+      ? !loading && (!!input.trim() || !!imageFile)
+      : mode === 'generate'
+        ? !loading && (!!input.trim() || !!imageFile)
+        : !loading && (!!input.trim() || !!audioFile);
 
   const placeholder =
-    mode === "chat" ? "Ask anything..." :
-    mode === "generate" ? (imageFile ? "Ask something about the image..." : "Describe the image to generate...") :
-    (audioFile ? "Audio ready — hit send to transcribe" : "Enter text to convert to speech...");
+    mode === 'chat'
+      ? 'Ask anything...'
+      : mode === 'generate'
+        ? imageFile
+          ? 'Ask something about the image...'
+          : 'Describe the image to generate...'
+        : audioFile
+          ? 'Audio ready — hit send to transcribe'
+          : 'Enter text to convert to speech...';
 
   return (
     <>
@@ -699,35 +723,56 @@ export default function Page() {
 
         {/* Centered tabs: Text | Image | Audio */}
         <div className="mode-tabs">
-          {(["chat", "generate", "text_to_sound"] as Mode[]).map((m) => (
-            <button key={m} className={`tab ${mode === m ? "active" : ""}`} onClick={() => switchMode(m)}>
-              {m === "chat" ? "💬 Text" : m === "generate" ? "🎨 Image" : "🔊 Audio"}
+          {(['chat', 'generate', 'text_to_sound'] as Mode[]).map((m) => (
+            <button
+              key={m}
+              className={`tab ${mode === m ? 'active' : ''}`}
+              onClick={() => switchMode(m)}
+            >
+              {m === 'chat'
+                ? '💬 Text'
+                : m === 'generate'
+                  ? '🎨 Image'
+                  : '🔊 Audio'}
             </button>
           ))}
         </div>
 
         {/* Content area */}
         <div className="messages">
-
           {/* TEXT mode */}
-          {mode === "chat" && (
-            isEmpty ? (
+          {mode === 'chat' &&
+            (isEmpty ? (
               <div className="empty-state">
                 <h1 className="empty-title">Ask anything.</h1>
-                <p className="empty-sub">Select Text, Image or Audio according to your input.</p>
+                <p className="empty-sub">
+                  Select Text, Image or Audio according to your input.
+                </p>
               </div>
             ) : (
               <>
                 {visibleMessages.map((m, i) => (
                   <div key={i} className={`msg-row ${m.role}`}>
-                    <div className={`avatar ${m.role}`}>{m.role === "user" ? "D" : "AI"}</div>
+                    <div className={`avatar ${m.role}`}>
+                      {m.role === 'user' ? 'D' : 'AI'}
+                    </div>
                     <div className={`bubble ${m.role}`}>
-                      {typeof m.content === "string" ? m.content : (
+                      {typeof m.content === 'string' ? (
+                        m.content
+                      ) : (
                         <>
                           {getTextContent(m.content)}
                           {hasImage(m.content) && (
                             <img
-                              src={((m.content as Array<TextPart | ImageUrlPart>).find(p => p.type === "image_url") as ImageUrlPart)?.image_url.url ?? ""}
+                              src={
+                                (
+                                  (
+                                    m.content as Array<TextPart | ImageUrlPart>
+                                  ).find(
+                                    (p) => p.type === 'image_url',
+                                  ) as ImageUrlPart
+                                )?.image_url.url ?? ''
+                              }
                               alt="uploaded"
                               className="bubble-image"
                             />
@@ -742,66 +787,102 @@ export default function Page() {
                     <div className="avatar assistant">AI</div>
                     <div className="bubble assistant">
                       <div className="typing">
-                        <div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" />
+                        <div className="typing-dot" />
+                        <div className="typing-dot" />
+                        <div className="typing-dot" />
                       </div>
                     </div>
                   </div>
                 )}
               </>
-            )
-          )}
+            ))}
 
           {/* IMAGE mode */}
-          {mode === "generate" && (
+          {mode === 'generate' && (
             <div className="output-area">
               {loading ? (
                 <>
-                  <div className="typing"><div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" /></div>
-                  <p className="output-label">{imageFile ? "Analyzing image…" : "Generating image…"}</p>
+                  <div className="typing">
+                    <div className="typing-dot" />
+                    <div className="typing-dot" />
+                    <div className="typing-dot" />
+                  </div>
+                  <p className="output-label">
+                    {imageFile ? 'Analyzing image…' : 'Generating image…'}
+                  </p>
                 </>
               ) : generatedImageUrl ? (
                 <>
-                  <p className="output-label">{messages.length > 2 ? "Image Analysis" : "Generated Image"}</p>
-                  <img src={generatedImageUrl} alt="result" className="generated-img" />
+                  <p className="output-label">
+                    {messages.length > 2 ? 'Image Analysis' : 'Generated Image'}
+                  </p>
+                  <img
+                    src={generatedImageUrl}
+                    alt="result"
+                    className="generated-img"
+                  />
                   {messages.length > 2 && (
-                    <p className="analysis-text">{getTextContent(messages[messages.length - 1].content)}</p>
+                    <p className="analysis-text">
+                      {getTextContent(messages[messages.length - 1].content)}
+                    </p>
                   )}
                 </>
               ) : (
                 <div className="empty-state">
                   <h1 className="empty-title">Generate or upload an image.</h1>
-                  <p className="empty-sub">Describe an image to generate, or upload one to analyze.</p>
+                  <p className="empty-sub">
+                    Describe an image to generate, or upload one to analyze.
+                  </p>
                 </div>
               )}
             </div>
           )}
 
           {/* AUDIO mode */}
-          {mode === "text_to_sound" && (
+          {mode === 'text_to_sound' && (
             <div className="output-area">
               {loading ? (
                 <>
-                  <div className="typing"><div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" /></div>
-                  <p className="output-label">{audioFile ? "Transcribing…" : "Generating audio…"}</p>
+                  <div className="typing">
+                    <div className="typing-dot" />
+                    <div className="typing-dot" />
+                    <div className="typing-dot" />
+                  </div>
+                  <p className="output-label">
+                    {audioFile ? 'Transcribing…' : 'Generating audio…'}
+                  </p>
                 </>
               ) : generatedAudioUrl ? (
                 <>
                   <p className="output-label">Generated Audio</p>
-                  <audio controls src={generatedAudioUrl} className="audio-player" />
+                  <audio
+                    controls
+                    src={generatedAudioUrl}
+                    className="audio-player"
+                  />
                 </>
               ) : visibleMessages.length > 0 ? (
-                <div style={{ width: "100%", maxWidth: "600px" }}>
+                <div style={{ width: '100%', maxWidth: '600px' }}>
                   {visibleMessages.map((m, i) => (
                     <div key={i} className={`msg-row ${m.role}`}>
-                      <div className={`avatar ${m.role}`}>{m.role === "user" ? "D" : "AI"}</div>
-                      <div className={`bubble ${m.role}`}>{typeof m.content === "string" ? m.content : getTextContent(m.content)}</div>
+                      <div className={`avatar ${m.role}`}>
+                        {m.role === 'user' ? 'D' : 'AI'}
+                      </div>
+                      <div className={`bubble ${m.role}`}>
+                        {typeof m.content === 'string'
+                          ? m.content
+                          : getTextContent(m.content)}
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="empty-state">
                   <h1 className="empty-title">Transcribe or generate audio.</h1>
-                  <p className="empty-sub">Upload an audio file to transcribe, or type text to convert to speech.</p>
+                  <p className="empty-sub">
+                    Upload an audio file to transcribe, or type text to convert
+                    to speech.
+                  </p>
                 </div>
               )}
             </div>
@@ -815,36 +896,69 @@ export default function Page() {
           {error && <div className="error-msg">{error}</div>}
 
           <div className="input-wrapper">
-
             {/* Image attachment preview */}
             {imagePreview && (
               <div className="attachment-preview">
-                <img src={imagePreview} alt="preview" className="preview-thumb" />
+                <img
+                  src={imagePreview}
+                  alt="preview"
+                  className="preview-thumb"
+                />
                 <span className="attachment-name">{imageFile?.name}</span>
-                <button className="remove-btn" onClick={clearImage}>✕</button>
+                <button className="remove-btn" onClick={clearImage}>
+                  ✕
+                </button>
               </div>
             )}
 
             {/* Audio attachment preview */}
-            {audioFile && mode === "text_to_sound" && (
+            {audioFile && mode === 'text_to_sound' && (
               <div className="attachment-preview">
                 <div className="audio-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
                   </svg>
                 </div>
                 <span className="attachment-name">{audioName}</span>
-                <button className="remove-btn" onClick={clearAudio}>✕</button>
+                <button className="remove-btn" onClick={clearAudio}>
+                  ✕
+                </button>
               </div>
             )}
 
             {/* Voice selector — only in audio mode with no file */}
-            {mode === "text_to_sound" && !audioFile && (
+            {mode === 'text_to_sound' && !audioFile && (
               <div className="voice-row">
                 <span className="voice-label">Voice:</span>
-                <select className="voice-select" value={voice} onChange={(e) => setVoice(e.target.value as SpeechVoice)}>
-                  {(["alloy","echo","fable","onyx","nova","shimmer"] as SpeechVoice[]).map((v) => (
-                    <option key={v} value={v}>{v}</option>
+                <select
+                  className="voice-select"
+                  value={voice}
+                  onChange={(e) => setVoice(e.target.value as SpeechVoice)}
+                >
+                  {(
+                    [
+                      'alloy',
+                      'echo',
+                      'fable',
+                      'onyx',
+                      'nova',
+                      'shimmer',
+                    ] as SpeechVoice[]
+                  ).map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -858,41 +972,87 @@ export default function Page() {
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
                 rows={1}
-                disabled={
-                  loading || (mode === "text_to_sound" && !!audioFile)
-                }
+                disabled={loading || (mode === 'text_to_sound' && !!audioFile)}
               />
 
               <div className="input-actions">
                 {/* Image upload — Text and Image modes */}
-                {(mode === "chat" || mode === "generate") && (
-                  <button className="icon-btn" title="Attach image" onClick={() => fileRef.current?.click()}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/>
-                      <circle cx="8.5" cy="8.5" r="1.5"/>
-                      <polyline points="21 15 16 10 5 21"/>
+                {(mode === 'chat' || mode === 'generate') && (
+                  <button
+                    className="icon-btn"
+                    title="Attach image"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
                     </svg>
                   </button>
                 )}
 
                 {/* Audio upload — Audio mode */}
-                {mode === "text_to_sound" && (
-                  <button className="icon-btn" title="Upload audio to transcribe" onClick={() => audioRef.current?.click()}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                      <line x1="12" y1="19" x2="12" y2="23"/>
-                      <line x1="8" y1="23" x2="16" y2="23"/>
+                {mode === 'text_to_sound' && (
+                  <button
+                    className="icon-btn"
+                    title="Upload audio to transcribe"
+                    onClick={() => audioRef.current?.click()}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      <line x1="12" y1="19" x2="12" y2="23" />
+                      <line x1="8" y1="23" x2="16" y2="23" />
                     </svg>
                   </button>
                 )}
 
-                <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onPickFile} />
-                <input ref={audioRef} type="file" accept="audio/*" style={{ display: "none" }} onChange={onPickAudio} />
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={onPickFile}
+                />
+                <input
+                  ref={audioRef}
+                  type="file"
+                  accept="audio/*"
+                  style={{ display: 'none' }}
+                  onChange={onPickAudio}
+                />
 
-                <button className="send-btn" onClick={handleSend} disabled={!canSend} title="Send">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                <button
+                  className="send-btn"
+                  onClick={handleSend}
+                  disabled={!canSend}
+                  title="Send"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                   </svg>
                 </button>
               </div>
