@@ -2,46 +2,34 @@
 
 import { ChangeEvent, useEffect, useRef, useState, KeyboardEvent } from 'react';
 
-type Mode = 'chat' | 'image' | 'audio';
-type SpeechVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+import { getTextContent, hasImage, fileToLowResDataUrl } from './utils';
 
-type TextPart = { type: 'text'; text: string };
-type ImageUrlPart = {
-  type: 'image_url';
-  image_url: { url: string; detail?: 'low' | 'high' | 'auto' };
-};
-type MessageContent = string | Array<TextPart | ImageUrlPart>;
-type Message = {
-  role: 'system' | 'user' | 'assistant';
-  content: MessageContent;
-};
+import type {
+  Mode,
+  SpeechVoice,
+  TextPart,
+  ImageUrlPart,
+  Message,
+  ModelOption,
+} from './types';
+import {
+  MAX_PROMPT_CHARS,
+  MAX_AUDIO_LENGTH,
+  SYSTEM_MESSAGE,
+  MODEL_OPTIONS,
+  DEFAULT_MODEL,
+} from './constants';
 
-const SYSTEM_MESSAGE: Message = {
-  role: 'system',
-  content:
-    'You are a helpful, concise assistant. Keep answers short. For audio only transcribe.',
-};
-
-const MAX_PROMPT_CHARS = 2000;
-const MAX_AUDIO_LENGTH = 60;
-
-function getTextContent(content: MessageContent): string {
-  if (typeof content === 'string') return content;
-  return content
-    .filter((p) => p.type === 'text')
-    .map((p) => (p as TextPart).text)
-    .join(' ');
-}
-
-function hasImage(content: MessageContent): boolean {
-  if (typeof content === 'string') return false;
-  return content.some((p) => p.type === 'image_url');
-}
+import './page.css';
 
 export default function Page() {
   const [messages, setMessages] = useState<Message[]>([SYSTEM_MESSAGE]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<Mode>('chat');
+
+  // Provider / model
+  const [selectedModel, setSelectedModel] =
+    useState<ModelOption>(DEFAULT_MODEL);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
@@ -71,6 +59,11 @@ export default function Page() {
   const visibleMessages = messages.filter((m) => m.role !== 'system');
   const isEmpty = visibleMessages.length === 0;
 
+  // Whether the selected provider supports the current mode
+  const isAnthropicSelected = selectedModel.provider === 'anthropic';
+  const modeUnsupported =
+    isAnthropicSelected && (mode === 'image' || mode === 'audio');
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
@@ -88,7 +81,34 @@ export default function Page() {
     ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
   }, [input]);
 
+  function handleModelChange(e: ChangeEvent<HTMLSelectElement>) {
+    const found = MODEL_OPTIONS.find((m) => m.id === e.target.value);
+    if (!found) return;
+    setSelectedModel(found);
+    setError('');
+    // Reset conversation state
+    setMessages([SYSTEM_MESSAGE]);
+    setInput('');
+    clearImage();
+    clearAudio();
+    setGeneratedImageUrl('');
+    setGeneratedAudioUrl('');
+    if (
+      found.provider === 'anthropic' &&
+      (mode === 'image' || mode === 'audio')
+    ) {
+      setMode('chat');
+    }
+  }
+
   function switchMode(m: Mode) {
+    // Prevent switching to unsupported modes when Anthropic is selected
+    if (isAnthropicSelected && (m === 'image' || m === 'audio')) {
+      setError(
+        `Image and audio features are not available with Anthropic models. Switch to an OpenAI model to use this mode.`,
+      );
+      return;
+    }
     setMode(m);
     setError('');
     setGeneratedImageUrl('');
@@ -173,7 +193,11 @@ export default function Page() {
         const payload = [SYSTEM_MESSAGE, userMessage];
         const res = await fetch('/api/chat', {
           method: 'POST',
-          body: JSON.stringify({ messages: payload }),
+          body: JSON.stringify({
+            messages: payload,
+            model: selectedModel.id,
+            provider: selectedModel.provider,
+          }),
           headers: { 'Content-Type': 'application/json' },
         });
         const data = await res.json();
@@ -183,6 +207,7 @@ export default function Page() {
         setInput('');
         clearImage();
       } else {
+        // Image generation is always OpenAI — this mode is blocked for Anthropic
         const res = await fetch('/api/image', {
           method: 'POST',
           body: JSON.stringify({ prompt: trimmed }),
@@ -279,12 +304,14 @@ export default function Page() {
       setMessages(payload);
       setInput('');
       clearImage();
-      const conversationId = 'user-1';
       const res = await fetch('/api/chat', {
         method: 'POST',
         body: JSON.stringify({
           messages: payload,
-          conversationId,
+          conversationId: 'user-1',
+          model: selectedModel.id,
+          provider: selectedModel.provider,
+          reset: messages.filter((m) => m.role !== 'system').length === 0,
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -298,20 +325,6 @@ export default function Page() {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function fileToLowResDataUrl(file: File): Promise<string> {
-    const bitmap = await createImageBitmap(file);
-    const max = 512;
-    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = bitmap.width * scale;
-    canvas.height = bitmap.height * scale;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas error');
-    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close?.();
-    return canvas.toDataURL('image/jpeg', 0.6);
   }
 
   async function startRecording() {
@@ -387,427 +400,87 @@ export default function Page() {
           ? 'Audio ready — hit send to transcribe'
           : 'Enter text to convert to speech...';
 
+  // Group models by provider for the <optgroup> selector
+  const openaiModels = MODEL_OPTIONS.filter((m) => m.provider === 'openai');
+  const anthropicModels = MODEL_OPTIONS.filter(
+    (m) => m.provider === 'anthropic',
+  );
+
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap');
-
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-          --bg: #0d0d0d;
-          --surface: #1a1a1a;
-          --surface2: #242424;
-          --border: #2e2e2e;
-          --text: #ececec;
-          --text-muted: #888;
-          --user-bg: #1e1e1e;
-          --input-bg: #1c1c1c;
-          --send-bg: #ffffff;
-          --send-color: #000;
-          --send-disabled: #2a2a2a;
-          --send-disabled-color: #555;
-          --radius: 16px;
-          --font: 'Sora', sans-serif;
-        }
-
-        body {
-          background: var(--bg);
-          color: var(--text);
-          font-family: var(--font);
-          font-size: 15px;
-          line-height: 1.6;
-          height: 100vh;
-          overflow: hidden;
-        }
-
-        .layout {
-          display: flex;
-          flex-direction: column;
-          height: 100dvh;
-          width: 100%;
-          max-width: 900px;
-          margin: 0 auto;
-        }
-
-        .header {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 18px 24px;
-          border-bottom: 1px solid var(--border);
-          flex-shrink: 0;
-        }
-
-        .header-dot {
-          width: 7px; height: 7px;
-          border-radius: 50%;
-          background: #3bff7e;
-          display: inline-block;
-          margin-right: 8px;
-          animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-
-        .header-title { font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
-
-        .mode-tabs {
-          display: flex;
-          justify-content: center;
-          gap: 6px;
-          padding: 10px 8px;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .tab {
-          background: transparent;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          padding: 6px 20px;
-          font-size: 13px;
-          font-family: var(--font);
-          color: var(--text-muted);
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .tab:hover { color: var(--text); background: var(--surface2); }
-        .tab.active { background: var(--surface2); border-color: var(--border); color: var(--text); }
-
-        .messages {
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px 16px;
-          scroll-behavior: smooth;
-        }
-
-        .messages::-webkit-scrollbar { width: 4px; }
-        .messages::-webkit-scrollbar-track { background: transparent; }
-        .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          gap: 8px;
-          text-align: center;
-          padding: 24px;
-          animation: fadeIn 0.4s ease;
-        }
-
-        .empty-title { font-size: 26px; font-weight: 600; letter-spacing: -0.03em; }
-        .empty-sub { font-size: 14px; color: var(--text-muted); font-weight: 300; }
-
-        .msg-row {
-          display: flex;
-          gap: 12px;
-          margin-bottom: 24px;
-          animation: slideUp 0.2s ease;
-        }
-
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .msg-row.user { flex-direction: row-reverse; }
-
-        .avatar {
-          width: 32px; height: 32px;
-          border-radius: 50%;
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          font-weight: 600;
-          margin-top: 2px;
-        }
-
-        .avatar.user { background: #fff; color: #000; }
-        .avatar.assistant { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
-
-        .bubble {
-          max-width: 78%;
-          padding: 12px 16px;
-          border-radius: var(--radius);
-          font-size: 14.5px;
-          line-height: 1.65;
-          word-break: break-word;
-        }
-
-        .bubble.user { background: var(--user-bg); border: 1px solid var(--border); border-top-right-radius: 4px; }
-        .bubble.assistant { border-top-left-radius: 4px; padding-left: 4px; }
-
-        .bubble-image {
-          max-width: 260px;
-          border-radius: 10px;
-          margin-top: 8px;
-          display: block;
-          border: 1px solid var(--border);
-        }
-
-        .typing { display: flex; align-items: center; gap: 4px; padding: 14px 4px; }
-        .typing-dot {
-          width: 6px; height: 6px;
-          border-radius: 50%;
-          background: var(--text-muted);
-          animation: bounce 1.2s ease infinite;
-        }
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes bounce {
-          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-          40% { transform: translateY(-5px); opacity: 1; }
-        }
-
-        .output-area {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          gap: 16px;
-          padding: 24px;
-          text-align: center;
-          animation: fadeIn 0.3s ease;
-        }
-
-        .generated-img {
-          max-width: 100%;
-          max-height: 440px;
-          border-radius: 14px;
-          border: 1px solid var(--border);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-        }
-
-        .audio-player { width: 100%; max-width: 480px; accent-color: #3bff7e; }
-
-        .output-label {
-          font-size: 11px;
-          color: var(--text-muted);
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-        }
-
-        .analysis-text {
-          color: var(--text-muted);
-          font-size: 13px;
-          max-width: 480px;
-          line-height: 1.6;
-        }
-
-        .input-area {
-          flex-shrink: 0;
-          padding: 12px;
-          padding-bottom: 16px;
-        }
-
-        .input-wrapper {
-          background: var(--input-bg);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 12px 12px 10px 16px;
-          transition: border-color 0.15s ease;
-        }
-
-        .input-wrapper:focus-within { border-color: #444; }
-
-        .attachment-preview {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: var(--surface2);
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          padding: 6px 10px;
-        }
-
-        .preview-thumb {
-          width: 44px; height: 44px;
-          border-radius: 7px;
-          object-fit: cover;
-          border: 1px solid var(--border);
-          flex-shrink: 0;
-        }
-
-        .audio-icon {
-          width: 44px; height: 44px;
-          border-radius: 7px;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          color: #3bff7e;
-        }
-
-        .attachment-name {
-          font-size: 12px;
-          color: var(--text-muted);
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .remove-btn {
-          background: rgba(255,255,255,0.08);
-          border: none;
-          color: var(--text-muted);
-          width: 20px; height: 20px;
-          border-radius: 50%;
-          cursor: pointer;
-          font-size: 11px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          transition: background 0.15s;
-        }
-
-        .remove-btn:hover { background: rgba(255,255,255,0.15); color: var(--text); }
-
-        .voice-row { display: flex; align-items: center; gap: 8px; padding: 0 2px 2px; }
-        .voice-label { font-size: 11px; color: var(--text-muted); }
-
-        .voice-select {
-          background: var(--surface2);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          color: var(--text);
-          font-family: var(--font);
-          font-size: 12px;
-          padding: 3px 8px;
-          outline: none;
-          cursor: pointer;
-        }
-
-        .textarea-row {
-          display: flex;
-          align-items: flex-end;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        textarea {
-          flex: 1;
-          background: transparent;
-          border: none;
-          outline: none;
-          resize: none;
-          color: var(--text);
-          font-family: var(--font);
-          font-size: 14.5px;
-          line-height: 1.5;
-          min-height: 24px;
-          max-height: 200px;
-          overflow-y: auto;
-          padding: 0;
-        }
-
-        textarea::placeholder { color: var(--text-muted); }
-        textarea:disabled { opacity: 0.4; cursor: not-allowed; }
-        textarea::-webkit-scrollbar { width: 3px; }
-        textarea::-webkit-scrollbar-thumb { background: var(--border); }
-
-        .input-actions { display: flex; align-items: center; gap: 4px; }
-
-        .icon-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          padding: 6px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.15s ease;
-        }
-
-        .icon-btn:hover { color: var(--text); background: var(--surface2); }
-
-        .send-btn {
-          width: 34px; height: 34px;
-          border-radius: 50%;
-          border: none;
-          background: var(--send-bg);
-          color: var(--send-color);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.15s ease;
-          flex-shrink: 0;
-        }
-
-        .send-btn:disabled { background: var(--send-disabled); color: var(--send-disabled-color); cursor: not-allowed; }
-        .send-btn:not(:disabled):hover { transform: scale(1.05); background: #e8e8e8; }
-
-        .hint { text-align: center; font-size: 11.5px; color: var(--text-muted); margin-top: 10px; opacity: 0.5; }
-
-        .error-msg {
-          background: rgba(255,80,80,0.08);
-          border: 1px solid rgba(255,80,80,0.2);
-          border-radius: 10px;
-          color: #ff6b6b;
-          font-size: 13px;
-          padding: 10px 14px;
-          margin-bottom: 12px;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media (max-width: 600px) {
-          .bubble { max-width: 92%; font-size: 14px; }
-          .empty-title { font-size: 20px; }
-        }
-        @media (max-width: 480px) {
-          .input-wrapper { border-radius: 16px; padding: 10px; }
-          textarea { font-size: 14px; }
-          .send-btn { width: 38px; height: 38px; }
-          .icon-btn { padding: 8px; }
-          .header { padding: 12px 16px; }
-          .header-title { font-size: 13px; }
-        }
-      `}</style>
-
       <div className="layout">
         <header className="header">
           <span className="header-dot" />
           <span className="header-title">Diego&apos;s LLM Integration</span>
         </header>
 
-        <div className="mode-tabs">
-          {(['chat', 'image', 'audio'] as Mode[]).map((m) => (
-            <button
-              key={m}
-              className={`tab ${mode === m ? 'active' : ''}`}
-              onClick={() => switchMode(m)}
+        {/* ── Model selector ─────────────────────────────────────────── */}
+        <div className="model-selector-row">
+          <label className="model-label" htmlFor="model-select">
+            Model
+          </label>
+          <div className="model-select-wrapper">
+            {/* Provider badge */}
+            <span
+              className={`provider-badge ${selectedModel.provider}`}
+              aria-label={selectedModel.provider}
             >
-              {m === 'chat'
-                ? '💬 Text'
-                : m === 'image'
-                  ? '🎨 Image'
-                  : '🔊 Audio'}
-            </button>
-          ))}
+              {selectedModel.provider === 'openai' ? 'OpenAI' : 'Anthropic'}
+            </span>
+            <select
+              id="model-select"
+              className="model-select"
+              value={selectedModel.id}
+              onChange={handleModelChange}
+            >
+              <optgroup label="OpenAI">
+                {openaiModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Anthropic">
+                {anthropicModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Capability notice for Anthropic */}
+          {isAnthropicSelected && (
+            <span className="provider-notice">
+              Chat &amp; vision only — image generation and audio require OpenAI
+            </span>
+          )}
+        </div>
+
+        {/* ── Mode tabs ──────────────────────────────────────────────── */}
+        <div className="mode-tabs">
+          {(['chat', 'image', 'audio'] as Mode[]).map((m) => {
+            const disabled =
+              isAnthropicSelected && (m === 'image' || m === 'audio');
+            return (
+              <button
+                key={m}
+                className={`tab ${mode === m ? 'active' : ''} ${disabled ? 'tab-disabled' : ''}`}
+                onClick={() => switchMode(m)}
+                title={
+                  disabled ? 'Not supported by Anthropic models' : undefined
+                }
+              >
+                {m === 'chat'
+                  ? '💬 Text'
+                  : m === 'image'
+                    ? '🎨 Image'
+                    : '🔊 Audio'}
+                {disabled && <span className="tab-lock">🔒</span>}
+              </button>
+            );
+          })}
         </div>
 
         <div className="messages">
@@ -997,7 +670,7 @@ export default function Page() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input box */}
+        {/* ── Input box ──────────────────────────────────────────────── */}
         <div className="input-area">
           {error && <div className="error-msg">{error}</div>}
 
@@ -1106,7 +779,7 @@ export default function Page() {
                   </button>
                 )}
 
-                {/* Audio upload — Audio mode: upload icon (arrow-up) */}
+                {/* Audio upload */}
                 {mode === 'audio' && (
                   <button
                     className="icon-btn"
@@ -1130,7 +803,7 @@ export default function Page() {
                   </button>
                 )}
 
-                {/* Record button — Audio mode: sits right next to upload */}
+                {/* Record button */}
                 {mode === 'audio' && (
                   <button
                     className="icon-btn"
