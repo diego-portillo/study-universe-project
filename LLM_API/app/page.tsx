@@ -12,12 +12,16 @@ import type {
   Message,
   ModelOption,
 } from './types';
+
 import {
   MAX_PROMPT_CHARS,
   MAX_AUDIO_LENGTH,
   SYSTEM_MESSAGE,
   MODEL_OPTIONS,
   DEFAULT_MODEL,
+  PROVIDER_LABELS,
+  UNSUPPORTED_AUDIO_PROVIDERS,
+  UNSUPPORTED_IMAGE_PROVIDERS,
 } from './constants';
 
 import './page.css';
@@ -61,8 +65,7 @@ export default function Page() {
 
   // Whether the selected provider supports the current mode
   const isAnthropicSelected = selectedModel.provider === 'anthropic';
-  const modeUnsupported =
-    isAnthropicSelected && (mode === 'image' || mode === 'audio');
+  const isGoogleSelected = selectedModel.provider === 'google';
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -94,7 +97,7 @@ export default function Page() {
     setGeneratedImageUrl('');
     setGeneratedAudioUrl('');
     if (
-      found.provider === 'anthropic' &&
+      (found.provider === 'anthropic' || found.provider === 'google') &&
       (mode === 'image' || mode === 'audio')
     ) {
       setMode('chat');
@@ -102,11 +105,21 @@ export default function Page() {
   }
 
   function switchMode(m: Mode) {
-    // Prevent switching to unsupported modes when Anthropic is selected
-    if (isAnthropicSelected && (m === 'image' || m === 'audio')) {
+    if (
+      (isAnthropicSelected || isGoogleSelected) &&
+      (m === 'image' || m === 'audio')
+    ) {
+      const unsupportedProviders =
+        m === 'image'
+          ? UNSUPPORTED_IMAGE_PROVIDERS
+          : UNSUPPORTED_AUDIO_PROVIDERS;
+
       setError(
-        `Image and audio features are not available with Anthropic models. Switch to an OpenAI model to use this mode.`,
+        `${
+          m === 'image' ? 'Image' : 'Audio'
+        } features are not available with ${unsupportedProviders} providers. Switch to an OpenAI model to use this mode.`,
       );
+
       return;
     }
     setMode(m);
@@ -207,7 +220,6 @@ export default function Page() {
         setInput('');
         clearImage();
       } else {
-        // Image generation is always OpenAI — this mode is blocked for Anthropic
         const res = await fetch('/api/image', {
           method: 'POST',
           body: JSON.stringify({ prompt: trimmed }),
@@ -405,6 +417,7 @@ export default function Page() {
   const anthropicModels = MODEL_OPTIONS.filter(
     (m) => m.provider === 'anthropic',
   );
+  const googleModels = MODEL_OPTIONS.filter((m) => m.provider === 'google');
 
   return (
     <>
@@ -425,7 +438,7 @@ export default function Page() {
               className={`provider-badge ${selectedModel.provider}`}
               aria-label={selectedModel.provider}
             >
-              {selectedModel.provider === 'openai' ? 'OpenAI' : 'Anthropic'}
+              {PROVIDER_LABELS[selectedModel.provider]}
             </span>
             <select
               id="model-select"
@@ -447,13 +460,19 @@ export default function Page() {
                   </option>
                 ))}
               </optgroup>
+              <optgroup label="Google">
+                {googleModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
-          {/* Capability notice for Anthropic */}
-          {isAnthropicSelected && (
+          {(isAnthropicSelected || isGoogleSelected) && (
             <span className="provider-notice">
-              Chat &amp; vision only — image generation and audio require OpenAI
+              Chat only — image and audio require OpenAI
             </span>
           )}
         </div>
@@ -462,14 +481,17 @@ export default function Page() {
         <div className="mode-tabs">
           {(['chat', 'image', 'audio'] as Mode[]).map((m) => {
             const disabled =
-              isAnthropicSelected && (m === 'image' || m === 'audio');
+              (isAnthropicSelected || isGoogleSelected) &&
+              (m === 'image' || m === 'audio');
             return (
               <button
                 key={m}
                 className={`tab ${mode === m ? 'active' : ''} ${disabled ? 'tab-disabled' : ''}`}
                 onClick={() => switchMode(m)}
                 title={
-                  disabled ? 'Not supported by Anthropic models' : undefined
+                  disabled
+                    ? `Not supported by ${UNSUPPORTED_IMAGE_PROVIDERS} models`
+                    : undefined
                 }
               >
                 {m === 'chat'

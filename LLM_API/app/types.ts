@@ -25,7 +25,7 @@ export type Message = {
   content: MessageContent;
 };
 
-export type Provider = 'openai' | 'anthropic';
+export type Provider = 'openai' | 'anthropic' | 'google';
 
 export interface ModelOption {
   id: string;

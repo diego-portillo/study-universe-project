@@ -12,6 +12,12 @@ export const SYSTEM_MESSAGE: Message = {
     'You are a helpful, concise assistant. Keep answers short. For audio only transcribe.',
 };
 
+export const PROVIDER_LABELS = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  google: 'google',
+};
+
 export const MODEL_OPTIONS: ModelOption[] = [
   { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' },
   { id: 'gpt-4o-mini', label: 'GPT-4o mini', provider: 'openai' },
@@ -27,6 +33,16 @@ export const MODEL_OPTIONS: ModelOption[] = [
     provider: 'anthropic',
   },
   { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', provider: 'anthropic' },
+  { id: 'google-2.5-flash', label: 'google 2.5 Flash', provider: 'google' },
+  {
+    id: 'google-2.5-flash-lite',
+    label: 'google 2.5 Flash Lite',
+    provider: 'google',
+  },
 ];
 
 export const DEFAULT_MODEL = MODEL_OPTIONS[0];
+
+export const UNSUPPORTED_IMAGE_PROVIDERS = 'Anthropic, Google' as const;
+
+export const UNSUPPORTED_AUDIO_PROVIDERS = 'Anthropic, Google' as const;

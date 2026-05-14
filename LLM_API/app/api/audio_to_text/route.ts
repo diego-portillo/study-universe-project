@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openaiClient } from '../lib/openai';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -24,12 +21,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const transcription = await client.audio.transcriptions.create({
+    const transcription = await openaiClient.audio.transcriptions.create({
       model: 'whisper-1',
       file: audio,
     });
 
-    // ✅ IMPORTANT FIX: validate output
     if (!transcription?.text || transcription.text.trim().length === 0) {
       return NextResponse.json(
         {
@@ -40,18 +36,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json({
-      text: transcription.text || '[No speech detected]',
-    });
+    return NextResponse.json({ text: transcription.text });
   } catch (error: unknown) {
-    console.error('[api/audio_to_text]', error);
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Audio transcription failed',
-      },
-      { status: 500 },
-    );
+    let message = 'Audio transcription failed';
+    if (error instanceof OpenAI.APIError) {
+      message = error.message;
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
+    console.error('[api/audio_to_text]', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
