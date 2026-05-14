@@ -50,6 +50,12 @@ export default function Page() {
   const [audioPreview, setAudioPreview] = useState('');
   const [audioName, setAudioName] = useState('');
 
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -207,7 +213,6 @@ export default function Page() {
         const res = await fetch('/api/audio_to_text', {
           method: 'POST',
           body: formData,
-          // no Content-Type header — browser sets it with boundary automatically
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Transcription failed');
@@ -274,7 +279,7 @@ export default function Page() {
       setMessages(payload);
       setInput('');
       clearImage();
-      const conversationId = 'user-1'; // later replace with uuid or auth id
+      const conversationId = 'user-1';
       const res = await fetch('/api/chat', {
         method: 'POST',
         body: JSON.stringify({
@@ -282,7 +287,7 @@ export default function Page() {
           conversationId,
         }),
         headers: {
-          ' Content-Type': 'application/json',
+          'Content-Type': 'application/json',
         },
       });
       const data = await res.json();
@@ -307,6 +312,61 @@ export default function Page() {
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close?.();
     return canvas.toDataURL('image/jpeg', 0.6);
+  }
+
+  async function startRecording() {
+    try {
+      setError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const file = new File([blob], `recording-${Date.now()}.webm`, {
+          type: 'audio/webm',
+        });
+        setAudioFile(file);
+        const url = URL.createObjectURL(blob);
+        setAudioPreview(url);
+        setAudioName(file.name);
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      timeoutRef.current = setTimeout(() => {
+        if (recorder.state === 'recording') {
+          recorder.stop();
+          setIsRecording(false);
+        }
+      }, MAX_AUDIO_LENGTH * 1000);
+
+      mediaRecorderRef.current = recorder;
+    } catch (err) {
+      setError('Microphone permission denied or unavailable');
+    }
+  }
+
+  function stopRecording() {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+    recorder.stop();
+    setIsRecording(false);
+  }
+
+  function toggleRecording() {
+    if (isRecording) stopRecording();
+    else startRecording();
   }
 
   const canSend =
@@ -366,7 +426,7 @@ export default function Page() {
           flex-direction: column;
           height: 100dvh;
           width: 100%;
-          max-width: 900px;    
+          max-width: 900px;
           margin: 0 auto;
         }
 
@@ -395,7 +455,6 @@ export default function Page() {
 
         .header-title { font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
 
-        /* centered tabs */
         .mode-tabs {
           display: flex;
           justify-content: center;
@@ -716,38 +775,16 @@ export default function Page() {
         }
 
         @media (max-width: 600px) {
-          .bubble {
-            max-width: 92%;
-            font-size: 14px;
-          }
+          .bubble { max-width: 92%; font-size: 14px; }
           .empty-title { font-size: 20px; }
         }
         @media (max-width: 480px) {
-          .input-wrapper {
-            border-radius: 16px;
-            padding: 10px;
-          }
-
-          textarea {
-            font-size: 14px;
-          }
-
-          .send-btn {
-            width: 38px;
-            height: 38px;
-          }
-
-          .icon-btn {
-            padding: 8px;
-          }
-
-          .header {
-            padding: 12px 16px;
-          }
-
-          .header-title {
-            font-size: 13px;
-          }
+          .input-wrapper { border-radius: 16px; padding: 10px; }
+          textarea { font-size: 14px; }
+          .send-btn { width: 38px; height: 38px; }
+          .icon-btn { padding: 8px; }
+          .header { padding: 12px 16px; }
+          .header-title { font-size: 13px; }
         }
       `}</style>
 
@@ -757,7 +794,6 @@ export default function Page() {
           <span className="header-title">Diego&apos;s LLM Integration</span>
         </header>
 
-        {/* Centered tabs: Text | Image | Audio */}
         <div className="mode-tabs">
           {(['chat', 'image', 'audio'] as Mode[]).map((m) => (
             <button
@@ -774,7 +810,6 @@ export default function Page() {
           ))}
         </div>
 
-        {/* Content area */}
         <div className="messages">
           {/* TEXT mode */}
           {mode === 'chat' &&
@@ -857,6 +892,41 @@ export default function Page() {
                     alt="result"
                     className="generated-img"
                   />
+                  <a
+                    href={generatedImageUrl}
+                    download="generated-image.jpg"
+                    style={{
+                      marginTop: 8,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: 'var(--surface2)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 10,
+                      padding: '7px 14px',
+                      fontSize: 13,
+                      color: 'var(--text-muted)',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      transition: 'color 0.15s',
+                    }}
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download image
+                  </a>
                   {messages.length > 2 && (
                     <p className="analysis-text">
                       {getTextContent(messages[messages.length - 1].content)}
@@ -1012,7 +1082,7 @@ export default function Page() {
               />
 
               <div className="input-actions">
-                {/* Image upload — Text and Image modes */}
+                {/* Image upload — Image mode only */}
                 {mode === 'image' && (
                   <button
                     className="icon-btn"
@@ -1036,7 +1106,7 @@ export default function Page() {
                   </button>
                 )}
 
-                {/* Audio upload — Audio mode */}
+                {/* Audio upload — Audio mode: upload icon (arrow-up) */}
                 {mode === 'audio' && (
                   <button
                     className="icon-btn"
@@ -1053,11 +1123,47 @@ export default function Page() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      <line x1="12" y1="19" x2="12" y2="23" />
-                      <line x1="8" y1="23" x2="16" y2="23" />
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
+                  </button>
+                )}
+
+                {/* Record button — Audio mode: sits right next to upload */}
+                {mode === 'audio' && (
+                  <button
+                    className="icon-btn"
+                    title={isRecording ? 'Stop recording' : 'Record audio'}
+                    onClick={toggleRecording}
+                    style={{ color: isRecording ? '#ff4d4d' : undefined }}
+                  >
+                    {isRecording ? (
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <rect x="6" y="6" width="12" height="12" />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" y1="19" x2="12" y2="23" />
+                        <line x1="8" y1="23" x2="16" y2="23" />
+                      </svg>
+                    )}
                   </button>
                 )}
 
