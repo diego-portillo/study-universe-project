@@ -1,21 +1,14 @@
-export type Provider = 'openai' | 'anthropic';
+import type { Message, Provider } from '../../types';
 
-export type TextPart = {
-  type: 'text';
-  text: string;
-};
-
-export type ImageUrlPart = {
-  type: 'image_url';
-  image_url: { url: string; detail?: 'low' | 'high' | 'auto' };
-};
-
-export type MessageContent = string | Array<TextPart | ImageUrlPart>;
-
-export type Message = {
-  role: 'system' | 'user' | 'assistant';
-  content: MessageContent;
-};
+export type {
+  Provider,
+  TextPart,
+  ImageUrlPart,
+  MessageContent,
+  Message,
+  Mode,
+  SpeechVoice,
+} from '../../types';
 
 export type ChatBody = {
   messages: Message[];

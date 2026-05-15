@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { applyLowDetailToImages, messagesIncludeVision } from '../lib/messages';
 import { runOpenAIChat } from '../lib/openai';
 import { runAnthropicChat } from '../lib/anthropic';
+import { runGeminiChat } from '../lib/gemini';
 import type { ChatBody } from '../lib/types';
 
 const MAX_MESSAGES = 8;
@@ -61,6 +62,16 @@ export async function POST(request: NextRequest) {
       const resolvedModel =
         model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
       result = await runAnthropicChat(fullMessages, resolvedModel, maxTokens);
+    } else if (provider === 'gemini') {
+      if (!process.env.GEMINI_API_KEY)
+        return NextResponse.json(
+          { error: 'Missing GEMINI_API_KEY in .env.local' },
+          { status: 500 },
+        );
+
+      const resolvedModel =
+        model || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+      result = await runGeminiChat(fullMessages, resolvedModel, maxTokens);
     } else {
       if (!process.env.OPENAI_API_KEY)
         return NextResponse.json(

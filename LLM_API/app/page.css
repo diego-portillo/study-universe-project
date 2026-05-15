@@ -512,6 +512,10 @@ textarea::-webkit-scrollbar-thumb {
   background: #c96f3222;
   color: #c96f32;
 }
+.provider-badge.google {
+  background: #1a73e822;
+  color: #1a73e8;
+}
 .provider-notice {
   font-size: 11px;
   color: var(--text-muted);

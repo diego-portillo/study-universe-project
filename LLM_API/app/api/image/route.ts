@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { ImageRequestBody } from '../lib/types';
 import OpenAI from 'openai';
+import type { ImageRequestBody } from '../lib/types';
+import { openaiClient } from '../lib/openai';
 
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'dall-e-2';
-
 const IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE ?? '256x256';
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(request: NextRequest) {
   let body: ImageRequestBody;
@@ -21,18 +17,14 @@ export async function POST(request: NextRequest) {
 
   const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
 
-  if (!prompt) {
+  if (!prompt)
     return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
-  }
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY)
     return NextResponse.json(
-      {
-        error: 'Missing OPENAI_API_KEY in .env.local',
-      },
+      { error: 'Missing OPENAI_API_KEY in .env.local' },
       { status: 500 },
     );
-  }
 
   const maxLen = IMAGE_MODEL.startsWith('dall-e-3')
     ? 4000
@@ -43,9 +35,8 @@ export async function POST(request: NextRequest) {
   const clipped = prompt.slice(0, maxLen);
 
   try {
-    // GPT Image models
     if (IMAGE_MODEL.startsWith('gpt-image')) {
-      const img = await client.images.generate({
+      const img = await openaiClient.images.generate({
         model: IMAGE_MODEL,
         prompt: clipped,
         n: 1,
@@ -54,13 +45,11 @@ export async function POST(request: NextRequest) {
       });
 
       const b64 = img.data?.[0]?.b64_json;
-
-      if (!b64) {
+      if (!b64)
         return NextResponse.json(
           { error: 'No image returned' },
           { status: 502 },
         );
-      }
 
       return NextResponse.json({
         url: `data:image/png;base64,${b64}`,
@@ -68,9 +57,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // DALL·E 3
     if (IMAGE_MODEL === 'dall-e-3') {
-      const img = await client.images.generate({
+      const img = await openaiClient.images.generate({
         model: 'dall-e-3',
         prompt: clipped,
         n: 1,
@@ -80,13 +68,11 @@ export async function POST(request: NextRequest) {
       });
 
       const url = img.data?.[0]?.url;
-
-      if (!url) {
+      if (!url)
         return NextResponse.json(
           { error: 'No image URL returned' },
           { status: 502 },
         );
-      }
 
       return NextResponse.json({
         url,
@@ -94,7 +80,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // DALL·E 2
     const dalle2Size: '256x256' | '512x512' | '1024x1024' =
       IMAGE_SIZE === '512x512' ||
       IMAGE_SIZE === '1024x1024' ||
@@ -102,7 +87,7 @@ export async function POST(request: NextRequest) {
         ? IMAGE_SIZE
         : '256x256';
 
-    const img = await client.images.generate({
+    const img = await openaiClient.images.generate({
       model: 'dall-e-2',
       prompt: clipped,
       n: 1,
@@ -111,21 +96,21 @@ export async function POST(request: NextRequest) {
     });
 
     const url = img.data?.[0]?.url;
-
-    if (!url) {
+    if (!url)
       return NextResponse.json(
         { error: 'No image URL returned' },
         { status: 502 },
       );
-    }
 
     return NextResponse.json({ url });
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : 'Unknown image generation error';
-
+    let message = 'Unknown image generation error';
+    if (error instanceof OpenAI.APIError) {
+      message = error.message;
+    } else if (error instanceof Error) {
+      message = error.message;
+    }
     console.error('[api/image]', message);
-
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
