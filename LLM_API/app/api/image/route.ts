@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ImageRequestBody } from '../lib/types';
-import { openaiClient } from '../lib/openai';
+
+const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'dall-e-2';
 const IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE ?? '256x256';

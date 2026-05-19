@@ -1,22 +1,22 @@
-import type { Message } from './types';
-
-import type { ModelOption } from './types';
-
+import type { Message, ModelOption, AudioProvider } from './types';
 export const MAX_PROMPT_CHARS = 2000;
-
 export const MAX_AUDIO_LENGTH = 60;
 
-export const SYSTEM_MESSAGE: Message = {
-  role: 'system',
-  content:
-    'You are a helpful, concise assistant. Keep answers short. For audio only transcribe.',
-};
+export function makeSystemMessage(modelLabel: string): Message {
+  return {
+    role: 'system',
+    content: `You are a helpful, concise assistant. Keep answers short. You are currently running as ${modelLabel}.`,
+  };
+}
 
 export const PROVIDER_LABELS = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
-  google: 'google',
+  google: 'Google',
+  elevenlabs: 'ElevenLabs',
 };
+
+export const UNSUPPORTED_AUDIO_TEXT_PROVIDERS = 'Anthropic, Google' as const;
 
 export const MODEL_OPTIONS: ModelOption[] = [
   { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' },
@@ -33,16 +33,28 @@ export const MODEL_OPTIONS: ModelOption[] = [
     provider: 'anthropic',
   },
   { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', provider: 'anthropic' },
-  { id: 'google-2.5-flash', label: 'google 2.5 Flash', provider: 'google' },
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', provider: 'google' },
   {
-    id: 'google-2.5-flash-lite',
-    label: 'google 2.5 Flash Lite',
+    id: 'gemini-2.5-flash-lite',
+    label: 'Gemini 2.5 Flash Lite',
     provider: 'google',
+  },
+  {
+    id: 'elevenlabs-tts',
+    label: 'ElevenLabs TTS / Scribe V2',
+    provider: 'elevenlabs',
   },
 ];
 
 export const DEFAULT_MODEL = MODEL_OPTIONS[0];
 
-export const UNSUPPORTED_IMAGE_PROVIDERS = 'Anthropic, Google' as const;
-
+export const UNSUPPORTED_IMAGE_PROVIDERS =
+  'Anthropic, Google, ElevenLabs' as const;
 export const UNSUPPORTED_AUDIO_PROVIDERS = 'Anthropic, Google' as const;
+
+export const AUDIO_PROVIDER_OPTIONS: { id: AudioProvider; label: string }[] = [
+  { id: 'openai', label: 'OpenAI Whisper / TTS' },
+  { id: 'elevenlabs', label: 'ElevenLabs TTS / Scribe V2' },
+];
+
+export const DEFAULT_AUDIO_PROVIDER: AudioProvider = 'openai';
