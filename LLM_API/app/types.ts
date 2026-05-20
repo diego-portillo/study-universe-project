@@ -1,5 +1,7 @@
 export type Mode = 'chat' | 'image' | 'audio';
 
+export type AudioProvider = 'openai' | 'elevenlabs';
+
 export type SpeechVoice =
   | 'alloy'
   | 'echo'
@@ -25,7 +27,7 @@ export type Message = {
   content: MessageContent;
 };
 
-export type Provider = 'openai' | 'anthropic' | 'google';
+export type Provider = 'openai' | 'anthropic' | 'google' | 'elevenlabs';
 
 export interface ModelOption {
   id: string;

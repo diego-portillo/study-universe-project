@@ -1,21 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
+import { NextRequest } from 'next/server';
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
 import { applyLowDetailToImages, messagesIncludeVision } from '../lib/messages';
-import { runOpenAIChat } from '../lib/openai';
-import { runAnthropicChat } from '../lib/anthropic';
-import { runGeminiChat } from '../lib/gemini';
 import type { ChatBody } from '../lib/types';
+import type { Message } from '../../types';
 
 const MAX_MESSAGES = 8;
-const memoryStore = new Map();
+const memoryStore = new Map<string, Message[]>();
+
+import type { ModelMessage } from 'ai';
+
+function toAISDKMessages(messages: Message[]): ModelMessage[] {
+  return messages
+    .filter((m) => m.role !== 'system')
+    .map((m) => {
+      if (typeof m.content === 'string') {
+        return { role: m.role as 'user' | 'assistant', content: m.content };
+      }
+
+      const parts = m.content.map((part) => {
+        if (part.type === 'text') {
+          return { type: 'text' as const, text: part.text };
+        }
+        return {
+          type: 'image' as const,
+          image: part.image_url.url,
+        };
+      });
+
+      // multipart is always user — assistants don't send images
+      return { role: 'user' as const, content: parts };
+    });
+}
+
+function extractSystemPrompt(messages: Message[]): string | undefined {
+  const sys = messages.find((m) => m.role === 'system');
+  if (!sys) return undefined;
+  if (typeof sys.content === 'string' && sys.content.trim().length > 0) {
+    return sys.content;
+  }
+  return undefined;
+}
 
 export async function POST(request: NextRequest) {
   let body: ChatBody;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400,
+    });
   }
 
   const {
@@ -27,22 +63,29 @@ export async function POST(request: NextRequest) {
   } = body;
 
   if (!Array.isArray(messages) || messages.length === 0)
-    return NextResponse.json(
-      { error: 'messages must be a non-empty array' },
+    return new Response(
+      JSON.stringify({ error: 'messages must be a non-empty array' }),
       { status: 400 },
     );
 
   if (messages.length > MAX_MESSAGES)
-    return NextResponse.json(
-      { error: 'Conversation reached MAX_MESSAGES limit.' },
+    return new Response(
+      JSON.stringify({ error: 'Conversation reached MAX_MESSAGES limit.' }),
       { status: 413 },
     );
 
   if (reset) memoryStore.delete(conversationId);
 
   const normalized = applyLowDetailToImages(messages);
-  const previous = memoryStore.get(conversationId) || [];
+  const previous = memoryStore.get(conversationId) ?? [];
   const fullMessages = [...previous, ...normalized];
+
+  const systemPrompt = extractSystemPrompt(fullMessages);
+  const aiMessages = toAISDKMessages(fullMessages).filter((m) =>
+    typeof m.content === 'string'
+      ? m.content.trim().length > 0
+      : Array.isArray(m.content) && m.content.length > 0,
+  );
 
   const maxTokens = Math.min(
     4096,
@@ -50,57 +93,61 @@ export async function POST(request: NextRequest) {
   );
 
   try {
-    let result;
+    let resolvedModel;
 
     if (provider === 'anthropic') {
       if (!process.env.ANTHROPIC_API_KEY)
-        return NextResponse.json(
-          { error: 'Missing ANTHROPIC_API_KEY' },
+        return new Response(
+          JSON.stringify({ error: 'Missing ANTHROPIC_API_KEY' }),
           { status: 500 },
         );
 
-      const resolvedModel =
-        model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
-      result = await runAnthropicChat(fullMessages, resolvedModel, maxTokens);
-    } else if (provider === 'gemini') {
-      if (!process.env.GEMINI_API_KEY)
-        return NextResponse.json(
-          { error: 'Missing GEMINI_API_KEY in .env.local' },
+      resolvedModel = anthropic(
+        model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5',
+      );
+    } else if (provider === 'google') {
+      if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+        return new Response(
+          JSON.stringify({ error: 'Missing GOOGLE_GENERATIVE_AI_API_KEY' }),
           { status: 500 },
         );
 
-      const resolvedModel =
-        model || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-      result = await runGeminiChat(fullMessages, resolvedModel, maxTokens);
+      resolvedModel = google(
+        model ?? process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
+      );
     } else {
       if (!process.env.OPENAI_API_KEY)
-        return NextResponse.json(
-          { error: 'Missing OPENAI_API_KEY' },
+        return new Response(
+          JSON.stringify({ error: 'Missing OPENAI_API_KEY' }),
           { status: 500 },
         );
 
       const hasVision = messagesIncludeVision(normalized);
-      const resolvedModel =
-        model ||
-        (hasVision
-          ? process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini'
-          : process.env.OPENAI_MODEL || 'gpt-4o');
-      result = await runOpenAIChat(fullMessages, resolvedModel, maxTokens);
+      const defaultModel = hasVision
+        ? (process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini')
+        : (process.env.OPENAI_MODEL ?? 'gpt-4o');
+
+      resolvedModel = openai(model ?? defaultModel);
     }
 
-    memoryStore.set(conversationId, [...fullMessages, result.message]);
-    return NextResponse.json({ message: result.message });
+    const result = streamText({
+      model: resolvedModel,
+      system: systemPrompt,
+      messages: aiMessages,
+      maxOutputTokens: maxTokens,
+      onFinish: ({ text }) => {
+        // persist assistant reply to memory after stream completes
+        memoryStore.set(conversationId, [
+          ...fullMessages,
+          { role: 'assistant', content: text },
+        ]);
+      },
+    });
+
+    return result.toTextStreamResponse();
   } catch (error: unknown) {
-    let message = 'Unknown error';
-    if (error instanceof Anthropic.APIError) {
-      const body = error.error as { error?: { message?: string } } | undefined;
-      message = body?.error?.message ?? error.message;
-    } else if (error instanceof OpenAI.APIError) {
-      message = error.message;
-    } else if (error instanceof Error) {
-      message = error.message;
-    }
+    const message = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[api/chat] ${provider} error:`, message);
-    return NextResponse.json({ error: message }, { status: 502 });
+    return new Response(JSON.stringify({ error: message }), { status: 502 });
   }
 }

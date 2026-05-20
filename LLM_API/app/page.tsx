@@ -1,8 +1,18 @@
 'use client';
 
-import { ChangeEvent, useEffect, useRef, useState, KeyboardEvent } from 'react';
+import {
+  ChangeEvent,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+  KeyboardEvent,
+} from 'react';
 
-import { getTextContent, hasImage, fileToLowResDataUrl } from './utils';
+import { getTextContent, hasImage } from './utils';
+
+import { useChat } from './hooks/useChat';
 
 import type {
   Mode,
@@ -11,25 +21,48 @@ import type {
   ImageUrlPart,
   Message,
   ModelOption,
+  AudioProvider,
 } from './types';
 
 import {
-  MAX_PROMPT_CHARS,
   MAX_AUDIO_LENGTH,
-  SYSTEM_MESSAGE,
+  makeSystemMessage,
   MODEL_OPTIONS,
   DEFAULT_MODEL,
   PROVIDER_LABELS,
   UNSUPPORTED_AUDIO_PROVIDERS,
   UNSUPPORTED_IMAGE_PROVIDERS,
+  DEFAULT_AUDIO_PROVIDER,
+  AUDIO_PROVIDER_OPTIONS,
 } from './constants';
 
 import './page.css';
 
 export default function Page() {
-  const [messages, setMessages] = useState<Message[]>([SYSTEM_MESSAGE]);
-  const [input, setInput] = useState('');
   const [mode, setMode] = useState<Mode>('chat');
+  const [chatMessages, setChatMessages] = useState<Message[]>([
+    makeSystemMessage(DEFAULT_MODEL.label),
+  ]);
+  const [imageMessages, setImageMessages] = useState<Message[]>([
+    makeSystemMessage(DEFAULT_MODEL.label),
+  ]);
+  const [audioMessages, setAudioMessages] = useState<Message[]>([
+    makeSystemMessage(DEFAULT_MODEL.label),
+  ]);
+
+  const messages =
+    mode === 'chat'
+      ? chatMessages
+      : mode === 'image'
+        ? imageMessages
+        : audioMessages;
+  const setMessages: Dispatch<SetStateAction<Message[]>> =
+    mode === 'chat'
+      ? setChatMessages
+      : mode === 'image'
+        ? setImageMessages
+        : setAudioMessages;
+  const [input, setInput] = useState('');
 
   // Provider / model
   const [selectedModel, setSelectedModel] =
@@ -41,6 +74,9 @@ export default function Page() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioPreview, setAudioPreview] = useState('');
   const [audioName, setAudioName] = useState('');
+  const [audioProvider, setAudioProvider] = useState<AudioProvider>(
+    DEFAULT_AUDIO_PROVIDER,
+  );
 
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -66,6 +102,7 @@ export default function Page() {
   // Whether the selected provider supports the current mode
   const isAnthropicSelected = selectedModel.provider === 'anthropic';
   const isGoogleSelected = selectedModel.provider === 'google';
+  const isElevenLabsSelected = selectedModel.provider === 'elevenlabs';
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,14 +125,33 @@ export default function Page() {
     const found = MODEL_OPTIONS.find((m) => m.id === e.target.value);
     if (!found) return;
     setSelectedModel(found);
+    // warn if conversation has images and new model doesn't support vision
+    const hasImages = messages.some(
+      (m) =>
+        Array.isArray(m.content) &&
+        m.content.some((p) => p.type === 'image_url'),
+    );
+
+    const visionUnsupported =
+      found.provider === 'anthropic' || found.provider === 'google';
+
+    if (hasImages && visionUnsupported) {
+      setError(
+        `Warning: this conversation contains images. ${found.label} may not support vision — image messages will be sent as text placeholders.`,
+      );
+    }
     setError('');
-    // Reset conversation state
-    setMessages([SYSTEM_MESSAGE]);
+    setChatMessages([makeSystemMessage(found.label)]);
+    setImageMessages([makeSystemMessage(found.label)]);
+    setAudioMessages([makeSystemMessage(found.label)]);
     setInput('');
     clearImage();
     clearAudio();
     setGeneratedImageUrl('');
     setGeneratedAudioUrl('');
+    if (found.provider === 'elevenlabs') {
+      setMode('audio');
+    }
     if (
       (found.provider === 'anthropic' || found.provider === 'google') &&
       (mode === 'image' || mode === 'audio')
@@ -105,6 +161,12 @@ export default function Page() {
   }
 
   function switchMode(m: Mode) {
+    if (isElevenLabsSelected && (m === 'chat' || m === 'image')) {
+      setError(
+        'ElevenLabs only supports audio. Switch to another provider for text or image.',
+      );
+      return;
+    }
     if (
       (isAnthropicSelected || isGoogleSelected) &&
       (m === 'image' || m === 'audio')
@@ -128,20 +190,6 @@ export default function Page() {
     setGeneratedAudioUrl('');
     clearImage();
     clearAudio();
-  }
-
-  function clearImage() {
-    setImageFile(null);
-    setImagePreview('');
-    if (fileRef.current) fileRef.current.value = '';
-  }
-
-  function clearAudio() {
-    setAudioFile(null);
-    if (audioPreview) URL.revokeObjectURL(audioPreview);
-    setAudioPreview('');
-    setAudioName('');
-    if (audioRef.current) audioRef.current.value = '';
   }
 
   function onPickFile(e: ChangeEvent<HTMLInputElement>) {
@@ -179,164 +227,36 @@ export default function Page() {
       handleSend();
     }
   }
+  const { sendChat, generateImage, handleAudio, clearImage, clearAudio } =
+    useChat({
+      messages,
+      input,
+      imageFile,
+      audioFile,
+      audioName,
+      selectedModel,
+      voice,
+      audioProvider,
+      setMessages,
+      setInput,
+      setError,
+      setLoading,
+      setGeneratedImageUrl,
+      setGeneratedAudioUrl,
+      setImageFile,
+      setImagePreview,
+      setAudioFile,
+      setAudioPreview,
+      setAudioName,
+      audioPreview,
+      fileInputRef: fileRef,
+      audioInputRef: audioRef,
+    });
 
   function handleSend() {
     if (mode === 'image') return generateImage();
     if (mode === 'audio') return handleAudio();
     return sendChat();
-  }
-
-  async function generateImage() {
-    if (loading) return;
-    const trimmed = input.trim();
-    if (!trimmed && !imageFile) return;
-    setLoading(true);
-    setError('');
-    setGeneratedImageUrl('');
-    try {
-      if (imageFile) {
-        const dataUrl = await fileToLowResDataUrl(imageFile);
-        const userMessage: Message = {
-          role: 'user',
-          content: [
-            { type: 'text', text: trimmed || 'Describe this image in detail.' },
-            { type: 'image_url', image_url: { url: dataUrl, detail: 'low' } },
-          ],
-        };
-        const payload = [SYSTEM_MESSAGE, userMessage];
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          body: JSON.stringify({
-            messages: payload,
-            model: selectedModel.id,
-            provider: selectedModel.provider,
-          }),
-          headers: { 'Content-Type': 'application/json' },
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Analysis failed');
-        setGeneratedImageUrl(dataUrl);
-        setMessages([SYSTEM_MESSAGE, userMessage, data.message]);
-        setInput('');
-        clearImage();
-      } else {
-        const res = await fetch('/api/image', {
-          method: 'POST',
-          body: JSON.stringify({ prompt: trimmed }),
-          headers: { 'Content-Type': 'application/json' },
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Image generation failed');
-        setGeneratedImageUrl(data.url);
-        setInput('');
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleAudio() {
-    if (loading) return;
-    const trimmed = input.trim();
-
-    if (audioFile) {
-      setLoading(true);
-      setError('');
-      try {
-        const formData = new FormData();
-        formData.append('audio', audioFile);
-        const res = await fetch('/api/audio_to_text', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Transcription failed');
-        setMessages((prev) => [
-          ...prev,
-          { role: 'user', content: `[Audio: ${audioName}]` },
-          { role: 'assistant', content: data.text },
-        ]);
-        clearAudio();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Error');
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    if (!trimmed) return;
-    setLoading(true);
-    setError('');
-    setGeneratedAudioUrl('');
-    try {
-      const res = await fetch('/api/text_to_audio', {
-        method: 'POST',
-        body: JSON.stringify({ text: trimmed, voice }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'TTS failed');
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setGeneratedAudioUrl(url);
-      setInput('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function sendChat() {
-    if (loading) return;
-    const trimmed = input.trim().slice(0, MAX_PROMPT_CHARS);
-    if (!trimmed && !imageFile) return;
-    setLoading(true);
-    setError('');
-    try {
-      let userMessage: Message;
-      if (imageFile) {
-        const dataUrl = await fileToLowResDataUrl(imageFile);
-        userMessage = {
-          role: 'user',
-          content: [
-            { type: 'text', text: trimmed || 'Describe this image.' },
-            { type: 'image_url', image_url: { url: dataUrl, detail: 'low' } },
-          ],
-        };
-      } else {
-        userMessage = { role: 'user', content: trimmed };
-      }
-      const payload = [...messages, userMessage];
-      setMessages(payload);
-      setInput('');
-      clearImage();
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: payload,
-          conversationId: 'user-1',
-          model: selectedModel.id,
-          provider: selectedModel.provider,
-          reset: messages.filter((m) => m.role !== 'system').length === 0,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Request failed');
-      setMessages((prev) => [...prev, data.message]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function startRecording() {
@@ -467,6 +387,15 @@ export default function Page() {
                   </option>
                 ))}
               </optgroup>
+              <optgroup label="ElevenLabs">
+                {MODEL_OPTIONS.filter((m) => m.provider === 'elevenlabs').map(
+                  (m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ),
+                )}
+              </optgroup>
             </select>
           </div>
 
@@ -475,14 +404,20 @@ export default function Page() {
               Chat only — image and audio require OpenAI
             </span>
           )}
+          {isElevenLabsSelected && (
+            <span className="provider-notice">
+              Audio only — text and image require another provider
+            </span>
+          )}
         </div>
 
         {/* ── Mode tabs ──────────────────────────────────────────────── */}
         <div className="mode-tabs">
           {(['chat', 'image', 'audio'] as Mode[]).map((m) => {
             const disabled =
-              (isAnthropicSelected || isGoogleSelected) &&
-              (m === 'image' || m === 'audio');
+              ((isAnthropicSelected || isGoogleSelected) &&
+                (m === 'image' || m === 'audio')) ||
+              (isElevenLabsSelected && (m === 'chat' || m === 'image'));
             return (
               <button
                 key={m}
@@ -738,38 +673,13 @@ export default function Page() {
               </div>
             )}
 
-            {/* Voice selector — only in audio mode with no file */}
-            {mode === 'audio' && !audioFile && (
-              <div className="voice-row">
-                <span className="voice-label">Voice:</span>
-                <select
-                  className="voice-select"
-                  value={voice}
-                  onChange={(e) => setVoice(e.target.value as SpeechVoice)}
-                >
-                  {(
-                    [
-                      'alloy',
-                      'echo',
-                      'fable',
-                      'onyx',
-                      'nova',
-                      'shimmer',
-                    ] as SpeechVoice[]
-                  ).map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             <div className="textarea-row">
               <textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                }}
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
                 rows={1}

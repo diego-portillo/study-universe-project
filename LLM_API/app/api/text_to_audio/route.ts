@@ -1,23 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { openaiClient } from '../lib/openai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
 import type { SpeechVoice } from '../../types';
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, voice = 'alloy' }: { text: string; voice?: SpeechVoice } =
-      await req.json();
+    const {
+      text,
+      voice = 'alloy',
+      provider = 'openai',
+    }: {
+      text: string;
+      voice?: SpeechVoice;
+      provider?: string;
+    } = await req.json();
 
     if (!text || typeof text !== 'string')
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
 
-    const mp3 = await openaiClient.audio.speech.create({
-      model: 'tts-1',
-      voice,
-      input: text,
-    });
+    let audioBytes: Uint8Array;
 
-    const buffer = Buffer.from(await mp3.arrayBuffer());
+    if (provider === 'elevenlabs') {
+      const result = await generateSpeech({
+        model: elevenlabs.speech('eleven_multilingual_v2'),
+        text,
+        voice: '21m00Tcm4TlvDq8ikWAM', // default ElevenLabs voice
+      });
+      audioBytes = result.audio.uint8Array;
+    } else {
+      const result = await generateSpeech({
+        model: openai.speech('tts-1'),
+        text,
+        voice: voice ?? 'alloy', // default OpenAI voice
+      });
+      audioBytes = result.audio.uint8Array;
+    }
+
+    const buffer = Buffer.from(audioBytes);
 
     return new NextResponse(buffer, {
       headers: {
@@ -26,12 +46,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    let message = 'Internal server error';
-    if (error instanceof OpenAI.APIError) {
-      message = error.message;
-    } else if (error instanceof Error) {
-      message = error.message;
-    }
+    const message =
+      error instanceof Error ? error.message : 'Internal server error';
     console.error('[api/text_to_audio]', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
