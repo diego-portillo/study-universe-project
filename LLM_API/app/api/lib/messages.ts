@@ -51,7 +51,7 @@ export function applyLowDetailToImages(
         ...part,
         image_url: {
           ...part.image_url,
-          detail: "low",
+          detail: "low" as const,
         },
       };
     });
