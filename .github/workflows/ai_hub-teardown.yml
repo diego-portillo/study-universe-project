@@ -1,0 +1,41 @@
+name: AI Hub — Teardown
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  APP_RUNNER_SERVICE: ai-hub
+  ECR_REPOSITORY: ai-hub
+
+jobs:
+  teardown:
+    name: Delete App Runner service
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Delete App Runner service
+        run: |
+          SERVICE_ARN=$(aws apprunner list-services \
+            --query "ServiceSummaryList[?ServiceName=='$APP_RUNNER_SERVICE'].ServiceArn" \
+            --output text)
+
+          if [ -z "$SERVICE_ARN" ]; then
+            echo "No App Runner service named '$APP_RUNNER_SERVICE' found — nothing to delete."
+          else
+            echo "Deleting App Runner service: $SERVICE_ARN"
+            aws apprunner delete-service --service-arn "$SERVICE_ARN"
+            echo "✅ Service deleted. Billing stops immediately."
+          fi

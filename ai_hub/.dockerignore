@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+README.md
+Dockerfile
+.dockerignore
+npm-debug.log*
+.vscode
+.idea
+coverage
+*.log
+# app/tests is intentionally NOT excluded — the builder stage runs vitest before next build
