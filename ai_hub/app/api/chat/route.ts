@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       messages: aiMessages,
       maxOutputTokens: maxTokens,
       onFinish: ({ text }) => {
-        const updated = [...fullMessages, { role: 'assistant', content: text }];
+        const updated = [...fullMessages, { role: 'assistant' as const, content: text }];
         memoryStore.set(conversationId, updated.slice(-MAX_MESSAGES));
       },
     });
