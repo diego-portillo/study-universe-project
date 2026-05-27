@@ -1,10 +1,10 @@
 services:
-  llm_api:
+  ai_hub:
     build:
       context: .
       dockerfile: Dockerfile
-      # For production behind a reverse proxy at /llm_api, pass:
-      # --build-arg NEXT_PUBLIC_BASE_PATH=/llm_api
+      # For production behind a reverse proxy at /ai_hub, pass:
+      # --build-arg NEXT_PUBLIC_BASE_PATH=/ai_hub
       args:
         NEXT_PUBLIC_BASE_PATH: ""
     ports:

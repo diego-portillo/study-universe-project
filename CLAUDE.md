@@ -6,20 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a multi-project monorepo. Each top-level directory is an independent project; there is no shared build at the root (only Prettier/Tailwind config).
 
-- `llm_api/` — **primary active subproject.** Next.js 16 + React 19 chat/image/audio UI over OpenAI, Anthropic, Google, and ElevenLabs via the Vercel AI SDK.
+- `ai_hub/` — **primary active subproject.** Next.js 16 + React 19 chat/image/audio UI over OpenAI, Anthropic, Google, and ElevenLabs via the Vercel AI SDK.
 - `backend_flask/`, `backend_node/` — tiny Flask and Express hello-world services, wired into `docker-compose.yaml` and the `static_website/` frontend.
 - `static_website/` — static HTML/JS frontend that calls `backend_flask` (served via the root `docker-compose.yaml`).
 - `balancer/` — docker compose / swarm nginx load-balancer experiments.
 - `RAG/`, `data/algorithms/` — RAG loader for indexing algorithm files in `data/`.
 
-When asked to work "on the app" without further context, assume `llm_api/`.
+When asked to work "on the app" without further context, assume `ai_hub/`.
 
 ## Dependencies convention
 
 Each subproject manages its own dependencies and is independently deployable — do not hoist or share `node_modules` across projects.
 
 - **Root `package.json` / `node_modules`** — repo-wide tooling only (Prettier, Tailwind plugin, ESLint-Prettier config). Used by format-on-save across every subproject. Not for app code.
-- **Subproject `package.json` / `node_modules`** (e.g. `llm_api/`) — that app's runtime + dev deps. Each subproject pins its own versions and ships in its own Docker image with only its own deps installed.
+- **Subproject `package.json` / `node_modules`** (e.g. `ai_hub/`) — that app's runtime + dev deps. Each subproject pins its own versions and ships in its own Docker image with only its own deps installed.
 
 No npm workspaces: subprojects don't share code (different runtimes — Next.js, Flask, static HTML, Python RAG), so workspaces would be ceremony for no benefit.
 
@@ -27,24 +27,24 @@ No npm workspaces: subprojects don't share code (different runtimes — Next.js,
 
 - **Domain:** `www.diegoportillo.dev` (owned by Diego).
 - **Host:** AWS (not Vercel).
-- **Routing:** each subproject is served at a subpath, e.g. `www.diegoportillo.dev/llm_api`. A reverse proxy (nginx / ALB / CloudFront) fans the subpaths out to per-subproject containers.
+- **Routing:** each subproject is served at a subpath, e.g. `www.diegoportillo.dev/ai_hub`. A reverse proxy (nginx / ALB / CloudFront) fans the subpaths out to per-subproject containers.
 - **Container model:** one Docker image per subproject (see [Dependencies convention](#dependencies-convention)). No global app image.
 
 Implications when writing code or infra:
 
-- Next.js subprojects need `basePath` set to their subpath for production builds (e.g. `basePath: '/llm_api'`) so client-side links and `_next/static` assets resolve correctly behind the proxy. `basePath` is build-time in Next.js — gate it behind an env var so local dev (`localhost:3000`) stays prefix-free.
+- Next.js subprojects need `basePath` set to their subpath for production builds (e.g. `basePath: '/ai_hub'`) so client-side links and `_next/static` assets resolve correctly behind the proxy. `basePath` is build-time in Next.js — gate it behind an env var so local dev (`localhost:3000`) stays prefix-free.
 - Don't lean on Vercel-isms (Vercel-specific env vars, the Vercel image optimizer's defaults, Edge runtime assumptions). Stick to what runs on a generic Node container.
 - For AWS, expect: ECR (image registry) + a runtime (ECS Fargate, App Runner, or EC2) + an ALB or CloudFront in front for TLS and subpath routing.
 
-## llm_api — important constraint
+## ai_hub — important constraint
 
-`llm_api/AGENTS.md` (referenced from `llm_api/CLAUDE.md`) warns:
+`ai_hub/AGENTS.md` (referenced from `ai_hub/CLAUDE.md`) warns:
 
 > This is NOT the Next.js you know. This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 
-Before writing or refactoring Next.js code in `llm_api/`, consult `llm_api/node_modules/next/dist/docs/` for the actual current API rather than relying on training-data recall.
+Before writing or refactoring Next.js code in `ai_hub/`, consult `ai_hub/node_modules/next/dist/docs/` for the actual current API rather than relying on training-data recall.
 
-## Common commands (run from `llm_api/`)
+## Common commands (run from `ai_hub/`)
 
 ```
 npm run dev            # next dev (localhost:3000)
@@ -56,9 +56,9 @@ npm run test:coverage  # vitest run --coverage
 npx vitest run app/tests/api/chat.test.ts   # single test file
 ```
 
-Tests live under `llm_api/app/tests/` (mirrors `app/`). Vitest uses jsdom + `@testing-library/react`; setup is `app/tests/setup.ts`.
+Tests live under `ai_hub/app/tests/` (mirrors `app/`). Vitest uses jsdom + `@testing-library/react`; setup is `app/tests/setup.ts`.
 
-## llm_api architecture
+## ai_hub architecture
 
 The whole app is one client page (`app/page.tsx`) with three modes — `chat`, `image`, `audio` — backed by four route handlers under `app/api/`:
 
@@ -80,7 +80,7 @@ The whole app is one client page (`app/page.tsx`) with three modes — `chat`, `
 - **Streaming on the client** (`app/hooks/useChat.ts`) reads the raw AI SDK data-stream format and parses `0:"..."` lines manually rather than using `useChat` from `ai/react`. If switching to the SDK helper, the manual parser can be removed.
 - **Model list** is hardcoded in `app/constants.ts` (`MODEL_OPTIONS`). Add new models there; the page groups them by `provider`.
 
-### Required env vars (`llm_api/.env.local`)
+### Required env vars (`ai_hub/.env.local`)
 
 `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `ELEVENLABS_API_KEY` — each provider's route returns 500 if its key is missing. Optional overrides: `OPENAI_MODEL`, `OPENAI_VISION_MODEL`, `OPENAI_IMAGE_MODEL`, `OPENAI_IMAGE_SIZE`, `ANTHROPIC_MODEL`, `ANTHROPIC_MAX_TOKENS`, `GEMINI_MODEL`.
 

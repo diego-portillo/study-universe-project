@@ -13,7 +13,7 @@ node_modules/
 .env
 .env*.local
 
-# Next.js (LLM_API and any future app/)
+# Next.js (ai_hub and any future app/)
 .next/
 out/
 
