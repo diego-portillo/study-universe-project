@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ImageRequestBody } from '../lib/types';
 
-const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'dall-e-2';
 const IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE ?? '256x256';
 
@@ -26,6 +24,8 @@ export async function POST(request: NextRequest) {
       { error: 'Missing OPENAI_API_KEY in .env.local' },
       { status: 500 },
     );
+
+  const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   const maxLen = IMAGE_MODEL.startsWith('dall-e-3')
     ? 4000

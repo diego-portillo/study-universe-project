@@ -1,0 +1,15 @@
+services:
+  llm_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # For production behind a reverse proxy at /llm_api, pass:
+      # --build-arg NEXT_PUBLIC_BASE_PATH=/llm_api
+      args:
+        NEXT_PUBLIC_BASE_PATH: ""
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local   # API keys loaded at runtime — never baked into the image
+    environment:
+      NODE_ENV: production

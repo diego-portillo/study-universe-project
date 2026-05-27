@@ -1,27 +1,73 @@
-1. Vulnerabilidades docker scan
-2. Implementar AWS deployment de docker con 
-    - Amazon Elastic Container Services.
-    - Amazon Elastic Kubernetes Service.
-    - usar github actions https://github.com/marketplace/actions/deploy-docker-to-aws-ec2
-3. crear 1 backend customers
-4. crear 1 db
-5. crear un FE
-6. crear un backend
-7. crear un pipeline de CI/CD
-create tests for backend, fe and python server
-adapt ci pipeline in github actions
-8. crear un loadbalancer
-9. configurar auto-scaling
-10. configurar monitoreo y alertas
-11. realizar pruebas de carga
-12. optimizar el rendimiento de la aplicación
-13. implementar seguridad en la aplicación
-14. realizar auditorías de seguridad
-15. actualizar dependencias y librerías
-16. documentar el proceso de desarrollo y despliegue
-17. realizar pruebas de integración
-18. configurar backups y recuperación ante desastres
-19. implementar un sistema de logging centralizado
-20. configurar un sistema de autenticación y autorización
-21. realizar pruebas de penetración
-22. implementar un sistema de cacheo para mejorar el rendimiento
+llm_api tasks
+=============
+
+Live URL: https://www.diegoportillo.dev/llm_chat
+
+
+── DONE ──────────────────────────────────────────────────
+
+[x] Dockerfile — multi-stage, node:20-alpine, standalone output
+[x] docker-compose.yml — boots on localhost:3000
+[x] Tests — messages, image route, stream parser, full UI display (msw)
+[x] Tests run inside Docker build (fail-fast gate)
+[x] README — architecture diagram, provider matrix, cost estimate, AWS plan
+
+
+── MUST HAVE (Block A — due Jun 21) ─────────────────────
+
+[ ] GitHub Actions CI — vitest + lint on every push, green badge in README  (due Jun 14)
+[ ] .env.example — every required key documented                             (due Jun 14)
+[ ] Structured cost/token logging in onFinish:
+      { model, provider, tokens_in, tokens_out, latency_ms, estimated_cost_usd }  (due Jun 21)
+
+── MUST HAVE (Block B — due Aug 2) ──────────────────────
+
+[ ] Eval harness — golden dataset (~30 prompts), LLM-as-judge scoring,
+      regression report posted as GitHub Actions PR comment              (due Jul 12)
+[ ] Per-provider error boundary — fallback UI when a provider fails,
+      not just a string error state                                      (due Jul 19)
+[ ] Model comparison view — same prompt → 2 models side-by-side         (due Jul 26)
+[ ] Observability route — /metrics with TTFT, tokens/sec, cost/session  (due Aug 2)
+
+
+── SHOULD HAVE ───────────────────────────────────────────
+
+[ ] System prompt editor — let users customize the assistant persona via the UI
+[ ] Conversation history persistence — localStorage so sessions survive refresh
+[ ] Token/cost counter visible in the UI per conversation
+[ ] Voice selector exposed in the UI for TTS
+[ ] Rate limiting on API routes — basic in-memory or x-ratelimit headers
+
+
+── AWS DEPLOYMENT (Block D — due Oct 26) ────────────────
+
+Stack: ECR → ECS Fargate → ALB → www.diegoportillo.dev/llm_chat
+
+[ ] Provision ECR repository                                             (due Oct 5)
+[ ] ECS Fargate task definition + service (1 vCPU, 2 GB)               (due Oct 19)
+[ ] ALB with HTTPS listener + path rule /llm_chat* → ECS target group  (due Oct 19)
+[ ] ACM certificate for www.diegoportillo.dev                           (due Oct 19)
+[ ] GitHub Actions deploy job: push to ECR + force ECS redeployment    (due Nov 2)
+[ ] AWS Secrets Manager for API keys (not plain env vars in task def)   (due Nov 2)
+[ ] CloudWatch log group + structured logs from onFinish                (due Nov 8)
+[ ] CloudWatch alarms: CPU > 80%, 5xx > 5%, monthly cost > $50         (due Nov 8)
+[ ] CloudWatch dashboard: req count, TTFT, cost/day, ECS CPU+mem       (due Nov 8)
+
+
+── NICE TO HAVE ──────────────────────────────────────────
+
+[ ] Architecture diagram screenshot / GIF in README
+[ ] Docker vulnerability scan (docker scout or trivy)
+[ ] Auto-scaling policy on ECS service (scale on CPU)
+[ ] Load testing (k6 or Locust) to find breaking point
+[ ] Centralized logging (send CloudWatch to OpenSearch or Datadog)
+[ ] Auth layer (Cognito or NextAuth) — rate-limit per user
+
+
+── GENERAL PORTFOLIO ─────────────────────────────────────
+
+[ ] Second project: Algorithm Tutor RAG (decision by Aug 3)
+[ ] CI/CD pipeline for RAG project
+[ ] Load balancer config across services
+[ ] Resume — impact metrics, not tool names; Typst format (due Dec 6)
+[ ] Repo visibility decision (due Nov 15)

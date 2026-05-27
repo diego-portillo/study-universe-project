@@ -133,26 +133,11 @@ export function useChat({
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split('\n')) {
-            if (line.startsWith('0:')) {
-              // v4/v5 format: 0:"text"
-              const match = line.match(/^0:"(.*)"/);
-              if (match) {
-                assistantText += match[1]
-                  .replace(/\\n/g, '\n')
-                  .replace(/\\"/g, '"')
-                  .replace(/\\\\/g, '\\');
-              }
-            } else if (line.length > 0) {
-              // v6 format: raw text chunks
-              assistantText += line;
-            }
-            setMessages((prev) => [
-              ...prev.slice(0, -1),
-              { role: 'assistant', content: assistantText },
-            ]);
-          }
+          assistantText += decoder.decode(value, { stream: true });
+          setMessages((prev) => [
+            ...prev.slice(0, -1),
+            { role: 'assistant', content: assistantText },
+          ]);
         }
       }
     } catch (e) {
@@ -202,18 +187,7 @@ export function useChat({
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            for (const line of chunk.split('\n')) {
-              const match = line.match(/^0:"(.*)"/);
-              if (match) {
-                assistantText += match[1]
-                  .replace(/\\n/g, '\n')
-                  .replace(/\\"/g, '"')
-                  .replace(/\\\\/g, '\\');
-              } else if (line.length > 0) {
-                assistantText += line;
-              }
-            }
+            assistantText += decoder.decode(value, { stream: true });
           }
         }
 
