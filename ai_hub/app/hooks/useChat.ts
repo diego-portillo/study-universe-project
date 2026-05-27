@@ -1,6 +1,6 @@
 'use client';
 
-import { Dispatch, SetStateAction } from 'react';
+import { Dispatch, SetStateAction, useRef } from 'react';
 import { fileToLowResDataUrl } from '../utils';
 import type {
   Message,
@@ -64,6 +64,8 @@ export function useChat({
   fileInputRef,
   audioInputRef,
 }: UseChatProps) {
+  const conversationIdRef = useRef(crypto.randomUUID());
+
   function clearImage() {
     setImageFile(null);
     setImagePreview('');
@@ -109,7 +111,7 @@ export function useChat({
         method: 'POST',
         body: JSON.stringify({
           messages: payload,
-          conversationId: 'user-1',
+          conversationId: conversationIdRef.current,
           model: selectedModel.id,
           provider: selectedModel.provider,
           reset: messages.filter((m) => m.role !== 'system').length === 0,
@@ -134,6 +136,14 @@ export function useChat({
           const { done, value } = await reader.read();
           if (done) break;
           assistantText += decoder.decode(value, { stream: true });
+          setMessages((prev) => [
+            ...prev.slice(0, -1),
+            { role: 'assistant', content: assistantText },
+          ]);
+        }
+        const tail = decoder.decode();
+        if (tail) {
+          assistantText += tail;
           setMessages((prev) => [
             ...prev.slice(0, -1),
             { role: 'assistant', content: assistantText },
@@ -189,6 +199,7 @@ export function useChat({
             if (done) break;
             assistantText += decoder.decode(value, { stream: true });
           }
+          assistantText += decoder.decode();
         }
 
         setGeneratedImageUrl(dataUrl);
@@ -205,8 +216,11 @@ export function useChat({
           body: JSON.stringify({ prompt: trimmed }),
           headers: { 'Content-Type': 'application/json' },
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: 'Image generation failed' }));
+          throw new Error(errData.error || 'Image generation failed');
+        }
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Image generation failed');
         setGeneratedImageUrl(data.url);
         setInput('');
       }

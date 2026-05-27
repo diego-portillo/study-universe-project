@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
     let audioBytes: Uint8Array;
 
     if (provider === 'elevenlabs') {
+      if (!process.env.ELEVENLABS_API_KEY)
+        return NextResponse.json({ error: 'Missing ELEVENLABS_API_KEY' }, { status: 500 });
       const result = await generateSpeech({
         model: elevenlabs.speech('eleven_multilingual_v2'),
         text,

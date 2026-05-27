@@ -139,8 +139,9 @@ export default function Page() {
       setError(
         `Warning: this conversation contains images. ${found.label} may not support vision — image messages will be sent as text placeholders.`,
       );
+    } else {
+      setError('');
     }
-    setError('');
     setChatMessages([makeSystemMessage(found.label)]);
     setImageMessages([makeSystemMessage(found.label)]);
     setAudioMessages([makeSystemMessage(found.label)]);

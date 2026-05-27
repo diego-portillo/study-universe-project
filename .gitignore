@@ -1,5 +1,5 @@
 # Project-specific
-a.txt
+*.txt
 
 # Python
 __pycache__/
