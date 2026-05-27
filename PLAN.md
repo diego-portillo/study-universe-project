@@ -23,7 +23,7 @@ Why now: Docker is in 31% of postings (field guide top skills); CI/CD in 29%. Bo
 - [x] `ai_hub/Dockerfile` + `docker-compose.yml` running the full stack locally — **done May 26**
 - [x] Tests (unit + component) running inside Docker build — **done May 26**
 - [x] README rewritten: architecture diagram (Mermaid), provider matrix, cost estimate, AWS + CI/CD plan — **done May 26**
-- [ ] GitHub Actions workflow: run Vitest + lint on every push, green badge in README — **due Jun 14**
+- [x] GitHub Actions CI: lint + vitest on every push; Docker smoke check on PRs to main — **done May 27**
 - [ ] `.env.example` documenting every required key — **due Jun 14**
 - [ ] Structured cost/token logging in `onFinish` callback: `{model, provider, tokens_in, tokens_out, latency_ms, estimated_cost_usd}` — **due Jun 21**
 - [ ] NeetCode: 12 problems (3/week, arrays + hashing + two pointers)
@@ -64,8 +64,9 @@ Exit criterion: README has eval results table; you can explain why you picked yo
 Why: AWS is in 40% of postings (field guide #3 skill); a live URL is on the field guide's portfolio must-list. `tasks.txt` already names ECS/EKS + GitHub Actions deploy.
 
 - [ ] Both projects on Vercel (free) as first live URLs — **due Oct 5** (fast win; do this even if AWS is in progress)
-- [ ] ai_hub deployed to AWS (ECS Fargate is simpler than EKS; pick one) — **due Oct 26**
-- [ ] CI/CD pipeline pushes image to ECR + deploys on merge to main — **due Nov 2**
+- [ ] ai_hub deployed to AWS App Runner (service + health check verified live) — **due Oct 26**
+- [x] CI/CD pipeline: ECR push + App Runner deploy on merge to main (OIDC, no long-lived keys) — **done May 27**
+- [x] ECR repository provisioned, IAM role + OIDC provider configured — **done May 27**
 - [ ] CloudWatch alarms on error rate + cost ceiling — **due Nov 8**
 - [ ] NeetCode: 18 more (DP intro, greedy, intervals)
 
@@ -166,4 +167,4 @@ These appear in the guide but are deprioritized for Diego's profile and timeline
 
 1. **Repo visibility strategy** — due Nov 15. See `memory/project_repo_visibility.md`.
 2. **Second project choice** (Block C) — Algorithm Tutor RAG vs. PDF RAG. Decide by **Aug 3**.
-3. **AWS service for Block D** — ECS Fargate (recommended) vs. EKS. Decide by **Sep 28**.
+3. ~~**AWS service for Block D** — ECS Fargate (recommended) vs. EKS. Decide by **Sep 28**.~~ **Decided May 27: App Runner** (simpler than ECS for a single container; no ALB/task-definition overhead). Revisit if custom domain subpath routing proves difficult.

@@ -11,11 +11,19 @@ Live URL: https://www.diegoportillo.dev/ai_hub
 [x] Tests — messages, image route, stream parser, full UI display (msw)
 [x] Tests run inside Docker build (fail-fast gate)
 [x] README — architecture diagram, provider matrix, cost estimate, AWS plan
+[x] GitHub Actions CI — lint + vitest on every push; Docker smoke check on PRs to main
+[x] ECR repository ai-hub provisioned (us-east-1)
+[x] GitHub Actions deploy job — pushes to ECR, deploys to App Runner (OIDC, no long-lived keys)
+[x] GitHub Actions teardown job — manual workflow to delete App Runner service
+[x] AWS IAM role + OIDC provider for GitHub Actions
+[x] GitHub secrets configured (AWS_ROLE_ARN + all 4 provider API keys)
+[x] 8 code-quality bugs fixed (conversationId per-session, MAX_MESSAGES cap, applyLowDetailToImages
+      error handling, vision warning, cross-provider maxTokens, ElevenLabs key guard,
+      TextDecoder flush, res.ok before res.json)
 
 
 ── MUST HAVE (Block A — due Jun 21) ─────────────────────
 
-[ ] GitHub Actions CI — vitest + lint on every push, green badge in README  (due Jun 14)
 [ ] .env.example — every required key documented                             (due Jun 14)
 [ ] Structured cost/token logging in onFinish:
       { model, provider, tokens_in, tokens_out, latency_ms, estimated_cost_usd }  (due Jun 21)
@@ -41,17 +49,18 @@ Live URL: https://www.diegoportillo.dev/ai_hub
 
 ── AWS DEPLOYMENT (Block D — due Oct 26) ────────────────
 
-Stack: ECR → ECS Fargate → ALB → www.diegoportillo.dev/ai_hub
+Stack: ECR → App Runner → www.diegoportillo.dev/ai_hub
+(switched from ECS Fargate/ALB to App Runner for simplicity; revisit if custom domain routing needed)
 
-[ ] Provision ECR repository                                             (due Oct 5)
-[ ] ECS Fargate task definition + service (1 vCPU, 2 GB)               (due Oct 19)
-[ ] ALB with HTTPS listener + path rule /ai_hub* → ECS target group  (due Oct 19)
-[ ] ACM certificate for www.diegoportillo.dev                           (due Oct 19)
-[ ] GitHub Actions deploy job: push to ECR + force ECS redeployment    (due Nov 2)
-[ ] AWS Secrets Manager for API keys (not plain env vars in task def)   (due Nov 2)
+[x] Provision ECR repository                                             (done May 27)
+[x] GitHub Actions deploy job: push to ECR + deploy to App Runner       (done May 27)
+[x] AWS IAM OIDC trust + role for GitHub Actions                        (done May 27)
+[ ] Custom domain routing (App Runner → www.diegoportillo.dev/ai_hub)
+[ ] ACM certificate for www.diegoportillo.dev
+[ ] AWS Secrets Manager for API keys (not plain env vars in App Runner) (due Nov 2)
 [ ] CloudWatch log group + structured logs from onFinish                (due Nov 8)
 [ ] CloudWatch alarms: CPU > 80%, 5xx > 5%, monthly cost > $50         (due Nov 8)
-[ ] CloudWatch dashboard: req count, TTFT, cost/day, ECS CPU+mem       (due Nov 8)
+[ ] CloudWatch dashboard: req count, TTFT, cost/day                    (due Nov 8)
 
 
 ── NICE TO HAVE ──────────────────────────────────────────

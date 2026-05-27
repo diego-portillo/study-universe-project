@@ -2,7 +2,7 @@
 
 A production-ready Next.js 16 + React 19 web app that unifies **chat, image generation, and audio (TTS/STT)** across four AI providers behind a single UI. Built as a portfolio project demonstrating AI backend engineering: provider abstraction, streaming, Docker, CI/CD, and AWS deployment.
 
-**Live:** `https://www.diegoportillo.dev/ai_hub` *(deployment in progress — see [AWS](#aws-deployment))*
+**Live:** `https://www.diegoportillo.dev/ai_hub` *(deployment in progress)*
 
 ---
 
@@ -20,37 +20,32 @@ A production-ready Next.js 16 + React 19 web app that unifies **chat, image gene
 
 ```mermaid
 graph TD
-    Browser -->|HTTPS| ALB[AWS ALB\n/ai_hub routing]
-    ALB --> ECS[ECS Fargate\nNext.js container :3000]
+    Browser -->|HTTPS| AppRunner[AWS App Runner\nNext.js container :3000]
 
-    ECS -->|streamText| OpenAI[OpenAI\nGPT-4o · GPT-4o mini · GPT-4 Turbo\nDALL·E 2/3 · Whisper · TTS]
-    ECS -->|streamText| Anthropic[Anthropic\nClaude Sonnet 4.6\nClaude Haiku 4.5\nClaude Opus 4.6]
-    ECS -->|streamText| Google[Google\nGemini 2.5 Flash\nGemini 2.5 Flash Lite]
-    ECS -->|REST| ElevenLabs[ElevenLabs\nTTS · Scribe v2 STT]
+    AppRunner -->|streamText| OpenAI[OpenAI\nGPT-4o · DALL·E · Whisper · TTS]
+    AppRunner -->|streamText| Anthropic[Anthropic\nClaude Sonnet 4.6 · Haiku · Opus]
+    AppRunner -->|streamText| Google[Google\nGemini 2.5 Flash]
+    AppRunner -->|REST| ElevenLabs[ElevenLabs\nTTS · Scribe v2 STT]
 
     GHA[GitHub Actions] -->|build + push| ECR[AWS ECR\nDocker image]
-    ECR -->|pull| ECS
-
-    ECS -->|stdout logs| CWLogs[CloudWatch Logs]
-    ECS -->|metrics| CWMetrics[CloudWatch Metrics]
-    CWMetrics -->|alarms| SNS[SNS → email alert]
+    ECR -->|pull on deploy| AppRunner
 
     subgraph "Next.js app"
         Page[page.tsx\nsingle-page UI] --> Hook[useChat hook\nfetch + stream reader]
-        Hook -->|POST /api/chat| ChatRoute[api/chat/route.ts\nprovider router]
-        Hook -->|POST /api/image| ImageRoute[api/image/route.ts\nOpenAI image]
-        Hook -->|POST /api/text_to_audio| TTSRoute[api/text_to_audio/route.ts]
-        Hook -->|POST /api/audio_to_text| STTRoute[api/audio_to_text/route.ts]
+        Hook -->|POST /api/chat| ChatRoute[api/chat — provider router]
+        Hook -->|POST /api/image| ImageRoute[api/image — OpenAI image]
+        Hook -->|POST /api/text_to_audio| TTSRoute[api/text_to_audio]
+        Hook -->|POST /api/audio_to_text| STTRoute[api/audio_to_text]
     end
 ```
 
 ### Key design decisions
 
-- **Single page, three modes** — `chat`, `image`, `audio` share state and the same input bar; mode switch is instant with no page reload.
-- **Provider abstraction via Vercel AI SDK** — `streamText` from `ai` wraps OpenAI, Anthropic, and Google. Adding a new provider is one line in `api/chat/route.ts`.
-- **Server-side conversation memory** — `Map<conversationId, Message[]>` in the Node process caps at 8 messages. Stateless between restarts; designed to be replaced with Redis for multi-instance deployments.
+- **Single page, three modes** — `chat`, `image`, `audio` share state and the same input bar; mode switch is instant.
+- **Provider abstraction via Vercel AI SDK** — `streamText` wraps OpenAI, Anthropic, and Google. Adding a new provider is one line in `api/chat/route.ts`.
+- **Server-side conversation memory** — `Map<conversationId, Message[]>` in the Node process, capped and trimmed to 8 messages. Per-session UUID prevents cross-user memory leaks. Designed to be replaced with Redis for multi-instance deployments.
 - **Image inputs** — always downsampled to `detail: "low"` server-side before forwarding to the model, keeping vision costs predictable.
-- **Streaming** — the chat route returns `toTextStreamResponse()` (AI SDK v6); the client reads raw chunks via `ReadableStream.getReader()` without the SDK's `useChat` helper.
+- **Streaming** — the chat route returns `toTextStreamResponse()` (AI SDK v6); the client reads raw chunks via `ReadableStream.getReader()`.
 
 ---
 
@@ -67,169 +62,102 @@ graph TD
 
 ## Running Locally
 
-### With Node
-
-```bash
-cd ai_hub
-cp .env.example .env.local   # fill in your API keys
-npm install
-npm run dev                   # http://localhost:3000
-```
-
 ### With Docker (recommended)
 
 ```bash
-cd ai_hub
-# .env.local must exist with your API keys
+cp .env.example .env.local   # fill in your API keys
 docker compose up --build    # http://localhost:3000
 ```
 
-The Docker build runs tests before `next build`. If any test fails, the image is not produced.
+The Docker build runs tests before `next build` — broken code can't produce an image.
 
-### Required environment variables
+### With Node
 
-Copy `.env.example` to `.env.local` and fill in the keys you need:
+```bash
+cp .env.example .env.local
+npm install
+npm run dev    # http://localhost:3000
+```
+
+### Environment variables
+
+Copy `.env.example` to `.env.local`. Required keys per provider:
 
 ```
-OPENAI_API_KEY=           # required for chat, image, TTS, STT
-ANTHROPIC_API_KEY=        # required for Anthropic chat
-GOOGLE_GENERATIVE_AI_API_KEY=  # required for Google chat
-ELEVENLABS_API_KEY=       # required for ElevenLabs TTS/STT
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GOOGLE_GENERATIVE_AI_API_KEY=
+ELEVENLABS_API_KEY=
 
 # Optional model overrides
 OPENAI_MODEL=gpt-4o
 OPENAI_VISION_MODEL=gpt-4o-mini
 OPENAI_IMAGE_MODEL=dall-e-2
-OPENAI_IMAGE_SIZE=256x256
 ANTHROPIC_MODEL=claude-sonnet-4-6
 ANTHROPIC_MAX_TOKENS=1024
 GEMINI_MODEL=gemini-2.5-flash
-
-# Set for production deployment behind reverse proxy
-NEXT_PUBLIC_BASE_PATH=/ai_hub
 ```
 
-Each provider's route returns `500` if its key is missing — you only need keys for the providers you use.
+Each route returns `500` if its provider key is missing — you only need keys for the providers you use.
 
 ---
 
-## Running Tests
+## Tests
 
 ```bash
-npm run test:run       # run all tests once (used in Docker build and CI)
+npm run test:run       # run once (used in Docker build and CI)
 npm test               # watch mode
 npm run test:coverage  # coverage report
 ```
 
-Tests live in `app/tests/` and mirror `app/`:
-
 | Test file | What it covers |
 |---|---|
-| `api/messages.test.ts` | `applyLowDetailToImages` — literal type safety, URL validation |
-| `api/image-route.test.ts` | Route handler returns `500` (not crash) when API key missing |
-| `hooks/chat-stream.test.ts` | Plain-text stream accumulation; regression for the old `0:"..."` parser bug |
-| `page/chat-display.test.tsx` | Full UI flow: mock API → user sends → AI response appears in DOM |
+| `api/messages.test.ts` | `applyLowDetailToImages` — URL validation, type safety |
+| `api/image-route.test.ts` | Route returns `500` (not crash) when API key missing |
+| `hooks/chat-stream.test.ts` | Stream accumulation; regression for old `0:"..."` parser bug |
+| `page/chat-display.test.tsx` | Full UI flow: mock API → user sends → AI response in DOM |
 
 ---
 
-## CI/CD — GitHub Actions *(planned — due Jun 14)*
+## CI/CD — GitHub Actions ✅
 
-> **Status:** not yet implemented. Dockerfile and tests are ready; the workflow file below is the target.
+Three workflows under `.github/workflows/`:
 
-```
-.github/workflows/ci.yml
-```
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `ai_hub-ci.yml` | Push or PR touching `ai_hub/` | Lint + vitest; Docker smoke build on PRs to `main` |
+| `ai_hub-deploy.yml` | Merge to `main` (or manual) | Build image → push to ECR → create/update App Runner service |
+| `ai_hub-teardown.yml` | Manual only | Delete the App Runner service (stops billing) |
 
-```yaml
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: cd ai_hub && npm ci
-      - run: cd ai_hub && npm run test:run    # vitest
-      - run: cd ai_hub && npm run lint
-
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with: { role-to-assume: ${{ secrets.AWS_ROLE_ARN }} }
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
-      - name: Build and push image
-        run: |
-          docker build \
-            --build-arg NEXT_PUBLIC_BASE_PATH=/ai_hub \
-            -t $ECR_REGISTRY/ai_hub:$GITHUB_SHA \
-            ai_hub/
-          docker push $ECR_REGISTRY/ai_hub:$GITHUB_SHA
-      - name: Deploy to ECS
-        run: |
-          aws ecs update-service \
-            --cluster ai-hub-cluster \
-            --service ai-hub-service \
-            --force-new-deployment
-```
-
-A green badge will be added to this README once the workflow is live.
+Auth uses **OIDC** — no long-lived AWS keys stored in GitHub secrets.
 
 ---
 
-## AWS Deployment *(planned — due Oct 26)*
-
-> **Status:** not yet implemented. Architecture is designed and documented here.
-
-### Target URL
-`https://www.diegoportillo.dev/ai_hub`
+## AWS Deployment
 
 ### Infrastructure
 
 ```
-Route 53 / DNS
-  └── www.diegoportillo.dev → ALB DNS name
-
-ACM (SSL certificate for the domain)
-
-ALB (Application Load Balancer)
-  ├── HTTPS :443 listener
-  ├── Path rule: /ai_hub* → ai-hub target group
-  └── Health check: GET /ai_hub
-
-ECS Fargate
-  ├── Cluster: ai-hub-cluster
-  ├── Service: ai-hub-service (desired count: 1)
-  └── Task definition
-        ├── Image: ECR → ai_hub:<git-sha>
-        ├── CPU: 1 vCPU  |  Memory: 2 GB
-        ├── Port: 3000
-        └── Env: NEXT_PUBLIC_BASE_PATH=/ai_hub
-              + API keys injected from AWS Secrets Manager
-
-ECR (Elastic Container Registry)
-  └── Stores versioned Docker images pushed by GitHub Actions
+GitHub Actions
+  └── build Docker image → push to ECR (us-east-1)
+        └── deploy to App Runner (auto-pulls from ECR)
 ```
 
-**Why ECS Fargate over EKS:**  no cluster nodes to manage, pay-per-task, sufficient for a single-service portfolio app.
+**AWS App Runner** was chosen over ECS Fargate for simplicity: no cluster, no task definitions, no ALB to manage. Pay-per-use, scales to zero.
 
-**Path routing:** the ALB forwards `/ai_hub*` to the container. `NEXT_PUBLIC_BASE_PATH=/ai_hub` is injected at build time so Next.js generates correct `_next/static` asset URLs.
+| Resource | Status |
+|---|---|
+| ECR repository (`ai-hub`, us-east-1) | ✅ provisioned |
+| IAM role + OIDC provider for GitHub Actions | ✅ configured |
+| GitHub secrets (AWS_ROLE_ARN + 4 API keys) | ✅ configured |
+| App Runner service (verified live) | ⏳ pending first deploy |
+| Custom domain `www.diegoportillo.dev/ai_hub` | ⏳ planned |
 
 ---
 
 ## Monitoring & Observability *(planned — due Nov 8)*
 
-> **Status:** not yet implemented.
-
-### Logging
-
-Each request to `api/chat` will emit a structured JSON log line from the `onFinish` callback:
+Structured JSON logging from `onFinish` per request:
 
 ```json
 {
@@ -242,53 +170,32 @@ Each request to `api/chat` will emit a structured JSON log line from the `onFini
 }
 ```
 
-ECS Fargate ships container stdout to **CloudWatch Logs** automatically via the `awslogs` log driver.
-
-### Metrics & Alarms
-
-| Alarm | Threshold | Action |
-|---|---|---|
-| ECS CPU utilization | > 80% for 5 min | SNS → email |
-| Error rate (5xx) | > 5% of requests | SNS → email |
-| Estimated monthly API cost | > $50 | SNS → email |
-
-### Dashboards
-
-CloudWatch dashboard with: request count, TTFT (time-to-first-token), tokens/request, cost/day, ECS CPU and memory.
+Planned CloudWatch alarms: CPU > 80%, 5xx > 5%, monthly cost > $50.
 
 ---
 
 ## Evaluation Harness *(planned — due Jul 12)*
 
-> **Status:** not yet implemented.
-
-An eval harness will:
-1. Run a **golden dataset** of ~30 prompts against the chat route
-2. Score each response with an **LLM-as-judge** (GPT-4o mini)
-3. Post a **pass/fail report** as a GitHub Actions comment on every PR
-
-This prevents regressions when changing models, providers, or prompt handling. See `PLAN.md` Block B for the full scope.
+Will run a golden dataset of ~30 prompts against the chat route, score with LLM-as-judge (GPT-4o mini), and post a pass/fail report as a GitHub Actions PR comment. See `PLAN.md` Block B.
 
 ---
 
 ## Cost Estimate
 
-Running this app 24/7 on AWS with moderate usage (~100 chat requests/day):
+~100 chat requests/day on AWS App Runner:
 
 | Item | Monthly cost |
 |---|---|
-| ECS Fargate (1 vCPU, 2 GB) | ~$25 |
-| ALB | ~$16 |
-| ECR | ~$1 |
-| CloudWatch | ~$3 |
-| **Infra subtotal** | **~$45** |
-| OpenAI GPT-4o (100 req/day × $0.0025) | ~$7.50 |
-| Anthropic Claude Sonnet (100 req/day × $0.003) | ~$9 |
-| Gemini 2.5 Flash (100 req/day × $0.0001) | ~$0.30 |
-| ElevenLabs TTS (~500 chars/req) | ~$9 |
-| **Total (all providers active)** | **~$70/month** |
+| App Runner (0.25 vCPU, 0.5 GB) | ~$5–10 |
+| ECR storage | ~$1 |
+| **Infra subtotal** | **~$10** |
+| OpenAI GPT-4o (100 req/day) | ~$7.50 |
+| Anthropic Claude Sonnet (100 req/day) | ~$9 |
+| Gemini 2.5 Flash (100 req/day) | ~$0.30 |
+| ElevenLabs TTS | ~$9 |
+| **Total (all providers active)** | **~$35/month** |
 
-In practice, only one provider is active per session — real cost will be lower. API costs scale with usage; infra costs are fixed.
+In practice only one provider is active per session — real cost will be lower.
 
 ---
 
