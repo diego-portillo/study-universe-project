@@ -76,10 +76,10 @@ jobs:
                       \"ELEVENLABS_API_KEY\":          \"${{ secrets.ELEVENLABS_API_KEY }}\"
                     }
                   },
-                  \"ImageRepositoryType\": \"ECR\",
-                  \"AuthenticationConfiguration\": {
-                    \"AccessRoleArn\": \"arn:aws:iam::211125335109:role/AppRunnerECRAccessRole\"
-                  }
+                  \"ImageRepositoryType\": \"ECR\"
+                },
+                \"AuthenticationConfiguration\": {
+                  \"AccessRoleArn\": \"arn:aws:iam::211125335109:role/AppRunnerECRAccessRole\"
                 },
                 \"AutoDeploymentsEnabled\": false
               }" \
@@ -101,10 +101,10 @@ jobs:
                       \"ELEVENLABS_API_KEY\":          \"${{ secrets.ELEVENLABS_API_KEY }}\"
                     }
                   },
-                  \"ImageRepositoryType\": \"ECR\",
-                  \"AuthenticationConfiguration\": {
-                    \"AccessRoleArn\": \"arn:aws:iam::211125335109:role/AppRunnerECRAccessRole\"
-                  }
+                  \"ImageRepositoryType\": \"ECR\"
+                },
+                \"AuthenticationConfiguration\": {
+                  \"AccessRoleArn\": \"arn:aws:iam::211125335109:role/AppRunnerECRAccessRole\"
                 }
               }"
           fi
