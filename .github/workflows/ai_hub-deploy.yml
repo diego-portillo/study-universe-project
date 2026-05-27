@@ -15,6 +15,7 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: ai-hub
   APP_RUNNER_SERVICE: ai-hub
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
@@ -41,7 +42,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Build and push image to ECR
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./ai_hub
           push: true
