@@ -2,24 +2,21 @@ Week: May 25 - May 31, 2026
 (Phase 1, Block A, Week 1 of 4 - Docker + CI/CD foundation)
 
 Build
-- [x] Write llm_api/Dockerfile (multi-stage, node:20-alpine base)
-- [x] Write llm_api/docker-compose.yml
-- [x] `docker compose up` boots llm_api on localhost:3000
+- [x] Write ai_hub/Dockerfile (multi-stage, node:20-alpine base)
+- [x] Write ai_hub/docker-compose.yml
+- [x] `docker compose up` boots ai_hub on localhost:3000
 - [x] Write tests (messages, image route, stream parser, UI display)
 - [x] Tests run inside Docker build — broken code can't produce an image
-- [x] Update llm_api/README.md (architecture, providers, cost, AWS plan, CI/CD plan)
+- [x] Update ai_hub/README.md (architecture, providers, cost, AWS plan, CI/CD plan)
 
 LeetCode
 - [ ] 3 problems, arrays/hashing pattern
-    - Two Sum
-    - Contains Duplicate
-    - Valid Anagram
+    [x] Two Sum
+    [ ] Contains Duplicate
+    [ ] Valid Anagram
 
 Reading (light, 30 min total)
 - [ ] Chip Huyen "AI Engineering" - skim TOC, read intro
 
-Decisions to think about (no action this week)
-- Repo visibility strategy (final due Nov 15)
-
 Done when
-- llm_api runs in a container ✅, 3 NeetCode problems solved, you can explain each solution out loud.
+- ai_hub runs in a container ✅, 3 NeetCode problems solved, you can explain each solution out loud.

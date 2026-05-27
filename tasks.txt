@@ -1,7 +1,7 @@
-llm_api tasks
+ai_hub tasks
 =============
 
-Live URL: https://www.diegoportillo.dev/llm_chat
+Live URL: https://www.diegoportillo.dev/ai_hub
 
 
 ── DONE ──────────────────────────────────────────────────
@@ -41,11 +41,11 @@ Live URL: https://www.diegoportillo.dev/llm_chat
 
 ── AWS DEPLOYMENT (Block D — due Oct 26) ────────────────
 
-Stack: ECR → ECS Fargate → ALB → www.diegoportillo.dev/llm_chat
+Stack: ECR → ECS Fargate → ALB → www.diegoportillo.dev/ai_hub
 
 [ ] Provision ECR repository                                             (due Oct 5)
 [ ] ECS Fargate task definition + service (1 vCPU, 2 GB)               (due Oct 19)
-[ ] ALB with HTTPS listener + path rule /llm_chat* → ECS target group  (due Oct 19)
+[ ] ALB with HTTPS listener + path rule /ai_hub* → ECS target group  (due Oct 19)
 [ ] ACM certificate for www.diegoportillo.dev                           (due Oct 19)
 [ ] GitHub Actions deploy job: push to ECR + force ECS redeployment    (due Nov 2)
 [ ] AWS Secrets Manager for API keys (not plain env vars in task def)   (due Nov 2)

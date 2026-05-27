@@ -1,8 +1,8 @@
-# LLM API — Multi-Provider AI Chat, Image & Audio
+# AI Hub — Multi-Provider AI Chat, Image & Audio
 
 A production-ready Next.js 16 + React 19 web app that unifies **chat, image generation, and audio (TTS/STT)** across four AI providers behind a single UI. Built as a portfolio project demonstrating AI backend engineering: provider abstraction, streaming, Docker, CI/CD, and AWS deployment.
 
-**Live:** `https://www.diegoportillo.dev/llm_chat` *(deployment in progress — see [AWS](#aws-deployment))*
+**Live:** `https://www.diegoportillo.dev/ai_hub` *(deployment in progress — see [AWS](#aws-deployment))*
 
 ---
 
@@ -20,7 +20,7 @@ A production-ready Next.js 16 + React 19 web app that unifies **chat, image gene
 
 ```mermaid
 graph TD
-    Browser -->|HTTPS| ALB[AWS ALB\n/llm_chat routing]
+    Browser -->|HTTPS| ALB[AWS ALB\n/ai_hub routing]
     ALB --> ECS[ECS Fargate\nNext.js container :3000]
 
     ECS -->|streamText| OpenAI[OpenAI\nGPT-4o · GPT-4o mini · GPT-4 Turbo\nDALL·E 2/3 · Whisper · TTS]
@@ -70,7 +70,7 @@ graph TD
 ### With Node
 
 ```bash
-cd llm_api
+cd ai_hub
 cp .env.example .env.local   # fill in your API keys
 npm install
 npm run dev                   # http://localhost:3000
@@ -79,7 +79,7 @@ npm run dev                   # http://localhost:3000
 ### With Docker (recommended)
 
 ```bash
-cd llm_api
+cd ai_hub
 # .env.local must exist with your API keys
 docker compose up --build    # http://localhost:3000
 ```
@@ -106,7 +106,7 @@ ANTHROPIC_MAX_TOKENS=1024
 GEMINI_MODEL=gemini-2.5-flash
 
 # Set for production deployment behind reverse proxy
-NEXT_PUBLIC_BASE_PATH=/llm_chat
+NEXT_PUBLIC_BASE_PATH=/ai_hub
 ```
 
 Each provider's route returns `500` if its key is missing — you only need keys for the providers you use.
@@ -150,9 +150,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: cd llm_api && npm ci
-      - run: cd llm_api && npm run test:run    # vitest
-      - run: cd llm_api && npm run lint
+      - run: cd ai_hub && npm ci
+      - run: cd ai_hub && npm run test:run    # vitest
+      - run: cd ai_hub && npm run lint
 
   deploy:
     needs: test
@@ -167,15 +167,15 @@ jobs:
       - name: Build and push image
         run: |
           docker build \
-            --build-arg NEXT_PUBLIC_BASE_PATH=/llm_chat \
-            -t $ECR_REGISTRY/llm_api:$GITHUB_SHA \
-            llm_api/
-          docker push $ECR_REGISTRY/llm_api:$GITHUB_SHA
+            --build-arg NEXT_PUBLIC_BASE_PATH=/ai_hub \
+            -t $ECR_REGISTRY/ai_hub:$GITHUB_SHA \
+            ai_hub/
+          docker push $ECR_REGISTRY/ai_hub:$GITHUB_SHA
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
-            --cluster llm-api-cluster \
-            --service llm-api-service \
+            --cluster ai-hub-cluster \
+            --service ai-hub-service \
             --force-new-deployment
 ```
 
@@ -188,7 +188,7 @@ A green badge will be added to this README once the workflow is live.
 > **Status:** not yet implemented. Architecture is designed and documented here.
 
 ### Target URL
-`https://www.diegoportillo.dev/llm_chat`
+`https://www.diegoportillo.dev/ai_hub`
 
 ### Infrastructure
 
@@ -200,17 +200,17 @@ ACM (SSL certificate for the domain)
 
 ALB (Application Load Balancer)
   ├── HTTPS :443 listener
-  ├── Path rule: /llm_chat* → llm-api target group
-  └── Health check: GET /llm_chat
+  ├── Path rule: /ai_hub* → ai-hub target group
+  └── Health check: GET /ai_hub
 
 ECS Fargate
-  ├── Cluster: llm-api-cluster
-  ├── Service: llm-api-service (desired count: 1)
+  ├── Cluster: ai-hub-cluster
+  ├── Service: ai-hub-service (desired count: 1)
   └── Task definition
-        ├── Image: ECR → llm_api:<git-sha>
+        ├── Image: ECR → ai_hub:<git-sha>
         ├── CPU: 1 vCPU  |  Memory: 2 GB
         ├── Port: 3000
-        └── Env: NEXT_PUBLIC_BASE_PATH=/llm_chat
+        └── Env: NEXT_PUBLIC_BASE_PATH=/ai_hub
               + API keys injected from AWS Secrets Manager
 
 ECR (Elastic Container Registry)
@@ -219,7 +219,7 @@ ECR (Elastic Container Registry)
 
 **Why ECS Fargate over EKS:**  no cluster nodes to manage, pay-per-task, sufficient for a single-service portfolio app.
 
-**Path routing:** the ALB forwards `/llm_chat*` to the container. `NEXT_PUBLIC_BASE_PATH=/llm_chat` is injected at build time so Next.js generates correct `_next/static` asset URLs.
+**Path routing:** the ALB forwards `/ai_hub*` to the container. `NEXT_PUBLIC_BASE_PATH=/ai_hub` is injected at build time so Next.js generates correct `_next/static` asset URLs.
 
 ---
 
@@ -295,7 +295,7 @@ In practice, only one provider is active per session — real cost will be lower
 ## Project Structure
 
 ```
-llm_api/
+ai_hub/
 ├── app/
 │   ├── api/
 │   │   ├── chat/route.ts          # streaming chat — OpenAI, Anthropic, Google

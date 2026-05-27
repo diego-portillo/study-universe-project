@@ -20,7 +20,7 @@ The field guide's #1 portfolio red flag is "tutorial copies." Counter-signal: **
 
 Why now: Docker is in 31% of postings (field guide top skills); CI/CD in 29%. Both are filters before the AI work is even looked at.
 
-- [x] `llm_api/Dockerfile` + `docker-compose.yml` running the full stack locally — **done May 26**
+- [x] `ai_hub/Dockerfile` + `docker-compose.yml` running the full stack locally — **done May 26**
 - [x] Tests (unit + component) running inside Docker build — **done May 26**
 - [x] README rewritten: architecture diagram (Mermaid), provider matrix, cost estimate, AWS + CI/CD plan — **done May 26**
 - [ ] GitHub Actions workflow: run Vitest + lint on every push, green badge in README — **due Jun 14**
@@ -64,7 +64,7 @@ Exit criterion: README has eval results table; you can explain why you picked yo
 Why: AWS is in 40% of postings (field guide #3 skill); a live URL is on the field guide's portfolio must-list. `tasks.txt` already names ECS/EKS + GitHub Actions deploy.
 
 - [ ] Both projects on Vercel (free) as first live URLs — **due Oct 5** (fast win; do this even if AWS is in progress)
-- [ ] llm_api deployed to AWS (ECS Fargate is simpler than EKS; pick one) — **due Oct 26**
+- [ ] ai_hub deployed to AWS (ECS Fargate is simpler than EKS; pick one) — **due Oct 26**
 - [ ] CI/CD pipeline pushes image to ECR + deploys on merge to main — **due Nov 2**
 - [ ] CloudWatch alarms on error rate + cost ceiling — **due Nov 8**
 - [ ] NeetCode: 18 more (DP intro, greedy, intervals)
@@ -157,7 +157,7 @@ Maintain a Notion or markdown log with the field guide's 4 buckets per topic: **
 These appear in the guide but are deprioritized for Diego's profile and timeline:
 - **Kubernetes** (29% of postings): ECS Fargate + Docker covers the deployment signal cheaper; revisit only if a target role explicitly requires it.
 - **Fine-tuning / LoRA / Transformer-from-scratch in NumPy**: high effort, low yield for backend-transition roles. Skim for theory; don't build. Field guide itself: *"default to prompt engineering with RAG; fine-tune only for extreme specialization."*
-- **Frontend deepening (React beyond what llm_api already uses)**: not the bottleneck.
+- **Frontend deepening (React beyond what ai_hub already uses)**: not the bottleneck.
 - **TensorFlow**: PyTorch dominates; skip.
 
 ---
