@@ -24,7 +24,7 @@ Why now: Docker is in 31% of postings (field guide top skills); CI/CD in 29%. Bo
 - [x] Tests (unit + component) running inside Docker build — **done May 26**
 - [x] README rewritten: architecture diagram (Mermaid), provider matrix, cost estimate, AWS + CI/CD plan — **done May 26**
 - [x] GitHub Actions CI: lint + vitest on every push; Docker smoke check on PRs to main — **done May 27**
-- [ ] `.env.example` documenting every required key — **due Jun 14**
+- [x] `.env.example` documenting every required key — **done May 27**
 - [ ] Structured cost/token logging in `onFinish` callback: `{model, provider, tokens_in, tokens_out, latency_ms, estimated_cost_usd}` — **due Jun 21**
 - [ ] NeetCode: 12 problems (3/week, arrays + hashing + two pointers)
 
