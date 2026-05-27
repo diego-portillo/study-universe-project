@@ -8,6 +8,11 @@ Build
 - [x] Write tests (messages, image route, stream parser, UI display)
 - [x] Tests run inside Docker build — broken code can't produce an image
 - [x] Update ai_hub/README.md (architecture, providers, cost, AWS plan, CI/CD plan)
+- [x] GitHub Actions CI workflow (lint + vitest + Docker smoke check on PRs)
+- [x] GitHub Actions deploy workflow (ECR push → App Runner, OIDC auth)
+- [x] GitHub Actions teardown workflow
+- [x] AWS setup: OIDC provider, IAM role, ECR repo (us-east-1), GitHub secrets
+- [x] 8 code bugs fixed (code review findings)
 
 LeetCode
 - [ ] 3 problems, arrays/hashing pattern
