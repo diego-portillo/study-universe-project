@@ -69,7 +69,7 @@ jobs:
                   \"ImageIdentifier\": \"$IMAGE_URI\",
                   \"ImageConfiguration\": {
                     \"Port\": \"3000\",
-                    \"RuntimeEnvironmentSecrets\": {
+                    \"RuntimeEnvironmentVariables\": {
                       \"OPENAI_API_KEY\":              \"${{ secrets.OPENAI_API_KEY }}\",
                       \"ANTHROPIC_API_KEY\":           \"${{ secrets.ANTHROPIC_API_KEY }}\",
                       \"GOOGLE_GENERATIVE_AI_API_KEY\":\"${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}\",
@@ -91,7 +91,7 @@ jobs:
                   \"ImageIdentifier\": \"$IMAGE_URI\",
                   \"ImageConfiguration\": {
                     \"Port\": \"3000\",
-                    \"RuntimeEnvironmentSecrets\": {
+                    \"RuntimeEnvironmentVariables\": {
                       \"OPENAI_API_KEY\":              \"${{ secrets.OPENAI_API_KEY }}\",
                       \"ANTHROPIC_API_KEY\":           \"${{ secrets.ANTHROPIC_API_KEY }}\",
                       \"GOOGLE_GENERATIVE_AI_API_KEY\":\"${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}\",
