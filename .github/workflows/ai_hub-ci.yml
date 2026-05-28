@@ -1,0 +1,59 @@
+name: AI Hub — CI
+
+on:
+  push:
+    paths:
+      - "ai_hub/**"
+      - ".github/workflows/ai_hub-*.yml"
+  pull_request:
+    paths:
+      - "ai_hub/**"
+      - ".github/workflows/ai_hub-*.yml"
+
+jobs:
+  test:
+    name: Lint + Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai_hub
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ai_hub/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test:run
+
+  docker-build:
+    name: Docker Build (smoke check)
+    runs-on: ubuntu-latest
+    # Only build the image on PRs targeting main — confirms it compiles before merge.
+    # On feature branch pushes, lint+tests above are enough.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ai_hub
+          push: false
+          # No NEXT_PUBLIC_BASE_PATH — App Runner runs at root
+          build-args: NEXT_PUBLIC_BASE_PATH=
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
