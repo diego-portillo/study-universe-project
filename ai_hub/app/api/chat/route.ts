@@ -68,31 +68,26 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
 
-  if (messages.length > MAX_MESSAGES)
-    return new Response(
-      JSON.stringify({ error: 'Conversation reached MAX_MESSAGES limit.' }),
-      { status: 413 },
-    );
-
   if (reset) memoryStore.delete(conversationId);
 
-  const normalized = applyLowDetailToImages(messages);
   const previous = memoryStore.get(conversationId) ?? [];
-  const fullMessages = [...previous, ...normalized];
-
-  const systemPrompt = extractSystemPrompt(fullMessages);
-  const aiMessages = toAISDKMessages(fullMessages).filter((m) =>
-    typeof m.content === 'string'
-      ? m.content.trim().length > 0
-      : Array.isArray(m.content) && m.content.length > 0,
-  );
-
-  const maxTokens = Math.min(
-    4096,
-    Math.max(64, Number(process.env.ANTHROPIC_MAX_TOKENS) || 1024),
-  );
 
   try {
+    const normalized = applyLowDetailToImages(messages);
+    const fullMessages = [...previous, ...normalized];
+
+    const systemPrompt = extractSystemPrompt(fullMessages);
+    const aiMessages = toAISDKMessages(fullMessages).filter((m) =>
+      typeof m.content === 'string'
+        ? m.content.trim().length > 0
+        : Array.isArray(m.content) && m.content.length > 0,
+    );
+
+    const maxTokens =
+      provider === 'anthropic'
+        ? Math.min(4096, Math.max(64, Number(process.env.ANTHROPIC_MAX_TOKENS) || 1024))
+        : undefined;
+
     let resolvedModel;
 
     if (provider === 'anthropic') {
@@ -136,11 +131,8 @@ export async function POST(request: NextRequest) {
       messages: aiMessages,
       maxOutputTokens: maxTokens,
       onFinish: ({ text }) => {
-        // persist assistant reply to memory after stream completes
-        memoryStore.set(conversationId, [
-          ...fullMessages,
-          { role: 'assistant', content: text },
-        ]);
+        const updated = [...fullMessages, { role: 'assistant', content: text }];
+        memoryStore.set(conversationId, updated.slice(-MAX_MESSAGES));
       },
     });
 

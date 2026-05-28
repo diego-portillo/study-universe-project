@@ -56,13 +56,13 @@ describe('POST /api/chat — input validation', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 413 when messages exceed MAX_MESSAGES', async () => {
+  it('accepts requests with more than MAX_MESSAGES and trims stored history', async () => {
     const tooMany = Array.from({ length: 9 }, (_, i) => ({
       role: 'user',
       content: `message ${i}`,
     }));
-    const res = await POST(makeRequest({ messages: tooMany }));
-    expect(res.status).toBe(413);
+    const res = await POST(makeRequest({ messages: tooMany, provider: 'openai' }));
+    expect(res.status).toBe(200);
   });
 
   it('returns 500 when OPENAI_API_KEY is missing', async () => {
