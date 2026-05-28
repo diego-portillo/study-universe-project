@@ -1,0 +1,15 @@
+services:
+  ai_hub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # For production behind a reverse proxy at /ai_hub, pass:
+      # --build-arg NEXT_PUBLIC_BASE_PATH=/ai_hub
+      args:
+        NEXT_PUBLIC_BASE_PATH: ""
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local   # API keys loaded at runtime — never baked into the image
+    environment:
+      NODE_ENV: production
