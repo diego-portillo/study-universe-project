@@ -140,6 +140,9 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[api/chat] ${provider} error:`, message);
-    return new Response(JSON.stringify({ error: message }), { status: 502 });
+    return new Response(
+      JSON.stringify({ error: 'Upstream provider error' }),
+      { status: 502 },
+    );
   }
 }

@@ -105,13 +105,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url });
   } catch (error: unknown) {
-    let message = 'Unknown image generation error';
-    if (error instanceof OpenAI.APIError) {
-      message = error.message;
-    } else if (error instanceof Error) {
-      message = error.message;
-    }
+    const message =
+      error instanceof OpenAI.APIError || error instanceof Error
+        ? (error as Error).message
+        : 'Unknown image generation error';
     console.error('[api/image]', message);
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({ error: 'Image generation failed' }, { status: 502 });
   }
 }

@@ -5,12 +5,13 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  APP_RUNNER_SERVICE: ai-hub
+  ECS_SERVICE: ai-hub
+  ECS_CLUSTER: ai-hub
   ECR_REPOSITORY: ai-hub
 
 jobs:
   teardown:
-    name: Delete App Runner service
+    name: Delete ECS Express Mode service + cluster
     runs-on: ubuntu-latest
 
     permissions:
@@ -26,16 +27,36 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Delete App Runner service
+      - name: Delete ECS service
         run: |
-          SERVICE_ARN=$(aws apprunner list-services \
-            --query "ServiceSummaryList[?ServiceName=='$APP_RUNNER_SERVICE'].ServiceArn" \
-            --output text)
+          echo "Scaling service to 0 (idempotent — skips if service/cluster not found)..."
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --desired-count 0 2>/dev/null || true
 
-          if [ -z "$SERVICE_ARN" ]; then
-            echo "No App Runner service named '$APP_RUNNER_SERVICE' found — nothing to delete."
+          echo "Deleting ECS service..."
+          if aws ecs delete-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --force 2>/dev/null; then
+            echo "✅ Service deleted. Fargate task billing stops immediately."
           else
-            echo "Deleting App Runner service: $SERVICE_ARN"
-            aws apprunner delete-service --service-arn "$SERVICE_ARN"
-            echo "✅ Service deleted. Billing stops immediately."
+            echo "Service '$ECS_SERVICE' not found or already deleted — nothing to do."
           fi
+
+      - name: Delete ECS cluster
+        run: |
+          if aws ecs delete-cluster --cluster "$ECS_CLUSTER" 2>/dev/null; then
+            echo "✅ Cluster '$ECS_CLUSTER' deleted."
+          else
+            echo "Cluster '$ECS_CLUSTER' not found or already deleted — nothing to do."
+          fi
+
+      - name: Verify ALB cleanup
+        run: |
+          echo ""
+          echo "⚠️  ECS Express Mode provisions an ALB shared across up to 25 services."
+          echo "    Verify in the AWS Console (EC2 → Load Balancers) that no orphaned"
+          echo "    listener rules or target groups remain for '$ECS_SERVICE'."
+          echo "    The shared ALB itself persists if other Express Mode services use it."

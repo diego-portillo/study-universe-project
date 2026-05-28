@@ -34,7 +34,7 @@ Implications when writing code or infra:
 
 - Next.js subprojects need `basePath` set to their subpath for production builds (e.g. `basePath: '/ai_hub'`) so client-side links and `_next/static` assets resolve correctly behind the proxy. `basePath` is build-time in Next.js — gate it behind an env var so local dev (`localhost:3000`) stays prefix-free.
 - Don't lean on Vercel-isms (Vercel-specific env vars, the Vercel image optimizer's defaults, Edge runtime assumptions). Stick to what runs on a generic Node container.
-- For AWS, expect: ECR (image registry) + a runtime (ECS Fargate, App Runner, or EC2) + an ALB or CloudFront in front for TLS and subpath routing.
+- For AWS, expect: ECR (image registry) + ECS Express Mode (Fargate-based, auto-provisions ALB and auto-scaling) + CloudFront or ALB in front for TLS and subpath routing.
 
 ## ai_hub — important constraint
 
