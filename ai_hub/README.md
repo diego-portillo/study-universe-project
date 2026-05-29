@@ -20,15 +20,16 @@ A production-ready Next.js 16 + React 19 web app that unifies **chat, image gene
 
 ```mermaid
 graph TD
-    Browser -->|HTTPS| AppRunner[AWS App Runner\nNext.js container :3000]
+    Browser -->|HTTPS| ALB[AWS ALB]
+    ALB --> ECS[ECS Express Mode\nFargate container :3000]
 
-    AppRunner -->|streamText| OpenAI[OpenAI\nGPT-4o · DALL·E · Whisper · TTS]
-    AppRunner -->|streamText| Anthropic[Anthropic\nClaude Sonnet 4.6 · Haiku · Opus]
-    AppRunner -->|streamText| Google[Google\nGemini 2.5 Flash]
-    AppRunner -->|REST| ElevenLabs[ElevenLabs\nTTS · Scribe v2 STT]
+    ECS -->|streamText| OpenAI[OpenAI\nGPT-4o · DALL·E · Whisper · TTS]
+    ECS -->|streamText| Anthropic[Anthropic\nClaude Sonnet 4.6 · Haiku · Opus]
+    ECS -->|streamText| Google[Google\nGemini 2.5 Flash]
+    ECS -->|REST| ElevenLabs[ElevenLabs\nTTS · Scribe v2 STT]
 
     GHA[GitHub Actions] -->|build + push| ECR[AWS ECR\nDocker image]
-    ECR -->|pull on deploy| AppRunner
+    ECR -->|pull on deploy| ECS
 
     subgraph "Next.js app"
         Page[page.tsx\nsingle-page UI] --> Hook[useChat hook\nfetch + stream reader]
@@ -126,8 +127,8 @@ Three workflows under `.github/workflows/`:
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ai_hub-ci.yml` | Push or PR touching `ai_hub/` | Lint + vitest; Docker smoke build on PRs to `main` |
-| `ai_hub-deploy.yml` | Merge to `main` (or manual) | Build image → push to ECR → create/update App Runner service |
-| `ai_hub-teardown.yml` | Manual only | Delete the App Runner service (stops billing) |
+| `ai_hub-deploy.yml` | Merge to `main` (or manual) | Build image → push to ECR → create/update ECS Express Mode service |
+| `ai_hub-teardown.yml` | Manual only | Delete ECS service + cluster (stops Fargate billing) |
 
 Auth uses **OIDC** — no long-lived AWS keys stored in GitHub secrets.
 
@@ -140,17 +141,17 @@ Auth uses **OIDC** — no long-lived AWS keys stored in GitHub secrets.
 ```
 GitHub Actions
   └── build Docker image → push to ECR (us-east-1)
-        └── deploy to App Runner (auto-pulls from ECR)
+        └── deploy to ECS Express Mode (Fargate task, ALB auto-provisioned)
 ```
 
-**AWS App Runner** was chosen over ECS Fargate for simplicity: no cluster, no task definitions, no ALB to manage. Pay-per-use, scales to zero.
+**AWS ECS Express Mode** handles infrastructure automatically: provisions a Fargate task, ALB, auto-scaling, and CloudWatch from a single deploy command. Replaces App Runner (stopped accepting new customers April 2026). Minimum sizing: 1 vCPU / 2 GB (app OOM'd at 0.5 GB on App Runner).
 
 | Resource | Status |
 |---|---|
 | ECR repository (`ai-hub`, us-east-1) | ✅ provisioned |
 | IAM role + OIDC provider for GitHub Actions | ✅ configured |
 | GitHub secrets (AWS_ROLE_ARN + 4 API keys) | ✅ configured |
-| App Runner service (verified live) | ⏳ pending first deploy |
+| ECS Express Mode service + IAM roles | ⏳ pending first deploy |
 | Custom domain `www.diegoportillo.dev/ai_hub` | ⏳ planned |
 
 ---
@@ -182,13 +183,16 @@ Will run a golden dataset of ~30 prompts against the chat route, score with LLM-
 
 ## Cost Estimate
 
-~100 chat requests/day on AWS App Runner:
+~100 chat requests/day on AWS ECS Express Mode:
 
 | Item | Monthly cost |
 |---|---|
-| App Runner (0.25 vCPU, 0.5 GB) | ~$5–10 |
+| Fargate (1 vCPU, 2 GB, 24/7) | ~$36 |
+| ALB (shared across Express Mode services) | ~$16 |
 | ECR storage | ~$1 |
-| **Infra subtotal** | **~$10** |
+| **Infra subtotal** | **~$53** |
+
+> **Note:** ECS does not scale to zero. Stop the service when not demoing to pause Fargate charges.
 | OpenAI GPT-4o (100 req/day) | ~$7.50 |
 | Anthropic Claude Sonnet (100 req/day) | ~$9 |
 | Gemini 2.5 Flash (100 req/day) | ~$0.30 |

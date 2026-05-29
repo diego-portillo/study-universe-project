@@ -85,6 +85,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const message =
       error instanceof Error ? error.message : JSON.stringify(error);
     console.error('[api/audio_to_text]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Transcription failed' }, { status: 500 });
   }
 }

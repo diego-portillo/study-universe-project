@@ -51,6 +51,6 @@ export async function POST(req: NextRequest) {
     const message =
       error instanceof Error ? error.message : 'Internal server error';
     console.error('[api/text_to_audio]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Speech generation failed' }, { status: 500 });
   }
 }
