@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  ai-hub infrastructure documentation and ECS cluster definition.
-  Most resources pre-existed this stack; they are documented here as the
-  authoritative record of what must exist in AWS for the deploy and teardown
-  GitHub Actions workflows to function.
+  ai-hub infrastructure — VPC, public subnets, and ECS cluster.
+  Pre-existing resources (ECR, IAM roles, OIDC provider) are documented
+  in comments below as the authoritative record of what must exist in AWS
+  for the deploy and teardown GitHub Actions workflows to function.
 
 # ===========================================================================
 # ACCOUNT / REGION
@@ -11,7 +11,7 @@ Description: >
 # Account ID : 211125335109
 # Region     : us-east-1
 # Domain     : www.diegoportillo.dev
-# GitHub repo: diego-portillo/study-universe-project  (branch: main)
+# GitHub repo: diego-portillo/study-universe-project  (branch: ai_hub → main)
 
 # ===========================================================================
 # GITHUB ACTIONS SECRETS  (Settings → Secrets → Actions)
@@ -26,8 +26,6 @@ Description: >
 # GOOGLE_GENERATIVE_AI_API_KEY  <your key>
 # ELEVENLABS_API_KEY            <your key>
 # ─────────────────────────────────────────────────────────────────────────────
-# DOCKERHUB_TOKEN / DOCKERHUB_USERNAME are present but not used by ai_hub
-# workflows (legacy from an earlier approach).
 
 # ===========================================================================
 # PRE-EXISTING RESOURCES  (not managed by this stack)
@@ -37,61 +35,123 @@ Description: >
 #    Name : ai-hub
 #    ARN  : arn:aws:ecr:us-east-1:211125335109:repository/ai-hub
 #    URI  : 211125335109.dkr.ecr.us-east-1.amazonaws.com/ai-hub
-#    The deploy workflow tags images with the git SHA and pushes here.
 #
 # 2. GITHUB OIDC IDENTITY PROVIDER
 #    ARN  : arn:aws:iam::211125335109:oidc-provider/token.actions.githubusercontent.com
-#    Lets GitHub Actions prove its identity to AWS without stored access keys.
-#    One provider per account; shared across all repos.
 #
 # 3. GITHUB ACTIONS ROLE  →  github-actions-ai-hub
 #    ARN  : arn:aws:iam::211125335109:role/github-actions-ai-hub
-#    Assumed by: deploy + teardown workflows (OIDC, no long-lived keys)
-#    Trust condition: repo:diego-portillo/study-universe-project:*
+#    Trust: repo:diego-portillo/study-universe-project:*  (OIDC)
 #    Inline policy: ai-hub-deploy
-#      ECR         — GetAuthorizationToken, BatchCheckLayerAvailability,
-#                    GetDownloadUrlForLayer, BatchGetImage, InitiateLayerUpload,
-#                    UploadLayerPart, CompleteLayerUpload, PutImage
-#      ECS         — DescribeServices, DescribeClusters,
-#                    CreateCluster, DeleteCluster,
-#                    CreateService, UpdateService, DeleteService,
-#                    RegisterTaskDefinition, DeregisterTaskDefinition,
-#                    DescribeTaskDefinition, ListServices, ListTaskDefinitions,
-#                    TagResource, CreateExpressGatewayService
-#      Logs        — CreateLogGroup, DescribeLogGroups
-#      PassRole    — ai-hub-execution-role, ai-hub-infra-role,
-#                    AppRunnerECRAccessRole (legacy, harmless)
-#      SLR         — iam:CreateServiceLinkedRole for apprunner (legacy)
+#      ECR      — GetAuthorizationToken, BatchCheckLayerAvailability,
+#                 GetDownloadUrlForLayer, BatchGetImage, InitiateLayerUpload,
+#                 UploadLayerPart, CompleteLayerUpload, PutImage
+#      ECS      — DescribeServices, DescribeClusters,
+#                 CreateCluster, DeleteCluster,
+#                 CreateService, UpdateService, DeleteService,
+#                 RegisterTaskDefinition, DeregisterTaskDefinition,
+#                 DescribeTaskDefinition, ListServices, ListTaskDefinitions,
+#                 TagResource, CreateExpressGatewayService
+#      CFN      — cloudformation:DescribeStacks (reads subnet IDs at deploy time)
+#      Logs     — CreateLogGroup, DescribeLogGroups
+#      PassRole — ai-hub-execution-role, ai-hub-infra-role
 #
 # 4. ECS TASK EXECUTION ROLE  →  ai-hub-execution-role
-#    ARN  : arn:aws:iam::211125335109:role/ai-hub-execution-role
-#    Assumed by: ecs-tasks.amazonaws.com
-#    Purpose: ECS agent uses this to pull the image from ECR and write logs
-#             to CloudWatch. This is NOT your app code's identity.
-#    Managed policy: AmazonECSTaskExecutionRolePolicy
+#    ARN    : arn:aws:iam::211125335109:role/ai-hub-execution-role
+#    Trust  : ecs-tasks.amazonaws.com
+#    Policy : AmazonECSTaskExecutionRolePolicy (AWS managed)
 #
 # 5. ECS EXPRESS MODE INFRASTRUCTURE ROLE  →  ai-hub-infra-role
-#    ARN  : arn:aws:iam::211125335109:role/ai-hub-infra-role
-#    Assumed by: ecs.amazonaws.com
-#    Purpose: ECS Express Mode assumes this role to auto-provision the ALB,
-#             target groups, security groups, and auto-scaling on your behalf.
-#    Managed policy: AmazonECSInfrastructureRoleforExpressGatewayServices
+#    ARN    : arn:aws:iam::211125335109:role/ai-hub-infra-role
+#    Trust  : ecs.amazonaws.com
+#    Policy : AmazonECSInfrastructureRoleforExpressGatewayServices (AWS managed)
 #
 # 6. ECS SERVICE-LINKED ROLE  →  AWSServiceRoleForECS
-#    Created automatically by AWS; required for ECS to manage ENIs, SGs, etc.
-#    No manual action needed — AWS creates it on first ECS API call.
+#    Created automatically by AWS on first ECS API call.
 
 # ===========================================================================
 # RESOURCES MANAGED BY THIS STACK
 # ===========================================================================
 Resources:
 
+  # ── VPC ───────────────────────────────────────────────────────────────────
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: ai-hub-vpc
+
+  # ── Internet Gateway ──────────────────────────────────────────────────────
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: ai-hub-igw
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # ── Public subnets (2 AZs — ALB requires at least 2) ─────────────────────
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-1a
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: ai-hub-public-1a
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-east-1b
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: ai-hub-public-1b
+
+  # ── Route table — sends all outbound traffic through the IGW ──────────────
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: ai-hub-public-rt
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
   # ── ECS cluster ───────────────────────────────────────────────────────────
-  # Named "ai-hub" to match ECS_CLUSTER in both workflow env blocks.
-  # The deploy workflow's ECS Express Mode action creates the ECS service
-  # inside this cluster; the teardown workflow deletes service + cluster.
-  # After teardown the cluster no longer exists — re-running deploy recreates
-  # it automatically via ecs:CreateCluster on the GitHub Actions role.
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -104,9 +164,25 @@ Resources:
           Weight: 1
 
 # ===========================================================================
-# OUTPUTS
+# OUTPUTS — subnet IDs are queried dynamically by the deploy workflow
 # ===========================================================================
 Outputs:
+  VpcId:
+    Description: VPC ID
+    Value: !Ref VPC
+
+  PublicSubnet1Id:
+    Description: Public subnet in us-east-1a
+    Value: !Ref PublicSubnet1
+
+  PublicSubnet2Id:
+    Description: Public subnet in us-east-1b
+    Value: !Ref PublicSubnet2
+
   ECSClusterArn:
-    Description: ARN of the ECS cluster.
+    Description: ARN of the ECS cluster
     Value: !GetAtt ECSCluster.Arn
+
+  SubnetList:
+    Description: Comma-separated subnet IDs for the ECS Express Mode action
+    Value: !Sub "${PublicSubnet1},${PublicSubnet2}"

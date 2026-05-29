@@ -53,6 +53,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Get subnets from CloudFormation
+        id: cfn
+        run: |
+          SUBNETS=$(aws cloudformation describe-stacks \
+            --stack-name ai-hub-infra \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='SubnetList'].OutputValue" \
+            --output text)
+          echo "subnets=$SUBNETS" >> $GITHUB_OUTPUT
+
       - name: Deploy to ECS Express Mode
         id: deploy
         uses: aws-actions/amazon-ecs-deploy-express-service@v1
@@ -66,10 +76,7 @@ jobs:
           cpu: 1024
           memory: 2048
           health-check-path: /
-          # Prerequisites before first run — see tasks.txt AWS Deployment section:
-          #   Create execution-role + infrastructure-role in IAM
-          #   Add ECS_EXECUTION_ROLE_ARN + ECS_INFRA_ROLE_ARN as GitHub secrets
-          #   Grant iam:PassRole on both new roles to the existing OIDC role (AWS_ROLE_ARN)
+          subnets: ${{ steps.cfn.outputs.subnets }}
           environment-variables: >-
             [
               {"name": "OPENAI_API_KEY",                "value": "${{ secrets.OPENAI_API_KEY }}"},
