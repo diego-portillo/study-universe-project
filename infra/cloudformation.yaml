@@ -45,13 +45,11 @@ Description: >
 #    Inline policy: ai-hub-deploy
 #      ECR      — GetAuthorizationToken, BatchCheckLayerAvailability,
 #                 GetDownloadUrlForLayer, BatchGetImage, InitiateLayerUpload,
-#                 UploadLayerPart, CompleteLayerUpload, PutImage
-#      ECS      — DescribeServices, DescribeClusters,
-#                 CreateCluster, DeleteCluster,
-#                 CreateService, UpdateService, DeleteService,
-#                 RegisterTaskDefinition, DeregisterTaskDefinition,
-#                 DescribeTaskDefinition, ListServices, ListTaskDefinitions,
-#                 TagResource, CreateExpressGatewayService
+#                 UploadLayerPart, CompleteLayerUpload, PutImage,
+#                 ListImages, BatchDeleteImage
+#      ECS      — ecs:* (full ECS access; Express Mode requires many undocumented
+#                 actions that were discovered reactively, so wildcard is pragmatic
+#                 for a single-account portfolio project)
 #      CFN      — cloudformation:DescribeStacks (reads subnet IDs at deploy time)
 #      Logs     — CreateLogGroup, DescribeLogGroups
 #      PassRole — ai-hub-execution-role, ai-hub-infra-role
