@@ -33,7 +33,6 @@ import {
   UNSUPPORTED_AUDIO_PROVIDERS,
   UNSUPPORTED_IMAGE_PROVIDERS,
   DEFAULT_AUDIO_PROVIDER,
-  AUDIO_PROVIDER_OPTIONS,
 } from './constants';
 
 import './page.css';
@@ -74,9 +73,7 @@ export default function Page() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioPreview, setAudioPreview] = useState('');
   const [audioName, setAudioName] = useState('');
-  const [audioProvider, setAudioProvider] = useState<AudioProvider>(
-    DEFAULT_AUDIO_PROVIDER,
-  );
+  const audioProvider: AudioProvider = DEFAULT_AUDIO_PROVIDER;
 
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -89,7 +86,7 @@ export default function Page() {
 
   const [generatedImageUrl, setGeneratedImageUrl] = useState('');
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState('');
-  const [voice, setVoice] = useState<SpeechVoice>('alloy');
+  const voice: SpeechVoice = 'alloy';
 
   const fileRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLInputElement | null>(null);
@@ -296,7 +293,7 @@ export default function Page() {
       }, MAX_AUDIO_LENGTH * 1000);
 
       mediaRecorderRef.current = recorder;
-    } catch (err) {
+    } catch {
       setError('Microphone permission denied or unavailable');
     }
   }

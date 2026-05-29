@@ -7,7 +7,7 @@ const mockGenerate = vi.fn();
 vi.mock('openai', () => {
   class MockOpenAI {
     images = { generate: mockGenerate };
-    constructor(_opts: unknown) {}
+    constructor() {}
   }
   // APIError needs to be a real class for instanceof checks in the route
   class APIError extends Error {}
