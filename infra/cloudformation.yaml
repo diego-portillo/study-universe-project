@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  ai-hub infrastructure documentation and ECS cluster definition.
+  Most resources pre-existed this stack; they are documented here as the
+  authoritative record of what must exist in AWS for the deploy and teardown
+  GitHub Actions workflows to function.
+
+# ===========================================================================
+# ACCOUNT / REGION
+# ===========================================================================
+# Account ID : 211125335109
+# Region     : us-east-1
+# Domain     : www.diegoportillo.dev
+# GitHub repo: diego-portillo/study-universe-project  (branch: main)
+
+# ===========================================================================
+# GITHUB ACTIONS SECRETS  (Settings → Secrets → Actions)
+# ===========================================================================
+# Secret name                   Value
+# ─────────────────────────────────────────────────────────────────────────────
+# AWS_ROLE_ARN                  arn:aws:iam::211125335109:role/github-actions-ai-hub
+# ECS_EXECUTION_ROLE_ARN        arn:aws:iam::211125335109:role/ai-hub-execution-role
+# ECS_INFRA_ROLE_ARN            arn:aws:iam::211125335109:role/ai-hub-infra-role
+# OPENAI_API_KEY                <your key>
+# ANTHROPIC_API_KEY             <your key>
+# GOOGLE_GENERATIVE_AI_API_KEY  <your key>
+# ELEVENLABS_API_KEY            <your key>
+# ─────────────────────────────────────────────────────────────────────────────
+# DOCKERHUB_TOKEN / DOCKERHUB_USERNAME are present but not used by ai_hub
+# workflows (legacy from an earlier approach).
+
+# ===========================================================================
+# PRE-EXISTING RESOURCES  (not managed by this stack)
+# ===========================================================================
+#
+# 1. ECR REPOSITORY
+#    Name : ai-hub
+#    ARN  : arn:aws:ecr:us-east-1:211125335109:repository/ai-hub
+#    URI  : 211125335109.dkr.ecr.us-east-1.amazonaws.com/ai-hub
+#    The deploy workflow tags images with the git SHA and pushes here.
+#
+# 2. GITHUB OIDC IDENTITY PROVIDER
+#    ARN  : arn:aws:iam::211125335109:oidc-provider/token.actions.githubusercontent.com
+#    Lets GitHub Actions prove its identity to AWS without stored access keys.
+#    One provider per account; shared across all repos.
+#
+# 3. GITHUB ACTIONS ROLE  →  github-actions-ai-hub
+#    ARN  : arn:aws:iam::211125335109:role/github-actions-ai-hub
+#    Assumed by: deploy + teardown workflows (OIDC, no long-lived keys)
+#    Trust condition: repo:diego-portillo/study-universe-project:*
+#    Inline policy: ai-hub-deploy
+#      ECR         — GetAuthorizationToken, BatchCheckLayerAvailability,
+#                    GetDownloadUrlForLayer, BatchGetImage, InitiateLayerUpload,
+#                    UploadLayerPart, CompleteLayerUpload, PutImage
+#      ECS         — DescribeServices, DescribeClusters,
+#                    CreateCluster, DeleteCluster,
+#                    CreateService, UpdateService, DeleteService,
+#                    RegisterTaskDefinition, DeregisterTaskDefinition,
+#                    DescribeTaskDefinition, ListServices, ListTaskDefinitions,
+#                    TagResource, CreateExpressGatewayService
+#      Logs        — CreateLogGroup, DescribeLogGroups
+#      PassRole    — ai-hub-execution-role, ai-hub-infra-role,
+#                    AppRunnerECRAccessRole (legacy, harmless)
+#      SLR         — iam:CreateServiceLinkedRole for apprunner (legacy)
+#
+# 4. ECS TASK EXECUTION ROLE  →  ai-hub-execution-role
+#    ARN  : arn:aws:iam::211125335109:role/ai-hub-execution-role
+#    Assumed by: ecs-tasks.amazonaws.com
+#    Purpose: ECS agent uses this to pull the image from ECR and write logs
+#             to CloudWatch. This is NOT your app code's identity.
+#    Managed policy: AmazonECSTaskExecutionRolePolicy
+#
+# 5. ECS EXPRESS MODE INFRASTRUCTURE ROLE  →  ai-hub-infra-role
+#    ARN  : arn:aws:iam::211125335109:role/ai-hub-infra-role
+#    Assumed by: ecs.amazonaws.com
+#    Purpose: ECS Express Mode assumes this role to auto-provision the ALB,
+#             target groups, security groups, and auto-scaling on your behalf.
+#    Managed policy: AmazonECSInfrastructureRoleforExpressGatewayServices
+#
+# 6. ECS SERVICE-LINKED ROLE  →  AWSServiceRoleForECS
+#    Created automatically by AWS; required for ECS to manage ENIs, SGs, etc.
+#    No manual action needed — AWS creates it on first ECS API call.
+
+# ===========================================================================
+# RESOURCES MANAGED BY THIS STACK
+# ===========================================================================
+Resources:
+
+  # ── ECS cluster ───────────────────────────────────────────────────────────
+  # Named "ai-hub" to match ECS_CLUSTER in both workflow env blocks.
+  # The deploy workflow's ECS Express Mode action creates the ECS service
+  # inside this cluster; the teardown workflow deletes service + cluster.
+  # After teardown the cluster no longer exists — re-running deploy recreates
+  # it automatically via ecs:CreateCluster on the GitHub Actions role.
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: ai-hub
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+# ===========================================================================
+# OUTPUTS
+# ===========================================================================
+Outputs:
+  ECSClusterArn:
+    Description: ARN of the ECS cluster.
+    Value: !GetAtt ECSCluster.Arn
