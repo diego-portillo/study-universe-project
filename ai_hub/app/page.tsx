@@ -217,6 +217,10 @@ export default function Page() {
     setAudioPreview(audio.src);
     setAudioName(file.name);
     setError('');
+    if (generatedAudioUrl) {
+      URL.revokeObjectURL(generatedAudioUrl);
+      setGeneratedAudioUrl('');
+    }
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -279,6 +283,10 @@ export default function Page() {
         const url = URL.createObjectURL(blob);
         setAudioPreview(url);
         setAudioName(file.name);
+        if (generatedAudioUrl) {
+          URL.revokeObjectURL(generatedAudioUrl);
+          setGeneratedAudioUrl('');
+        }
         streamRef.current?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
       };
