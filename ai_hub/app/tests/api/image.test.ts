@@ -6,13 +6,14 @@ const mockGenerate = vi.fn();
 // OpenAI must be mocked as a real class, not a plain function
 vi.mock('openai', () => {
   class MockOpenAI {
+    // Route checks `instanceof OpenAI.APIError`, so it must be a static
+    // property on the default export, not a separate named export.
+    static APIError = class APIError extends Error {};
     images = { generate: mockGenerate };
     constructor() {}
   }
-  // APIError needs to be a real class for instanceof checks in the route
-  class APIError extends Error {}
 
-  return { default: MockOpenAI, APIError };
+  return { default: MockOpenAI };
 });
 
 // Import AFTER the mock is set up
@@ -76,5 +77,33 @@ describe('POST /api/image — input validation', () => {
     mockGenerate.mockResolvedValue({ data: [] });
     const res = await POST(makeRequest({ prompt: 'a cat' }));
     expect(res.status).toBe(502);
+  });
+
+  // Regression: the API now rejects `response_format` outright with
+  // "400 Unknown parameter: 'response_format'", which surfaced as a 502
+  // in prod. dall-e-2/3 default to `url` and gpt-image-* always returns
+  // `b64_json`, so the param is never needed.
+  it('does not send response_format to the OpenAI API', async () => {
+    await POST(makeRequest({ prompt: 'a cat' }));
+    const params = mockGenerate.mock.calls[0][0];
+    expect(params).not.toHaveProperty('response_format');
+  });
+
+  it('returns a data URL when OpenAI responds with b64_json only', async () => {
+    mockGenerate.mockResolvedValue({ data: [{ b64_json: 'ZmFrZQ==' }] });
+    const res = await POST(makeRequest({ prompt: 'a cat' }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.url).toBe('data:image/png;base64,ZmFrZQ==');
+  });
+
+  it('returns 502 when the OpenAI API call throws', async () => {
+    mockGenerate.mockRejectedValue(
+      new Error("400 Unknown parameter: 'response_format'."),
+    );
+    const res = await POST(makeRequest({ prompt: 'a cat' }));
+    expect(res.status).toBe(502);
+    const data = await res.json();
+    expect(data.error).toBe('Image generation failed');
   });
 });
