@@ -49,7 +49,10 @@ Object.defineProperty(window.HTMLMediaElement.prototype, 'src', {
 
 const server = setupServer(
   http.post('http://localhost/api/text_to_audio', () => {
-    return new HttpResponse(new Blob(['fake-audio'], { type: 'audio/mpeg' }), {
+    // A plain string body — the test only needs res.blob() to resolve, and a
+    // Blob body here breaks under Node 20 + jsdom (Blob.stream() missing,
+    // which msw's HttpResponse/undici Response needs to extract the body).
+    return new HttpResponse('fake-audio', {
       status: 200,
       headers: { 'Content-Type': 'audio/mpeg' },
     });
