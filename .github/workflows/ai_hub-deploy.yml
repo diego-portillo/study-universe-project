@@ -63,6 +63,21 @@ jobs:
             --output text)
           echo "subnets=$SUBNETS" >> $GITHUB_OUTPUT
 
+      - name: Ensure ECS cluster exists
+        run: |
+          STATUS=$(aws ecs describe-clusters --clusters ${{ env.ECS_CLUSTER }} --region ${{ env.AWS_REGION }} \
+            --query "clusters[0].status" --output text)
+          if [ "$STATUS" = "ACTIVE" ]; then
+            echo "Cluster '${{ env.ECS_CLUSTER }}' already active."
+          else
+            echo "Cluster '${{ env.ECS_CLUSTER }}' status is '$STATUS' — creating..."
+            aws ecs create-cluster \
+              --cluster-name ${{ env.ECS_CLUSTER }} \
+              --region ${{ env.AWS_REGION }} \
+              --capacity-providers FARGATE FARGATE_SPOT \
+              --default-capacity-provider-strategy capacityProvider=FARGATE,weight=1
+          fi
+
       - name: Deploy to ECS Express Mode
         id: deploy
         uses: aws-actions/amazon-ecs-deploy-express-service@v1

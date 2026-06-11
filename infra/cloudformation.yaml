@@ -1,9 +1,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
-  ai-hub infrastructure — VPC, public subnets, and ECS cluster.
-  Pre-existing resources (ECR, IAM roles, OIDC provider) are documented
-  in comments below as the authoritative record of what must exist in AWS
-  for the deploy and teardown GitHub Actions workflows to function.
+  ai-hub infrastructure — VPC and public subnets.
+  Pre-existing resources (ECR, IAM roles, OIDC provider, ECS cluster) are
+  documented in comments below as the authoritative record of what must
+  exist in AWS for the deploy and teardown GitHub Actions workflows to
+  function.
 
 # ===========================================================================
 # ACCOUNT / REGION
@@ -66,6 +67,16 @@ Description: >
 #
 # 6. ECS SERVICE-LINKED ROLE  →  AWSServiceRoleForECS
 #    Created automatically by AWS on first ECS API call.
+#
+# 7. ECS CLUSTER  →  ai-hub
+#    ARN  : arn:aws:ecs:us-east-1:211125335109:cluster/ai-hub
+#    Capacity providers: FARGATE, FARGATE_SPOT (default strategy: FARGATE weight 1)
+#    Lifecycle is intentionally NOT managed by this CFN stack: the deploy
+#    workflow creates it (idempotent ecs:CreateCluster) if missing, and the
+#    teardown workflow deletes it (ecs:DeleteCluster). Putting it in CFN
+#    caused stack drift every teardown→deploy cycle, which broke
+#    amazon-ecs-deploy-express-service with an opaque "Service Unavailable"
+#    error when the cluster CFN thought existed had actually been deleted.
 
 # ===========================================================================
 # RESOURCES MANAGED BY THIS STACK
@@ -149,18 +160,6 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
-  # ── ECS cluster ───────────────────────────────────────────────────────────
-  ECSCluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: ai-hub
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
-      DefaultCapacityProviderStrategy:
-        - CapacityProvider: FARGATE
-          Weight: 1
-
 # ===========================================================================
 # OUTPUTS — subnet IDs are queried dynamically by the deploy workflow
 # ===========================================================================
@@ -176,10 +175,6 @@ Outputs:
   PublicSubnet2Id:
     Description: Public subnet in us-east-1b
     Value: !Ref PublicSubnet2
-
-  ECSClusterArn:
-    Description: ARN of the ECS cluster
-    Value: !GetAtt ECSCluster.Arn
 
   SubnetList:
     Description: Comma-separated subnet IDs for the ECS Express Mode action
