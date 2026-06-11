@@ -36,74 +36,54 @@ export async function POST(request: NextRequest) {
   const clipped = prompt.slice(0, maxLen);
 
   try {
+    let img;
+
     if (IMAGE_MODEL.startsWith('gpt-image')) {
-      const img = await openaiClient.images.generate({
+      img = await openaiClient.images.generate({
         model: IMAGE_MODEL,
         prompt: clipped,
         n: 1,
         size: '1024x1024',
         quality: 'low',
       });
-
-      const b64 = img.data?.[0]?.b64_json;
-      if (!b64)
-        return NextResponse.json(
-          { error: 'No image returned' },
-          { status: 502 },
-        );
-
-      return NextResponse.json({
-        url: `data:image/png;base64,${b64}`,
-        revised_prompt: img.data?.[0]?.revised_prompt,
-      });
-    }
-
-    if (IMAGE_MODEL === 'dall-e-3') {
-      const img = await openaiClient.images.generate({
+    } else if (IMAGE_MODEL === 'dall-e-3') {
+      img = await openaiClient.images.generate({
         model: 'dall-e-3',
         prompt: clipped,
         n: 1,
         size: '1024x1024',
         quality: 'standard',
-        response_format: 'url',
       });
+    } else {
+      const dalle2Size: '256x256' | '512x512' | '1024x1024' =
+        IMAGE_SIZE === '512x512' ||
+        IMAGE_SIZE === '1024x1024' ||
+        IMAGE_SIZE === '256x256'
+          ? IMAGE_SIZE
+          : '256x256';
 
-      const url = img.data?.[0]?.url;
-      if (!url)
-        return NextResponse.json(
-          { error: 'No image URL returned' },
-          { status: 502 },
-        );
-
-      return NextResponse.json({
-        url,
-        revised_prompt: img.data?.[0]?.revised_prompt,
+      img = await openaiClient.images.generate({
+        model: 'dall-e-2',
+        prompt: clipped,
+        n: 1,
+        size: dalle2Size,
       });
     }
 
-    const dalle2Size: '256x256' | '512x512' | '1024x1024' =
-      IMAGE_SIZE === '512x512' ||
-      IMAGE_SIZE === '1024x1024' ||
-      IMAGE_SIZE === '256x256'
-        ? IMAGE_SIZE
-        : '256x256';
+    // response_format is no longer accepted by the API — dall-e-2/3 default to
+    // `url`, gpt-image-* models always return `b64_json`. Handle either.
+    const result = img.data?.[0];
+    const url = result?.b64_json
+      ? `data:image/png;base64,${result.b64_json}`
+      : result?.url;
 
-    const img = await openaiClient.images.generate({
-      model: 'dall-e-2',
-      prompt: clipped,
-      n: 1,
-      size: dalle2Size,
-      response_format: 'url',
-    });
-
-    const url = img.data?.[0]?.url;
     if (!url)
       return NextResponse.json(
-        { error: 'No image URL returned' },
+        { error: 'No image returned' },
         { status: 502 },
       );
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url, revised_prompt: result.revised_prompt });
   } catch (error: unknown) {
     const message =
       error instanceof OpenAI.APIError || error instanceof Error
