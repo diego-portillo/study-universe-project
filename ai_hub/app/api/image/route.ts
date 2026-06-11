@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         { status: 502 },
       );
 
-    return NextResponse.json({ url, revised_prompt: result.revised_prompt });
+    return NextResponse.json({ url, revised_prompt: result?.revised_prompt });
   } catch (error: unknown) {
     const message =
       error instanceof OpenAI.APIError || error instanceof Error
