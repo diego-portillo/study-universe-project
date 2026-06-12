@@ -2,7 +2,7 @@
 
 A production-ready Next.js 16 + React 19 web app that unifies **chat, image generation, and audio (TTS/STT)** across four AI providers behind a single UI. Built as a portfolio project demonstrating AI backend engineering: provider abstraction, streaming, Docker, CI/CD, and AWS deployment.
 
-**Live:** `https://www.diegoportillo.dev/ai_hub` *(deployment in progress)*
+**Live:** `https://ai-a274d30c31b54e978412470ca110fbc8.ecs.us-east-1.on.aws` *(ECS Express Mode endpoint, served at root; custom domain `www.diegoportillo.dev/ai_hub` routing still pending — see [AWS Deployment](#aws-deployment))*
 
 ---
 
@@ -146,12 +146,14 @@ GitHub Actions
 
 **AWS ECS Express Mode** handles infrastructure automatically: provisions a Fargate task, ALB, auto-scaling, and CloudWatch from a single deploy command. Replaces App Runner (stopped accepting new customers April 2026). Minimum sizing: 1 vCPU / 2 GB (app OOM'd at 0.5 GB on App Runner).
 
+**Live service:** `https://ai-a274d30c31b54e978412470ca110fbc8.ecs.us-east-1.on.aws` — ECS Express Mode's auto-generated endpoint. The app is built with no base path (`NEXT_PUBLIC_BASE_PATH=`) and served at root; subpath routing under `www.diegoportillo.dev/ai_hub` via CloudFront/ALB is a separate, not-yet-done step.
+
 | Resource | Status |
 |---|---|
 | ECR repository (`ai-hub`, us-east-1) | ✅ provisioned |
 | IAM role + OIDC provider for GitHub Actions | ✅ configured |
 | GitHub secrets (AWS_ROLE_ARN + 4 API keys) | ✅ configured |
-| ECS Express Mode service + IAM roles | ⏳ pending first deploy |
+| ECS Express Mode service + IAM roles | ✅ deployed |
 | Custom domain `www.diegoportillo.dev/ai_hub` | ⏳ planned |
 
 ---
