@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ImageRequestBody } from '../lib/types';
 
-const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2';
+const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-1-mini';
 const IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE ?? '256x256';
 
 export async function POST(request: NextRequest) {
