@@ -72,8 +72,15 @@ export async function POST(request: NextRequest) {
 
   const previous = memoryStore.get(conversationId) ?? [];
 
+  let normalized: Message[];
   try {
-    const normalized = applyLowDetailToImages(messages);
+    normalized = applyLowDetailToImages(messages);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Invalid request';
+    return new Response(JSON.stringify({ error: message }), { status: 400 });
+  }
+
+  try {
     const fullMessages = [...previous, ...normalized];
 
     const systemPrompt = extractSystemPrompt(fullMessages);

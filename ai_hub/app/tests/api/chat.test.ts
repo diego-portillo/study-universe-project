@@ -14,10 +14,15 @@ vi.mock('@ai-sdk/anthropic', () => ({
   anthropic: vi.fn((id: string) => `anthropic:${id}`),
 }));
 vi.mock('@ai-sdk/google', () => ({ google: vi.fn((id: string) => `google:${id}`) }));
-vi.mock('../../api/lib/messages', () => ({
-  applyLowDetailToImages: (m: unknown) => m,
-  messagesIncludeVision: () => false,
-}));
+vi.mock('../../api/lib/messages', async () => {
+  const actual = await vi.importActual<typeof import('../../api/lib/messages')>(
+    '../../api/lib/messages',
+  );
+  return {
+    ...actual,
+    messagesIncludeVision: () => false,
+  };
+});
 
 function makeRequest(body: unknown) {
   return new NextRequest('http://localhost/api/chat', {
@@ -101,6 +106,29 @@ describe('POST /api/chat — input validation', () => {
       makeRequest({ messages: validMessages, provider: 'openai' }),
     );
     expect(res.status).toBe(200);
+  });
+
+  it('returns 400 for an image_url with a disallowed scheme', async () => {
+    const res = await POST(
+      makeRequest({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'look at this' },
+              {
+                type: 'image_url',
+                image_url: { url: 'http://example.com/image.png' },
+              },
+            ],
+          },
+        ],
+        provider: 'openai',
+      }),
+    );
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toMatch(/data: or https:/);
   });
 });
 
