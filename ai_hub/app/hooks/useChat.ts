@@ -150,6 +150,15 @@ export function useChat({
           ]);
         }
       }
+
+      // A 200 with an empty body means the provider call failed after the
+      // stream had already started (see api/chat/route.ts onError) — there's
+      // no error payload to read, so surface a generic message instead of
+      // leaving an empty assistant bubble.
+      if (!assistantText) {
+        setMessages((prev) => prev.slice(0, -1));
+        setError('The AI provider returned an empty response. Please try again.');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error');
     } finally {

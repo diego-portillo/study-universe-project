@@ -65,6 +65,36 @@ describe('Chat UI — AI response display', () => {
     );
   });
 
+  it('shows an error when the API returns a 200 with an empty stream', async () => {
+    // simulates a real upstream provider error during streaming: route.ts
+    // already committed status 200, so the body is just empty
+    server.use(
+      http.post('http://localhost/api/chat', () => {
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.close();
+          },
+        });
+        return new HttpResponse(stream, {
+          status: 200,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        });
+      }),
+    );
+
+    render(<Page />);
+
+    const textarea = screen.getByPlaceholderText('Ask anything...');
+    await userEvent.type(textarea, 'Hello');
+    await userEvent.click(screen.getByTitle('Send'));
+
+    expect(await screen.findByText('Hello')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText(/empty response/i)).toBeInTheDocument();
+    });
+  });
+
   it('does not show AI text when the API returns a non-200 status', async () => {
     // override the handler for this test only
     server.use(
