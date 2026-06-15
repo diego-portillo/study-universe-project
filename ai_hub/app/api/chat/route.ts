@@ -137,12 +137,19 @@ export async function POST(request: NextRequest) {
       system: systemPrompt,
       messages: aiMessages,
       maxOutputTokens: maxTokens,
+      onError: ({ error }) => {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`[api/chat] ${provider} stream error:`, message);
+      },
       onFinish: ({ text }) => {
         const updated = [...fullMessages, { role: 'assistant' as const, content: text }];
         memoryStore.set(conversationId, updated.slice(-MAX_MESSAGES));
       },
     });
 
+    // toTextStreamResponse() commits a 200 response synchronously, before the
+    // provider call resolves, so errors during streaming can't change the
+    // status/body here — onError above is what surfaces them (CloudWatch).
     return result.toTextStreamResponse();
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

@@ -214,3 +214,32 @@ describe('POST /api/chat — provider routing', () => {
     },
   );
 });
+
+// toTextStreamResponse() returns 200 synchronously, before the provider call
+// resolves — a streaming/upstream error can't change the response status or
+// body at that point. onError is the only way such errors become visible.
+describe('POST /api/chat — streaming error logging', () => {
+  beforeEach(() => {
+    vi.stubEnv('OPENAI_API_KEY', 'sk-test');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-test');
+    vi.stubEnv('GOOGLE_GENERATIVE_AI_API_KEY', 'goog-test');
+  });
+
+  it('registers an onError handler that logs streaming errors server-side', async () => {
+    const { streamText } = await import('ai');
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await POST(makeRequest({ messages: validMessages, provider: 'anthropic' }));
+
+    const call = vi.mocked(streamText).mock.calls.at(-1)?.[0];
+    expect(call?.onError).toBeTypeOf('function');
+
+    call?.onError?.({ error: new Error('simulated upstream failure') });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[api/chat] anthropic stream error:'),
+      'simulated upstream failure',
+    );
+
+    consoleSpy.mockRestore();
+  });
+});
