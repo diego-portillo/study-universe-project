@@ -4,6 +4,7 @@ import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { applyLowDetailToImages, messagesIncludeVision } from '../lib/messages';
+import { estimateCostUsd } from '../lib/cost';
 import type { ChatBody } from '../lib/types';
 import type { Message } from '../../types';
 
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
         ? Math.min(4096, Math.max(64, Number(process.env.ANTHROPIC_MAX_TOKENS) || 1024))
         : undefined;
 
+    let modelId: string;
     let resolvedModel;
 
     if (provider === 'anthropic') {
@@ -104,9 +106,8 @@ export async function POST(request: NextRequest) {
           { status: 500 },
         );
 
-      resolvedModel = anthropic(
-        model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-5',
-      );
+      modelId = model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
+      resolvedModel = anthropic(modelId);
     } else if (provider === 'google') {
       if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
         return new Response(
@@ -114,9 +115,8 @@ export async function POST(request: NextRequest) {
           { status: 500 },
         );
 
-      resolvedModel = google(
-        model ?? process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
-      );
+      modelId = model ?? process.env.GEMINI_MODEL ?? 'gemini-3-flash-preview';
+      resolvedModel = google(modelId);
     } else {
       if (!process.env.OPENAI_API_KEY)
         return new Response(
@@ -127,10 +127,13 @@ export async function POST(request: NextRequest) {
       const hasVision = messagesIncludeVision(normalized);
       const defaultModel = hasVision
         ? (process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini')
-        : (process.env.OPENAI_MODEL ?? 'gpt-4o');
+        : (process.env.OPENAI_MODEL ?? 'gpt-4o-mini');
 
-      resolvedModel = openai(model ?? defaultModel);
+      modelId = model ?? defaultModel;
+      resolvedModel = openai(modelId);
     }
+
+    const startTime = Date.now();
 
     const result = streamText({
       model: resolvedModel,
@@ -141,9 +144,24 @@ export async function POST(request: NextRequest) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         console.error(`[api/chat] ${provider} stream error:`, message);
       },
-      onFinish: ({ text }) => {
+      onFinish: ({ text, usage }) => {
         const updated = [...fullMessages, { role: 'assistant' as const, content: text }];
         memoryStore.set(conversationId, updated.slice(-MAX_MESSAGES));
+
+        const inputTokens = usage.inputTokens ?? 0;
+        const outputTokens = usage.outputTokens ?? 0;
+        const estimatedCostUsd = estimateCostUsd(modelId, inputTokens, outputTokens);
+
+        console.log(JSON.stringify({
+          event: 'chat_completion',
+          provider,
+          model: modelId,
+          conversationId,
+          tokens_in: inputTokens,
+          tokens_out: outputTokens,
+          latency_ms: Date.now() - startTime,
+          estimated_cost_usd: estimatedCostUsd,
+        }));
       },
     });
 
