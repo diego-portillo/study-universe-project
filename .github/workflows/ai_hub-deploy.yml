@@ -94,10 +94,19 @@ jobs:
           subnets: ${{ steps.cfn.outputs.subnets }}
           environment-variables: >-
             [
-              {"name": "OPENAI_API_KEY",                "value": "${{ secrets.OPENAI_API_KEY }}"},
-              {"name": "ANTHROPIC_API_KEY",             "value": "${{ secrets.ANTHROPIC_API_KEY }}"},
-              {"name": "GOOGLE_GENERATIVE_AI_API_KEY",  "value": "${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}"},
-              {"name": "ELEVENLABS_API_KEY",            "value": "${{ secrets.ELEVENLABS_API_KEY }}"}
+              {"name": "OPENAI_API_KEY",                      "value": "${{ secrets.OPENAI_API_KEY }}"},
+              {"name": "ANTHROPIC_API_KEY",                   "value": "${{ secrets.ANTHROPIC_API_KEY }}"},
+              {"name": "GOOGLE_GENERATIVE_AI_API_KEY",        "value": "${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}"},
+              {"name": "ELEVENLABS_API_KEY",                  "value": "${{ secrets.ELEVENLABS_API_KEY }}"},
+              {"name": "OPENAI_MODEL",                        "value": "${{ secrets.OPENAI_MODEL }}"},
+              {"name": "OPENAI_IMAGE_MODEL",                  "value": "${{ secrets.OPENAI_IMAGE_MODEL }}"},
+              {"name": "OPENAI_VISION_MODEL",                 "value": "${{ secrets.OPENAI_VISION_MODEL }}"},
+              {"name": "OPENAI_MAX_TOKENS",                   "value": "${{ secrets.OPENAI_MAX_TOKENS }}"},
+              {"name": "OPENAI_AUDIO_TRANSCRIPTION_MODEL",    "value": "${{ secrets.OPENAI_AUDIO_TRANSCRIPTION_MODEL }}"},
+              {"name": "OPENAI_AUDIO_GENERATION_MODEL",       "value": "${{ secrets.OPENAI_AUDIO_GENERATION_MODEL }}"},
+              {"name": "ANTHROPIC_MODEL",                     "value": "${{ secrets.ANTHROPIC_MODEL }}"},
+              {"name": "ANTHROPIC_MAX_TOKENS",                "value": "${{ secrets.ANTHROPIC_MAX_TOKENS }}"},
+              {"name": "GEMINI_MODEL",                        "value": "${{ secrets.GEMINI_MODEL }}"}
             ]
 
       - name: Print service endpoint
