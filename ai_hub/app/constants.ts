@@ -19,9 +19,7 @@ export const PROVIDER_LABELS = {
 export const UNSUPPORTED_AUDIO_TEXT_PROVIDERS = 'Anthropic, Google' as const;
 
 export const MODEL_OPTIONS: ModelOption[] = [
-  { id: 'gpt-4o', label: 'GPT-4o', provider: 'openai' },
   { id: 'gpt-4o-mini', label: 'GPT-4o mini', provider: 'openai' },
-  { id: 'gpt-4-turbo', label: 'GPT-4 Turbo', provider: 'openai' },
   {
     id: 'claude-sonnet-4-6',
     label: 'Claude Sonnet 4.6',
@@ -32,13 +30,7 @@ export const MODEL_OPTIONS: ModelOption[] = [
     label: 'Claude Haiku 4.5',
     provider: 'anthropic',
   },
-  { id: 'claude-opus-4-6', label: 'Claude Opus 4.6', provider: 'anthropic' },
-  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', provider: 'google' },
-  {
-    id: 'gemini-2.5-flash-lite',
-    label: 'Gemini 2.5 Flash Lite',
-    provider: 'google',
-  },
+  { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', provider: 'google' },
   {
     id: 'elevenlabs-tts',
     label: 'ElevenLabs TTS / Scribe V2',
