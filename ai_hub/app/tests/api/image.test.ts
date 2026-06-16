@@ -30,10 +30,9 @@ function makeRequest(body: unknown) {
 describe('POST /api/image — input validation', () => {
   beforeEach(() => {
     vi.stubEnv('OPENAI_API_KEY', 'sk-test');
-    vi.stubEnv('OPENAI_IMAGE_MODEL', 'dall-e-2');
-    vi.stubEnv('OPENAI_IMAGE_SIZE', '256x256');
+    vi.stubEnv('OPENAI_IMAGE_MODEL', 'gpt-image-2');
     mockGenerate.mockResolvedValue({
-      data: [{ url: 'https://example.com/img.png' }],
+      data: [{ b64_json: 'ZmFrZQ==' }],
     });
   });
 
@@ -66,11 +65,11 @@ describe('POST /api/image — input validation', () => {
     expect(data.error).toMatch(/OPENAI_API_KEY/);
   });
 
-  it('returns 200 with url for a valid dall-e-2 request', async () => {
+  it('returns 200 with data URL for a valid gpt-image-2 request', async () => {
     const res = await POST(makeRequest({ prompt: 'a cat' }));
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.url).toBe('https://example.com/img.png');
+    expect(data.url).toBe('data:image/png;base64,ZmFrZQ==');
   });
 
   it('returns 502 when OpenAI returns no image data', async () => {
@@ -79,10 +78,9 @@ describe('POST /api/image — input validation', () => {
     expect(res.status).toBe(502);
   });
 
-  // Regression: the API now rejects `response_format` outright with
-  // "400 Unknown parameter: 'response_format'", which surfaced as a 502
-  // in prod. dall-e-2/3 default to `url` and gpt-image-* always returns
-  // `b64_json`, so the param is never needed.
+  // Regression: the API rejects `response_format` with "400 Unknown parameter",
+  // which surfaced as a 502 in prod. gpt-image-* always returns b64_json
+  // without this param, so it is never sent.
   it('does not send response_format to the OpenAI API', async () => {
     await POST(makeRequest({ prompt: 'a cat' }));
     const params = mockGenerate.mock.calls[0][0];
