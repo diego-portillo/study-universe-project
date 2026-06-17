@@ -92,9 +92,9 @@ The whole app is one client page (`app/page.tsx`) with three modes — `chat`, `
 
 Prettier is configured at the root (`.prettierrc`) with `prettier-plugin-tailwindcss`. VS Code is set to format on save. There is no root-level lint/test script — each subproject manages its own.
 
-## Commit messages — no sensitive identifiers
+## Commit messages — keep generic
 
-When writing a commit message (including when asked to "commit and push"), never include account-specific identifiers uncovered while debugging — e.g. OpenAI/AWS org or account IDs (`org-...`), ARNs, instance/task IDs, API key prefixes, internal hostnames or IPs. Describe the root cause generically (e.g. "the org's usage tier" instead of "org-xxxxxxxx", "the ECS task" instead of a specific task ARN).
+Keep commit messages short and conceptual. Do not mention specific values like model names, version strings, account IDs, ARNs, instance/task IDs, API key prefixes, or internal hostnames. Describe the intent, not the specifics (e.g. "Updated deprecated OpenAI models" not "Migrate gpt-5-nano to gpt-5.4-nano and dall-e-2 to gpt-image-2").
 
 ---
 
