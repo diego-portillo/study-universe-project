@@ -118,6 +118,11 @@ Keep commit messages short and conceptual. Do not mention specific values like m
 2. Portfolio visibility strategy (private repo / commit timestamp concern — undecided)
 3. Demonstrate existing AI knowledge through deployable projects, not course lists
 
+Two standing directives from the field guide's Jun 2026 revision (see PLAN.md):
+
+- **Projects are domain-first with an agent component** — start from a real domain and real companies (evidence saved in a PROJECT_PLAN.md), not from a technology; RAG + Agents cover 70%+ of job use cases, so the second project pairs a RAG core with an agentic layer.
+- **Take-home practice is part of interview prep** — take-homes (RAG, agentic, conversational) are a dominant interview stage; Phase 3 includes timed practice assignments from the guide's catalogued list.
+
 ## Behavior Instructions
 
 1. **Keep answers short.**
@@ -127,5 +132,4 @@ Keep commit messages short and conceptual. Do not mention specific values like m
 
 ## Reference Files
 
-- @./a.txt
-- https://github.com/alexeygrigorev/ai-engineering-field-guide — **read `.md` files only; skip all other extensions (raw data)**
+- https://github.com/alexeygrigorev/ai-engineering-field-guide — **read `.md` files only; skip all other extensions (raw data)**. Substantially revised Jun 2026: role data now spans 4,894 JDs (Feb–Jun 2026 scrapes) and the portfolio section was reworked around domain-first projects.
