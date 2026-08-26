@@ -107,7 +107,7 @@
     "messages": [
       {
         "role": "user",
-        "content": "Explain what is machine learning"
+        "content": "Explain what machine learning is, conceptually. No more than three paragraphs, and don't use examples — just the concept."
       }
     ],
     "criteria": "Machine learning is a way of getting computers to learn patterns from data instead of being explicitly programmed with rules. Don't give examples, just respond with the concept. Judge on concepts, not exact wording — paraphrases count. Must convey: (1) a model is trained/fit on data, (2) the model has internal parameters/weights that get adjusted during training, (3) the trained model is used to make predictions on new, unseen data. Do not require the specific words 'repetition' or 'neural networks' — ML is broader than neural nets, and no specific training-loop terminology is mandatory. Fail only if a concept is entirely absent in substance, not for word choice. No more than three paragraphs.",
