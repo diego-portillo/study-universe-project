@@ -177,9 +177,27 @@ export async function POST(request: NextRequest) {
     });
 
     // toTextStreamResponse() commits a 200 response synchronously, before the
-    // provider call resolves, so errors during streaming can't change the
-    // status/body here — onError above is what surfaces them (CloudWatch).
-    return result.toTextStreamResponse();
+    // provider call resolves, so a stream error can't change the status here.
+    // Its textStream also silently drops error parts, which left callers with
+    // a blank 200 body on provider failures (e.g. quota errors). Build the
+    // response from fullStream instead so error parts render as visible text.
+    const encoder = new TextEncoder();
+    const body = new ReadableStream({
+      async start(controller) {
+        for await (const part of result.fullStream) {
+          if (part.type === 'text-delta') {
+            controller.enqueue(encoder.encode(part.text));
+          } else if (part.type === 'error') {
+            const message = part.error instanceof Error ? part.error.message : String(part.error);
+            controller.enqueue(encoder.encode(`\n\n[Error: ${message}]`));
+          }
+        }
+        controller.close();
+      },
+    });
+    return new Response(body, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[api/chat] ${provider} error:`, message);
