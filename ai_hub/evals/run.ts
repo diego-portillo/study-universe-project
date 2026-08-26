@@ -43,7 +43,12 @@ const ID_FILTER = process.env.EVAL_ID?.split(',').map((p) => p.trim());
 // entry after this many ms and report it as a timeout instead of waiting forever.
 const ENTRY_TIMEOUT_MS = Number(process.env.EVAL_TIMEOUT_MS) || 10 * 60 * 1000;
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// maxRetries: 0 — the SDK's default retry sleeps for the response's Retry-After
+// header (e.g. ~29 minutes on a daily rate-limit reset) without checking our
+// AbortSignal in between, so a 429 here can silently outlast ENTRY_TIMEOUT_MS by
+// nearly an order of magnitude. Fail fast instead and let withTimeout/the catch
+// block below report it.
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 0 });
 
 // Aborts the underlying request on timeout (not just the wait) — otherwise a hung
 // request keeps a socket open in Node's connection pool, and enough of those pile up
@@ -200,8 +205,12 @@ async function main() {
         console.log(verdict.pass ? 'PASS' : `FAIL — ${verdict.reason}`);
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
-        results.push({ id: entry.id, category: entry.category, provider, pass: false, reason });
-        console.log(`ERROR — ${reason}`);
+        // Same quota/rate-limit carve-out as above, but for the judge's own OpenAI
+        // client (maxRetries: 0, so a 429 throws here instead of being embedded in
+        // response.text) — an exhausted JUDGE_MODEL quota isn't a scoring failure.
+        const skip = /quota|rate.?limit/i.test(reason);
+        results.push({ id: entry.id, category: entry.category, provider, pass: false, reason, skip });
+        console.log(skip ? `SKIPPED — ${reason}` : `ERROR — ${reason}`);
       }
     }
   }
