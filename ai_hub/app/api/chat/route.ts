@@ -91,6 +91,12 @@ export async function POST(request: NextRequest) {
         : Array.isArray(m.content) && m.content.length > 0,
     );
 
+    if (aiMessages.length === 0)
+      return new Response(
+        JSON.stringify({ error: 'messages must contain non-empty content' }),
+        { status: 400 },
+      );
+
     const maxTokens =
       provider === 'anthropic'
         ? Math.min(4096, Math.max(64, Number(process.env.ANTHROPIC_MAX_TOKENS) || 1024))
@@ -98,6 +104,7 @@ export async function POST(request: NextRequest) {
 
     let modelId: string;
     let resolvedModel;
+    let tools: Parameters<typeof streamText>[0]['tools'];
 
     if (provider === 'anthropic') {
       if (!process.env.ANTHROPIC_API_KEY)
@@ -108,6 +115,7 @@ export async function POST(request: NextRequest) {
 
       modelId = model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
       resolvedModel = anthropic(modelId);
+      tools = { web_search: anthropic.tools.webSearch_20250305({ maxUses: 3 }) };
     } else if (provider === 'google') {
       if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
         return new Response(
@@ -117,6 +125,7 @@ export async function POST(request: NextRequest) {
 
       modelId = model ?? process.env.GEMINI_MODEL ?? 'gemini-3-flash-preview';
       resolvedModel = google(modelId);
+      tools = { google_search: google.tools.googleSearch({}) };
     } else {
       if (!process.env.OPENAI_API_KEY)
         return new Response(
@@ -131,6 +140,7 @@ export async function POST(request: NextRequest) {
 
       modelId = model ?? defaultModel;
       resolvedModel = openai(modelId);
+      tools = { web_search: openai.tools.webSearch({ searchContextSize: 'low' }) };
     }
 
     const startTime = Date.now();
@@ -139,6 +149,7 @@ export async function POST(request: NextRequest) {
       model: resolvedModel,
       system: systemPrompt,
       messages: aiMessages,
+      tools,
       maxOutputTokens: maxTokens,
       onError: ({ error }) => {
         const message = error instanceof Error ? error.message : 'Unknown error';
