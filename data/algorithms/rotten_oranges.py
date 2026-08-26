@@ -1,4 +1,4 @@
-from collections import deque 
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
 input_1 = [
@@ -8,10 +8,10 @@ input_1 = [
 ]
 output_1 = 4
 
-def days_for_rot(crop):
+def days_for_rot(crop: list[list[int]]) -> int:
     flat_crop = [cell for row in crop for cell in row]
-    # better than python list because
-    # it doesnt shift the position of all elements
+    # better than a python list because
+    # it doesn't shift the position of all elements
     # when calling .pop() method.
     queue = deque()
     for i in range(len(flat_crop)):
@@ -27,23 +27,23 @@ def days_for_rot(crop):
         if i not in visited:
             visited.add(i)
             days_array.append(day)
-            x = i // cols
-            y = i % cols
-            down  = (x+1) * cols + y
-            up    = (x-1) * cols + y
-            right = x * cols + (y+1)
-            left  = x * cols + (y-1)
+            row = i // cols
+            col = i % cols
+            down = (row+1) * cols + col
+            up = (row-1) * cols + col
+            right = row * cols + (col+1)
+            left = row * cols + (col-1)
 
-            if rows > x+1 and flat_crop[down] == 1:
+            if rows > row+1 and flat_crop[down] == 1:
                 flat_crop[down] = 2
                 queue.append((down, day+1))
-            if x-1 >= 0 and flat_crop[up] == 1:
+            if row-1 >= 0 and flat_crop[up] == 1:
                 flat_crop[up] = 2
                 queue.append((up, day+1))
-            if cols > y+1 and flat_crop[right] == 1:
+            if cols > col+1 and flat_crop[right] == 1:
                 flat_crop[right] = 2
                 queue.append((right, day+1))
-            if y-1 >= 0 and flat_crop[left] == 1:
+            if col-1 >= 0 and flat_crop[left] == 1:
                 flat_crop[left] = 2
                 queue.append((left, day+1))
 
@@ -54,12 +54,10 @@ def days_for_rot(crop):
     print(flat_crop)
     return days
 
-# print(days_for_rot(input_1)==output_1)
-
 # Si la configuración de naranjas inicial es inédita, ¿cómo podrías prever la posición inicial óptima para la propagación?
-# Meaning if no orange is rotten, initial position will propage the plague faster?
+# Meaning if no orange is rotten, initial position will propagate the plague faster?
 
-def find_optimal_propagation(crop):
+def find_optimal_propagation(crop: list[list[int]]) -> list[tuple[int, int]]:
     clean_crop = [[1 if cell == 2 else cell for cell in row] for row in crop]
     positions = []
     for i in range(len(crop)):
@@ -82,22 +80,22 @@ input_2 = [
     [0,1,1]
 ]
 
-def count_max_days(args):
+def count_max_days(args: tuple[tuple[int, int], list[list[int]]]) -> tuple[int, int]:
     (position, crop) = args
     queue = [position]
     visited = set()
     while queue:
-        (x, y), step = queue.pop(0)
-        print(x,y,step)
-        if (x,y) not in visited:
-            visited.add((x,y))
-            if len(crop) > x+1 and crop[x+1][y] == 1:
-                queue.append(((x+1,y),step+1))
-            if crop[x-1][y] == 1 and x -1 >= 0:
-                queue.append(((x-1,y), step+1))
-            if len(crop[x]) > y+1 and crop[x][y+1] == 1:
-                queue.append(((x,y+1), step+1))
-            if crop[x][y-1] == 1 and y-1 >= 0:
-                queue.append(((x,y-1), step+1))
+        (row, col), step = queue.pop(0)
+        print(row,col,step)
+        if (row,col) not in visited:
+            visited.add((row,col))
+            if len(crop) > row+1 and crop[row+1][col] == 1:
+                queue.append(((row+1,col),step+1))
+            if crop[row-1][col] == 1 and row -1 >= 0:
+                queue.append(((row-1,col), step+1))
+            if len(crop[row]) > col+1 and crop[row][col+1] == 1:
+                queue.append(((row,col+1), step+1))
+            if crop[row][col-1] == 1 and col-1 >= 0:
+                queue.append(((row,col-1), step+1))
     return (position[0], step)
 find_optimal_propagation(input_2)

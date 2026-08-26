@@ -15,19 +15,25 @@ numbers_dict = {
     9: "wxyz"
 }
 
-def posible_letters_for_number(numbers):
+def possible_letters_for_number(numbers: str) -> list[str]:
     result = []
     combination = ""
     backtrack(0, combination, numbers_dict, result, numbers)
     return result
 
-def backtrack(index, current_combination, numbers_dict, result, numbers):
+def backtrack(
+    index: int,
+    current_combination: str,
+    numbers_dict: dict[int, str],
+    result: list[str],
+    numbers: str,
+) -> list[str]:
     if index == len(numbers):
         result.append(current_combination)
         return result
     for letter in numbers_dict[int(numbers[index])]:
         current_combination += letter
-        backtrack(index +1, current_combination, numbers_dict, result, numbers)
+        backtrack(index + 1, current_combination, numbers_dict, result, numbers)
         current_combination = current_combination[:-1]
 
-print(posible_letters_for_number(numbers)==result)
+print(possible_letters_for_number(numbers)==result)

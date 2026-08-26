@@ -1,35 +1,33 @@
-# This is for trees
-
-def folder_exists(folder, folder_name):
+def folder_exists(folder: dict, folder_name: str) -> bool:
     if folder == []:
         return False
     print(f"Folder file: {folder['name']}")
     if folder['name'] == folder_name:
         return True
-    for child_folder in folder['childs']:
+    for child_folder in folder['children']:
         folder_found = folder_exists(child_folder, folder_name)
-        if folder_found == True:
+        if folder_found:
             return folder_found
     return False
 
 
 root_folder = {
     "name": "root",
-    "childs": [
+    "children": [
         {
             "name": "user1",
-            "childs": [
-                {"name": "documents", "childs": []},
-                {"name": "images", "childs": []},
-                {"name": "downloads", "childs": [{"name": "virus2", "childs": []}]},
+            "children": [
+                {"name": "documents", "children": []},
+                {"name": "images", "children": []},
+                {"name": "downloads", "children": [{"name": "virus2", "children": []}]},
             ],
         },
         {
             "name": "user2",
-            "childs": [
-                {"name": "documents", "childs": []},
-                {"name": "images", "childs": []},
-                {"name": "downloads", "childs": []},
+            "children": [
+                {"name": "documents", "children": []},
+                {"name": "images", "children": []},
+                {"name": "downloads", "children": []},
             ],
         },
     ],

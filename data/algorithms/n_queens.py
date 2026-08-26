@@ -1,15 +1,15 @@
 input_1 = 4
-output_1 =  [[".Q..","...Q","Q...","..Q."],["..Q.","Q...","...Q",".Q.."]]
+output_1 = [[".Q..","...Q","Q...","..Q."],["..Q.","Q...","...Q",".Q.."]]
 
-def position_queens(n, current_list, boards):
-    if len(current_list) == n:
-        base_string = "." * n
+def position_queens(board_size: int, current_list: list[int], boards: list[list[str]]) -> None:
+    if len(current_list) == board_size:
+        base_string = "." * board_size
         board = []
         for column_index in current_list:
             board.append(base_string[:column_index] + 'Q' + base_string[column_index+1:])
         boards.append(board)
         return
-    for index in range(n):
+    for index in range(board_size):
         row = len(current_list)
         column = index
         has_diagonal = False
@@ -18,13 +18,13 @@ def position_queens(n, current_list, boards):
                 has_diagonal = True
         if column not in current_list and has_diagonal is False:
             current_list.append(column)
-            position_queens(n, current_list, boards)
+            position_queens(board_size, current_list, boards)
             current_list.remove(column)
 
-def n_queens(n):
+def n_queens(board_size: int) -> list[list[str]]:
     boards = []
-    position_queens(n,[],boards)
+    position_queens(board_size,[],boards)
     return boards
-        
+
 print(n_queens(input_1))
 print(n_queens(input_1) == output_1)

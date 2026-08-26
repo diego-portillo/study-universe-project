@@ -15,13 +15,13 @@ import type { ModelMessage } from 'ai';
 
 function toAISDKMessages(messages: Message[]): ModelMessage[] {
   return messages
-    .filter((m) => m.role !== 'system')
-    .map((m) => {
-      if (typeof m.content === 'string') {
-        return { role: m.role as 'user' | 'assistant', content: m.content };
+    .filter((message) => message.role !== 'system')
+    .map((message) => {
+      if (typeof message.content === 'string') {
+        return { role: message.role as 'user' | 'assistant', content: message.content };
       }
 
-      const parts = m.content.map((part) => {
+      const parts = message.content.map((part) => {
         if (part.type === 'text') {
           return { type: 'text' as const, text: part.text };
         }
@@ -59,12 +59,67 @@ function describeStreamError(error: unknown): string {
 }
 
 function extractSystemPrompt(messages: Message[]): string | undefined {
-  const sys = messages.find((m) => m.role === 'system');
-  if (!sys) return undefined;
-  if (typeof sys.content === 'string' && sys.content.trim().length > 0) {
-    return sys.content;
+  const systemMessage = messages.find((message) => message.role === 'system');
+  if (!systemMessage) return undefined;
+  if (typeof systemMessage.content === 'string' && systemMessage.content.trim().length > 0) {
+    return systemMessage.content;
   }
   return undefined;
+}
+
+function missingApiKeyResponse(envVarName: string): Response {
+  return new Response(JSON.stringify({ error: `Missing ${envVarName}` }), {
+    status: 500,
+  });
+}
+
+type ProviderConfig = {
+  modelId: string;
+  resolvedModel: ReturnType<typeof anthropic> | ReturnType<typeof google> | ReturnType<typeof openai>;
+  tools: Parameters<typeof streamText>[0]['tools'];
+};
+
+function resolveProvider(
+  provider: ChatBody['provider'],
+  model: string | undefined,
+  normalizedMessages: Message[],
+): ProviderConfig | Response {
+  if (provider === 'anthropic') {
+    if (!process.env.ANTHROPIC_API_KEY) return missingApiKeyResponse('ANTHROPIC_API_KEY');
+
+    const modelId = model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
+    return {
+      modelId,
+      resolvedModel: anthropic(modelId),
+      tools: { web_search: anthropic.tools.webSearch_20250305({ maxUses: 3 }) },
+    };
+  }
+
+  if (provider === 'google') {
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+      return missingApiKeyResponse('GOOGLE_GENERATIVE_AI_API_KEY');
+
+    const modelId = model ?? process.env.GEMINI_MODEL ?? 'gemini-3-flash-preview';
+    return {
+      modelId,
+      resolvedModel: google(modelId),
+      tools: { google_search: google.tools.googleSearch({}) },
+    };
+  }
+
+  if (!process.env.OPENAI_API_KEY) return missingApiKeyResponse('OPENAI_API_KEY');
+
+  const hasVision = messagesIncludeVision(normalizedMessages);
+  const defaultModel = hasVision
+    ? (process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini')
+    : (process.env.OPENAI_MODEL ?? 'gpt-4o-mini');
+  const modelId = model ?? defaultModel;
+
+  return {
+    modelId,
+    resolvedModel: openai(modelId),
+    tools: { web_search: openai.tools.webSearch({ searchContextSize: 'low' }) },
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -107,10 +162,10 @@ export async function POST(request: NextRequest) {
     const fullMessages = [...previous, ...normalized];
 
     const systemPrompt = extractSystemPrompt(fullMessages);
-    const aiMessages = toAISDKMessages(fullMessages).filter((m) =>
-      typeof m.content === 'string'
-        ? m.content.trim().length > 0
-        : Array.isArray(m.content) && m.content.length > 0,
+    const aiMessages = toAISDKMessages(fullMessages).filter((message) =>
+      typeof message.content === 'string'
+        ? message.content.trim().length > 0
+        : Array.isArray(message.content) && message.content.length > 0,
     );
 
     if (aiMessages.length === 0)
@@ -124,46 +179,9 @@ export async function POST(request: NextRequest) {
         ? Math.min(4096, Math.max(64, Number(process.env.ANTHROPIC_MAX_TOKENS) || 1024))
         : undefined;
 
-    let modelId: string;
-    let resolvedModel;
-    let tools: Parameters<typeof streamText>[0]['tools'];
-
-    if (provider === 'anthropic') {
-      if (!process.env.ANTHROPIC_API_KEY)
-        return new Response(
-          JSON.stringify({ error: 'Missing ANTHROPIC_API_KEY' }),
-          { status: 500 },
-        );
-
-      modelId = model ?? process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6';
-      resolvedModel = anthropic(modelId);
-      tools = { web_search: anthropic.tools.webSearch_20250305({ maxUses: 3 }) };
-    } else if (provider === 'google') {
-      if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
-        return new Response(
-          JSON.stringify({ error: 'Missing GOOGLE_GENERATIVE_AI_API_KEY' }),
-          { status: 500 },
-        );
-
-      modelId = model ?? process.env.GEMINI_MODEL ?? 'gemini-3-flash-preview';
-      resolvedModel = google(modelId);
-      tools = { google_search: google.tools.googleSearch({}) };
-    } else {
-      if (!process.env.OPENAI_API_KEY)
-        return new Response(
-          JSON.stringify({ error: 'Missing OPENAI_API_KEY' }),
-          { status: 500 },
-        );
-
-      const hasVision = messagesIncludeVision(normalized);
-      const defaultModel = hasVision
-        ? (process.env.OPENAI_VISION_MODEL ?? 'gpt-4o-mini')
-        : (process.env.OPENAI_MODEL ?? 'gpt-4o-mini');
-
-      modelId = model ?? defaultModel;
-      resolvedModel = openai(modelId);
-      tools = { web_search: openai.tools.webSearch({ searchContextSize: 'low' }) };
-    }
+    const providerConfig = resolveProvider(provider, model, normalized);
+    if (providerConfig instanceof Response) return providerConfig;
+    const { modelId, resolvedModel, tools } = providerConfig;
 
     const startTime = Date.now();
 
@@ -203,7 +221,7 @@ export async function POST(request: NextRequest) {
     // a blank 200 body on provider failures (e.g. quota errors). Build the
     // response from fullStream instead so error parts render as visible text.
     const encoder = new TextEncoder();
-    const body = new ReadableStream({
+    const responseBody = new ReadableStream({
       async start(controller) {
         for await (const part of result.fullStream) {
           if (part.type === 'text-delta') {
@@ -215,7 +233,7 @@ export async function POST(request: NextRequest) {
         controller.close();
       },
     });
-    return new Response(body, {
+    return new Response(responseBody, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   } catch (error: unknown) {

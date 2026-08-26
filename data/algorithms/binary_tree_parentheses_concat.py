@@ -3,9 +3,9 @@ example_2 = [1,2,3,None,4]
 output_1 = "1(2(4))(3)"
 output_2 = "1(2()(4))(3)"
 
-def parentheses_concat(array):
+def parentheses_concat(array: list) -> str:
 
-    def depth_first_search_recursive(index):
+    def depth_first_search_recursive(index: int) -> str:
         # this is to limit the recursion to the number of elements in the array
         if index >= len(array) or array[index] is None:
             return ""

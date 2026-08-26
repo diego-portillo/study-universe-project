@@ -1,11 +1,12 @@
 from flask import Flask, jsonify
+from flask.wrappers import Response
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # ✅ enables CORS
+CORS(app)  # enables CORS
 
 @app.route("/", methods=["GET"])
-def home():
+def home() -> tuple[Response, int]:
     return jsonify({"message": "This message came from the backend"}), 200
 
 if __name__ == "__main__":

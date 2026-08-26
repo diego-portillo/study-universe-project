@@ -26,13 +26,13 @@ export async function POST(request: NextRequest) {
 
   const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const maxLen = 32000;
+  const maxPromptLength = 32000;
 
-  const clipped = prompt.slice(0, maxLen);
+  const clippedPrompt = prompt.slice(0, maxPromptLength);
 
   console.log('[api/image] request', {
     model: IMAGE_MODEL,
-    promptLength: clipped.length,
+    promptLength: clippedPrompt.length,
   });
 
   try {
@@ -41,18 +41,18 @@ export async function POST(request: NextRequest) {
       n: 1,
       size: '1024x1024',
       quality: 'low',
-      promptLength: clipped.length,
+      promptLength: clippedPrompt.length,
     });
-    const img = await openaiClient.images.generate({
+    const imageResponse = await openaiClient.images.generate({
       model: IMAGE_MODEL,
-      prompt: clipped,
+      prompt: clippedPrompt,
       n: 1,
       size: '1024x1024',
       quality: 'low',
     });
 
     // gpt-image-* models always return b64_json. Handle url fallback for any future model.
-    const result = img.data?.[0];
+    const result = imageResponse.data?.[0];
     const url = result?.b64_json
       ? `data:image/png;base64,${result.b64_json}`
       : result?.url;

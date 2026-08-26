@@ -1,27 +1,24 @@
-import os
+from dataclasses import dataclass
+from pathlib import Path
 
-BASE_DIR = os.path.dirname(__file__)
-DATA_PATH = os.path.join(BASE_DIR, "../data/algorithms")
+BASE_DIR = Path(__file__).parent
+DATA_PATH = BASE_DIR / ".." / "data" / "algorithms"
 
-def load_python_files(path):
-    documents = []
 
-    for root, _, files in os.walk(path):
-        for file in files:
-            if file.endswith(".py"):
-                full_path = os.path.join(root, file)
-                with open(full_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+@dataclass
+class Document:
+    text: str
+    source: str
 
-                documents.append({
-                    "text": content,
-                    "source": full_path
-                })
 
-    return documents
+def load_python_files(path: Path) -> list[Document]:
+    return [
+        Document(text=file_path.read_text(encoding="utf-8"), source=str(file_path))
+        for file_path in path.rglob("*.py")
+    ]
 
 
 if __name__ == "__main__":
     docs = load_python_files(DATA_PATH)
     print(f"Loaded {len(docs)} files")
-    print(docs[0]["source"])
+    print(docs[0].source)
