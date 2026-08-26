@@ -32,7 +32,10 @@ const QUOTA_ERROR_PATTERN = /\[Error:.*\b(quota|rate.?limit)\b/i;
 
 const REPO_ROOT = join(import.meta.dirname, '..', '..');
 const BASE_URL = process.env.EVAL_BASE_URL ?? 'http://localhost:3000';
-const JUDGE_MODEL = process.env.JUDGE_MODEL ?? 'gpt-4o-mini';
+// Deliberately not a model the app itself uses to answer prompts (OPENAI_MODEL,
+// OPENAI_VISION_MODEL, or a golden-entry model override) — a judge grading its own
+// answering model's output is a known self-judging bias risk.
+const JUDGE_MODEL = process.env.JUDGE_MODEL ?? 'gpt-4.1-mini';
 // Comma-separated allowlist, e.g. EVAL_PROVIDER=openai — lets a first run stay cheap
 // and scoped to one provider instead of hitting every provider in the dataset.
 const PROVIDER_FILTER = process.env.EVAL_PROVIDER?.split(',').map((p) => p.trim());
