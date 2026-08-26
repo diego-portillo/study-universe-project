@@ -395,6 +395,7 @@
     "providers": [
       "openai"
     ],
+    "model": "gpt-4o",
     "messages": [
       {
         "role": "user",
@@ -406,7 +407,7 @@
           {
             "type": "image_url",
             "image_url": {
-              "localImage": "samples/plant.webp",
+              "localImage": "samples/dog.webp",
               "url": "TODO (runner fills this in): base64 data: URL generated from localImage at eval-run time",
               "detail": "low"
             }
@@ -426,6 +427,7 @@
     "providers": [
       "openai"
     ],
+    "model": "gpt-4o",
     "messages": [
       {
         "role": "user",
@@ -445,7 +447,7 @@
           {
             "type": "image_url",
             "image_url": {
-              "localImage": "samples/dog.jpg",
+              "localImage": "samples/plant.jpg",
               "url": "TODO (runner fills this in): base64 data: URL generated from localImage at eval-run time",
               "detail": "low"
             }
@@ -453,7 +455,7 @@
         ]
       }
     ],
-    "criteria": "Must directly attempt to identify the plant shown, connecting to the gardening context set in turn 1 — not ask again what turn 1 already established.",
+    "criteria": "Must engage with what is actually shown in the photo (e.g. describing it as a young seedling/sprout in a pot) rather than only asking for a text description — species-level identification is not required, just an attempt grounded in the image itself. Fail if the response ignores the photo and only asks generic identification questions (leaf shape, growth habit, etc.) without describing anything it can see.",
     "tags": [
       "image-input",
       "multi-turn"

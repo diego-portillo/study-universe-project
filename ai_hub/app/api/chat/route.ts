@@ -36,6 +36,28 @@ function toAISDKMessages(messages: Message[]): ModelMessage[] {
     });
 }
 
+// Provider stream errors aren't always Error instances — e.g. OpenAI's hosted-tool
+// stream emits rate-limit failures as a plain { error: { message, code, ... } }
+// object, which String() collapses to "[object Object]" and loses the message.
+function describeStreamError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object') {
+    const nested = (error as Record<string, unknown>).error;
+    if (nested && typeof nested === 'object' && typeof (nested as Record<string, unknown>).message === 'string') {
+      return (nested as Record<string, unknown>).message as string;
+    }
+    if (typeof (error as Record<string, unknown>).message === 'string') {
+      return (error as Record<string, unknown>).message as string;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      // fall through to String() below
+    }
+  }
+  return String(error);
+}
+
 function extractSystemPrompt(messages: Message[]): string | undefined {
   const sys = messages.find((m) => m.role === 'system');
   if (!sys) return undefined;
@@ -152,8 +174,7 @@ export async function POST(request: NextRequest) {
       tools,
       maxOutputTokens: maxTokens,
       onError: ({ error }) => {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`[api/chat] ${provider} stream error:`, message);
+        console.error(`[api/chat] ${provider} stream error:`, describeStreamError(error));
       },
       onFinish: ({ text, usage }) => {
         const updated = [...fullMessages, { role: 'assistant' as const, content: text }];
@@ -188,8 +209,7 @@ export async function POST(request: NextRequest) {
           if (part.type === 'text-delta') {
             controller.enqueue(encoder.encode(part.text));
           } else if (part.type === 'error') {
-            const message = part.error instanceof Error ? part.error.message : String(part.error);
-            controller.enqueue(encoder.encode(`\n\n[Error: ${message}]`));
+            controller.enqueue(encoder.encode(`\n\n[Error: ${describeStreamError(part.error)}]`));
           }
         }
         controller.close();
