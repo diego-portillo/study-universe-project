@@ -18,7 +18,13 @@ type RunResult = {
   provider: string;
   pass: boolean;
   reason: string;
+  skip?: boolean;
 };
+
+// route.ts surfaces provider stream errors as `[Error: ...]` text in an otherwise-200
+// response (see app/api/chat/route.ts). A quota/rate-limit exhaustion isn't something
+// this entry's fix or prompt controls, so score it as skipped rather than a fail.
+const QUOTA_ERROR_PATTERN = /\[Error:.*\b(quota|rate.?limit)\b/i;
 
 const REPO_ROOT = join(import.meta.dirname, '..', '..');
 const BASE_URL = process.env.EVAL_BASE_URL ?? 'http://localhost:3000';
@@ -175,6 +181,12 @@ async function main() {
           (signal) => callChatRoute(entry, provider, signal),
           `${entry.id} [${provider}] chat route`,
         );
+        if (QUOTA_ERROR_PATTERN.test(response.text)) {
+          const reason = response.text.trim();
+          results.push({ id: entry.id, category: entry.category, provider, pass: false, reason, skip: true });
+          console.log(`SKIPPED — ${reason}`);
+          continue;
+        }
         const verdict = await withTimeout(
           (signal) => judge(entry, response, signal),
           `${entry.id} [${provider}] judge`,
@@ -189,12 +201,19 @@ async function main() {
     }
   }
 
-  const passed = results.filter((r) => r.pass).length;
-  const total = results.length;
-  console.log(`\n${passed}/${total} passed (${((passed / total) * 100).toFixed(1)}%)\n`);
+  const skipped = results.filter((r) => r.skip);
+  const scored = results.filter((r) => !r.skip);
+  const passed = scored.filter((r) => r.pass).length;
+  const total = scored.length;
+  console.log(`\n${passed}/${total} passed (${((passed / total) * 100).toFixed(1)}%)`);
+  if (skipped.length > 0) {
+    console.log(`${skipped.length} SKIPPED (quota/rate-limit, not scored):`);
+    for (const r of skipped) console.log(`  ${r.id} [${r.provider}] — ${r.reason}`);
+  }
+  console.log();
 
   const byCategory = new Map<string, { pass: number; total: number }>();
-  for (const r of results) {
+  for (const r of scored) {
     const bucket = byCategory.get(r.category) ?? { pass: 0, total: 0 };
     bucket.total += 1;
     if (r.pass) bucket.pass += 1;

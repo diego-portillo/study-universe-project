@@ -53,7 +53,7 @@
         "content": "What's the value of Pi?"
       }
     ],
-    "criteria": "Must give a numeric value of 3.14. Can have more than 2 decimals. Can't ask what is Pi.",
+    "criteria": "Response must contain a number starting with the digits 3.14 (e.g. 3.14, 3.14159, 3.141592653589793 all count — any number of further decimals is fine, and extra digits do NOT make it a different or wrong number). The number may be wrapped in LaTeX/math delimiters (e.g. \\( \\pi \\approx 3.14159 \\)) or markdown formatting — that still counts. Fails only if no such number appears, or if the response asks the user what Pi is instead of answering.",
     "tags": [
       "factual"
     ]
