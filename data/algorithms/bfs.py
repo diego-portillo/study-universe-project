@@ -25,7 +25,7 @@ tree = {
 }
 
 
-def bfd(root):
+def traverse_breadth_first(root: dict) -> list:
     if not root:
         return []
     response = []
@@ -37,15 +37,15 @@ def bfd(root):
             print(current_node["value"])
             response.append(current_node["value"])
             # n-ary tree
-            # on each repetision we add the childs to the queue
-            # so in that order we visit the neightbor nodes first
+            # on each repetition we add the children to the queue
+            # so in that order we visit the neighbor nodes first
             # instead of child nodes first
             for child in current_node["children"]:
                 queue.append(child)
         level += 1
-        # now that the neightbor nodes in this level were visited
+        # now that the neighbor nodes in this level were visited
         # the while loop moves to the child nodes of these level
     print(response)
     return response
 
-print(bfd(tree) == [1,2,3,4,5,6,7,8,9])
+print(traverse_breadth_first(tree) == [1,2,3,4,5,6,7,8,9])

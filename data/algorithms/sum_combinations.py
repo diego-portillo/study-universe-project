@@ -1,8 +1,14 @@
 input_1A = [2,3,6,7]
 input_1B = 7
-output_1 =  [[2,2,3],[7]]
+output_1 = [[2,2,3],[7]]
 
-def create_combinations(options, target, current_combination, combinations, index=0):
+def create_combinations(
+    options: list[int],
+    target: int,
+    current_combination: list[int],
+    combinations: list[list[int]],
+    index: int = 0,
+) -> None:
     current_sum = 0
     for number in current_combination:
         current_sum += number
@@ -17,11 +23,11 @@ def create_combinations(options, target, current_combination, combinations, inde
         current_combination.pop()
     return
 
-def sum_combinations(options, target):
+def sum_combinations(options: list[int], target: int) -> list[list[int]]:
     combinations = []
     create_combinations(options, target, [], combinations)
     return combinations
-    
+
 
 print(sum_combinations(input_1A, input_1B))
 print(sum_combinations(input_1A, input_1B)==output_1)

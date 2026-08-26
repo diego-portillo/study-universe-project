@@ -7,7 +7,7 @@ graph = {
     'F': []
 }
 
-def recursive_dfs(graph, start_node, visited=None):
+def recursive_dfs(graph: dict, start_node: str, visited: set | None = None) -> set:
     if visited is None:
         visited = set()
 
@@ -27,7 +27,7 @@ def recursive_dfs(graph, start_node, visited=None):
 print("Recursive DFS:")
 recursive_dfs(graph, 'A')
 # Expected output (order may vary based on adjacency list order): A B D E F C 
-def iterative_dfs(graph, start_node):
+def iterative_dfs(graph: dict, start_node: str) -> set:
     # Use a list as a stack
     stack = [start_node]
     visited = set()

@@ -5,7 +5,7 @@ three_islands_matrix = [
     [1,0,1,1,1],
 ]
 
-def count_islands(islands_matrix):
+def count_islands(islands_matrix: list[list[int]]) -> int:
     count = 0
     rows_range = len(islands_matrix)
     for row_index in range(rows_range):
@@ -13,18 +13,18 @@ def count_islands(islands_matrix):
         for column_index in range(columns_range):
             if islands_matrix[row_index][column_index] == 1:
                 recursive_depth_first_search(row_index, column_index, islands_matrix)
-                count+=1
+                count += 1
     return count
 
-def recursive_depth_first_search(i, j, map):
-    if 0 <= i < len(map) and 0 <= j < len(map[0]) and map[i][j] == 1:
-        map[i][j] = 2
-        recursive_depth_first_search(i+1,j, map)
-        recursive_depth_first_search(i-1,j, map)
-        recursive_depth_first_search(i,j+1, map)
-        recursive_depth_first_search(i,j-1, map)
+def recursive_depth_first_search(i: int, j: int, islands_map: list[list[int]]) -> None:
+    if 0 <= i < len(islands_map) and 0 <= j < len(islands_map[0]) and islands_map[i][j] == 1:
+        islands_map[i][j] = 2
+        recursive_depth_first_search(i+1,j, islands_map)
+        recursive_depth_first_search(i-1,j, islands_map)
+        recursive_depth_first_search(i,j+1, islands_map)
+        recursive_depth_first_search(i,j-1, islands_map)
 
-def count_islands_iterative(islands_map):
+def count_islands_iterative(islands_map: list[list[int]]) -> int:
     if not islands_map:
         return 0
     count = 0
