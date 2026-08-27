@@ -3,17 +3,31 @@ import { POST } from '../../api/chat/route';
 import { NextRequest } from 'next/server';
 import { MODEL_OPTIONS } from '../../constants';
 
-// Mock the AI SDK providers and streamText — we don't want real API calls
+// Mock the AI SDK providers and streamText — we don't want real API calls.
+// route.ts builds the response from `result.fullStream` (to surface error parts
+// as visible text, see app/api/chat/route.ts), not `toTextStreamResponse()`, so
+// the mock must provide an async-iterable fullStream, not just the old helper.
 vi.mock('ai', () => ({
   streamText: vi.fn(() => ({
-    toTextStreamResponse: () => new Response('streamed-content', { status: 200 }),
+    fullStream: (async function* () {
+      yield { type: 'text-delta', text: 'streamed-content' };
+    })(),
   })),
 }));
-vi.mock('@ai-sdk/openai', () => ({ openai: vi.fn((id: string) => `openai:${id}`) }));
-vi.mock('@ai-sdk/anthropic', () => ({
-  anthropic: vi.fn((id: string) => `anthropic:${id}`),
+function withTools(fn: (id: string) => string, toolNames: string[]) {
+  const mocked = vi.fn(fn) as unknown as Record<string, unknown>;
+  mocked.tools = Object.fromEntries(toolNames.map((name) => [name, vi.fn(() => ({}))]));
+  return mocked;
+}
+vi.mock('@ai-sdk/openai', () => ({
+  openai: withTools((id: string) => `openai:${id}`, ['webSearch']),
 }));
-vi.mock('@ai-sdk/google', () => ({ google: vi.fn((id: string) => `google:${id}`) }));
+vi.mock('@ai-sdk/anthropic', () => ({
+  anthropic: withTools((id: string) => `anthropic:${id}`, ['webSearch_20250305']),
+}));
+vi.mock('@ai-sdk/google', () => ({
+  google: withTools((id: string) => `google:${id}`, ['googleSearch']),
+}));
 vi.mock('../../api/lib/messages', async () => {
   const actual = await vi.importActual<typeof import('../../api/lib/messages')>(
     '../../api/lib/messages',
