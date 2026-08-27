@@ -92,6 +92,69 @@ The whole app is one client page (`app/page.tsx`) with three modes — `chat`, `
 
 Prettier is configured at the root (`.prettierrc`) with `prettier-plugin-tailwindcss`. VS Code is set to format on save. There is no root-level lint/test script — each subproject manages its own.
 
+## Code Style Guidelines
+
+These are standing rules for all code written in this repository, across every subproject. Follow them unless a file's existing conventions clearly differ — in that case, match the file.
+
+### Naming
+
+- Names must reveal intent. No single-letter names except loop indices (`i`, `j`) and standard short-lived lambdas.
+- No abbreviations unless they're domain-standard (`id`, `url`, `http`). Prefer `elapsedDays` over `d`, `userCount` over `cnt`.
+- Functions/methods are verb phrases: `calculateTotal()`, `fetchActiveUsers()`.
+- Variables are noun phrases: `totalPrice`, `activeUsers`.
+- Booleans read as predicates: `isValid`, `hasPermission`, `canRetry`.
+- Match domain language. Use the business term the team uses, not a technical paraphrase.
+
+### Structure
+
+- Use early returns / guard clauses instead of nested conditionals. Handle edge cases first and return, then write the main path unindented.
+- Maximum nesting depth of 2. If you're deeper, extract a function.
+- Functions do one thing. If a function needs a comment to explain a section, extract that section into a named function instead.
+- Keep functions short. If a function doesn't fit on a screen, it's probably doing too much.
+- Prefer composing small, named steps over one long procedure.
+
+### Comments
+
+- Comments explain *why*, not *what*. The code already says what it does.
+- Do not write comments that restate the code.
+- Never leave commented-out code. Delete it.
+- A well-named function or variable is better than a comment.
+
+### Language-specific
+
+#### Python
+- Follow PEP 8.
+- Use type hints on all function signatures.
+- Prefer list/dict comprehensions over manual loops when they stay readable (don't nest comprehensions deeply).
+- Use f-strings, not `%` or `.format()`.
+- Prefer `pathlib` over `os.path`, dataclasses/Pydantic over bare dicts for structured data.
+- Keep business logic out of framework glue (views/routes) — put it in a service layer.
+- Before completing any task, run `ruff format .` and `ruff check --fix .` and resolve remaining warnings.
+
+#### TypeScript / Node
+- `strict` mode always. No `any` — use `unknown` and narrow, or define the type.
+- Prefer `type`/`interface` for shape; avoid type assertions (`as`) unless unavoidable.
+- Use `const` by default, `let` only when reassigning. Never `var`.
+- Async/await over raw promise chains. Handle rejections explicitly.
+- Prefer named exports over default exports.
+- Node: keep route handlers thin — delegate to service/domain modules.
+- Before completing any task, run the project formatter and linter (Prettier + ESLint) and resolve warnings.
+
+#### React
+- Function components with hooks only. No class components.
+- One component, one responsibility. Extract when a component grows past a screenful or handles multiple concerns.
+- Keep components pure; push side effects into `useEffect` or event handlers, not render.
+- Lift derived values out of state — compute during render instead of storing what can be derived.
+- Custom hooks for reusable stateful logic; name them `useThing`.
+- Keep prop lists small and typed. If a component takes many props, consider composition.
+- Co-locate related files (component, styles, tests, hooks).
+
+### General
+
+- Consistency within a file/module wins over these rules when they conflict.
+- Don't add dependencies for something the standard library handles cleanly.
+- When you finish a change, make sure the formatter/linter passes before considering the task done.
+
 ## Commit messages — keep generic
 
 Keep commit messages short and conceptual. Do not mention specific values like model names, version strings, account IDs, ARNs, instance/task IDs, API key prefixes, or internal hostnames. Describe the intent, not the specifics (e.g. "Updated deprecated OpenAI models" not "Migrate gpt-5-nano to gpt-5.4-nano and dall-e-2 to gpt-image-2").
