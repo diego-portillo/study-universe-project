@@ -10,6 +10,10 @@ type GoldenEntry = {
   messages: Message[];
   criteria: string;
   tags: string[];
+  // Optional per-entry model override, e.g. image-input entries pinning a stronger
+  // vision model than the app's runtime default (OPENAI_VISION_MODEL=gpt-4o-mini) —
+  // gpt-4o-mini hedges on genuine identification tasks instead of attempting one.
+  model?: string;
 };
 
 type RunResult = {
@@ -122,6 +126,7 @@ async function callChatRoute(
     body: JSON.stringify({
       messages,
       provider,
+      model: entry.model,
       conversationId: `eval-${entry.id}-${provider}`,
       reset: true,
     }),
@@ -205,7 +210,8 @@ async function main() {
   const scored = results.filter((r) => !r.skip);
   const passed = scored.filter((r) => r.pass).length;
   const total = scored.length;
-  console.log(`\n${passed}/${total} passed (${((passed / total) * 100).toFixed(1)}%)`);
+  const passRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 'n/a';
+  console.log(`\n${passed}/${total} passed (${passRate}%)`);
   if (skipped.length > 0) {
     console.log(`${skipped.length} SKIPPED (quota/rate-limit, not scored):`);
     for (const r of skipped) console.log(`  ${r.id} [${r.provider}] — ${r.reason}`);
