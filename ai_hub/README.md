@@ -125,15 +125,18 @@ npm run test:coverage  # coverage report
 
 ## CI/CD — GitHub Actions ✅
 
-Three workflows under `.github/workflows/`:
+Four workflows under `.github/workflows/`:
 
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ai_hub-ci.yml` | Push or PR touching `ai_hub/` | Lint + vitest; Docker smoke build on PRs to `main` |
 | `ai_hub-deploy.yml` | Merge to `main` (or manual) | Build image → push to ECR → create/update ECS Express Mode service |
 | `ai_hub-teardown.yml` | Manual only | Delete ECS service + cluster (stops Fargate billing) |
+| `ai_hub-eval.yml` | Manual only | Run the golden-dataset eval suite against the deployed chat route; see [Evaluation Harness](#evaluation-harness) |
 
 Auth uses **OIDC** — no long-lived AWS keys stored in GitHub secrets.
+
+**Why `ai_hub-eval.yml` is manual-only, not wired to push/PR:** each run makes real paid calls to the provider(s) under test plus the LLM judge. Automatic wiring means every push/PR silently spends API budget with no way to throttle it. Keeping it a `workflow_dispatch` trades away automatic regression coverage on every change for deliberate control over when that spend happens — acceptable for a low-traffic portfolio project where a human is already reviewing every change anyway. Revisit if this project ever needs unattended CI gating.
 
 ---
 
@@ -182,9 +185,13 @@ Planned CloudWatch alarms: CPU > 80%, 5xx > 5%, monthly cost > $50.
 
 ---
 
-## Evaluation Harness *(planned — due Jul 12)*
+## Evaluation Harness
 
-Will run a golden dataset of ~30 prompts against the chat route, score with LLM-as-judge (GPT-4o mini), and post a pass/fail report as a GitHub Actions PR comment. See `PLAN.md` Block B.
+Runs a golden dataset of 31 prompts (`evals/golden_dataset.json`) against the chat route, scores each response with an LLM judge (`gpt-4.1-mini` — deliberately not one of the app's own answering models, to avoid self-judging bias), and reports pass/fail per prompt plus a diff against a committed baseline (`evals/baseline.json`).
+
+- **Locally:** `npm run eval` (reads `.env.local`), then `npm run eval:report` for the markdown summary.
+- **In CI:** the `ai_hub-eval.yml` workflow (see [CI/CD](#cicd--github-actions-)) runs the same suite and can post the report as a PR comment — triggered manually, not on every push, since each run costs real API money.
+- **Provider coverage:** only `openai` is currently exercised in CI by default. Anthropic/Google web-search tool wiring in `route.ts` is untested — see `this_week.txt`.
 
 ---
 

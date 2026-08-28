@@ -11,7 +11,9 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "eval": "node --env-file=.env.local --import tsx evals/run.ts"
+    "eval": "node --env-file=.env.local --import tsx evals/run.ts",
+    "eval:ci": "node --import tsx evals/run.ts",
+    "eval:report": "node --import tsx evals/report.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.78",

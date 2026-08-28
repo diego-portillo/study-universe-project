@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Pins tracing to this subproject instead of the monorepo root — without it,
+  // Next detects the root-level package-lock.json and nests .next/standalone
+  // output under an extra ai_hub/ directory, which breaks scripts that assume
+  // .next/standalone/server.js.
+  outputFileTracingRoot: import.meta.dirname,
   ...(process.env.NEXT_PUBLIC_BASE_PATH
     ? { basePath: process.env.NEXT_PUBLIC_BASE_PATH }
     : {}),
