@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ImageRequestBody } from '../lib/types';
 
-const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'dall-e-2';
-const IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE ?? '256x256';
+const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2';
 
 export async function POST(request: NextRequest) {
   let body: ImageRequestBody;
@@ -27,91 +26,63 @@ export async function POST(request: NextRequest) {
 
   const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const maxLen = IMAGE_MODEL.startsWith('dall-e-3')
-    ? 4000
-    : IMAGE_MODEL.startsWith('dall-e-2')
-      ? 1000
-      : 32000;
+  const maxPromptLength = 32000;
 
-  const clipped = prompt.slice(0, maxLen);
+  const clippedPrompt = prompt.slice(0, maxPromptLength);
+
+  console.log('[api/image] request', {
+    model: IMAGE_MODEL,
+    promptLength: clippedPrompt.length,
+  });
 
   try {
-    if (IMAGE_MODEL.startsWith('gpt-image')) {
-      const img = await openaiClient.images.generate({
-        model: IMAGE_MODEL,
-        prompt: clipped,
-        n: 1,
-        size: '1024x1024',
-        quality: 'low',
-      });
-
-      const b64 = img.data?.[0]?.b64_json;
-      if (!b64)
-        return NextResponse.json(
-          { error: 'No image returned' },
-          { status: 502 },
-        );
-
-      return NextResponse.json({
-        url: `data:image/png;base64,${b64}`,
-        revised_prompt: img.data?.[0]?.revised_prompt,
-      });
-    }
-
-    if (IMAGE_MODEL === 'dall-e-3') {
-      const img = await openaiClient.images.generate({
-        model: 'dall-e-3',
-        prompt: clipped,
-        n: 1,
-        size: '1024x1024',
-        quality: 'standard',
-        response_format: 'url',
-      });
-
-      const url = img.data?.[0]?.url;
-      if (!url)
-        return NextResponse.json(
-          { error: 'No image URL returned' },
-          { status: 502 },
-        );
-
-      return NextResponse.json({
-        url,
-        revised_prompt: img.data?.[0]?.revised_prompt,
-      });
-    }
-
-    const dalle2Size: '256x256' | '512x512' | '1024x1024' =
-      IMAGE_SIZE === '512x512' ||
-      IMAGE_SIZE === '1024x1024' ||
-      IMAGE_SIZE === '256x256'
-        ? IMAGE_SIZE
-        : '256x256';
-
-    const img = await openaiClient.images.generate({
-      model: 'dall-e-2',
-      prompt: clipped,
+    console.log('[api/image] calling OpenAI images.generate', {
+      model: IMAGE_MODEL,
       n: 1,
-      size: dalle2Size,
-      response_format: 'url',
+      size: '1024x1024',
+      quality: 'low',
+      promptLength: clippedPrompt.length,
+    });
+    const imageResponse = await openaiClient.images.generate({
+      model: IMAGE_MODEL,
+      prompt: clippedPrompt,
+      n: 1,
+      size: '1024x1024',
+      quality: 'low',
     });
 
-    const url = img.data?.[0]?.url;
+    // gpt-image-* models always return b64_json. Handle url fallback for any future model.
+    const result = imageResponse.data?.[0];
+    const url = result?.b64_json
+      ? `data:image/png;base64,${result.b64_json}`
+      : result?.url;
+
+    console.log('[api/image] OpenAI response', {
+      hasB64: !!result?.b64_json,
+      hasUrl: !!result?.url,
+      hasRevisedPrompt: !!result?.revised_prompt,
+    });
+
     if (!url)
       return NextResponse.json(
-        { error: 'No image URL returned' },
+        { error: 'No image returned' },
         { status: 502 },
       );
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url, revised_prompt: result?.revised_prompt });
   } catch (error: unknown) {
-    let message = 'Unknown image generation error';
-    if (error instanceof OpenAI.APIError) {
-      message = error.message;
-    } else if (error instanceof Error) {
-      message = error.message;
-    }
-    console.error('[api/image]', message);
-    return NextResponse.json({ error: message }, { status: 502 });
+    const message =
+      error instanceof OpenAI.APIError || error instanceof Error
+        ? (error as Error).message
+        : 'Unknown image generation error';
+    const status =
+      error instanceof OpenAI.APIError ? error.status : undefined;
+    console.error('[api/image] OpenAI call failed', {
+      model: IMAGE_MODEL,
+      status,
+      name: error instanceof Error ? error.name : typeof error,
+      message,
+    });
+    return NextResponse.json({ error: 'Image generation failed' }, { status: 502 });
   }
 }

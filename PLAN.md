@@ -2,6 +2,8 @@
 
 Source: synthesized from `alexeygrigorev/ai-engineering-field-guide` (interview, portfolio, learning-paths/from-backend-engineer, role md files). Targets the gap between Diego's current state (strong Python/AI breadth via Platzi, weak on shipped/deployed AI projects, Docker) and what US-remote AI Engineer postings actually demand.
 
+**Updated Jul 3, 2026** against the guide's Jun 2026 revision: role data now covers 4,894 job descriptions across six monthly scrapes (Feb–Jun 2026, up from 895 in Jan), and the portfolio section was reworked around a domain-first methodology. Two structural changes landed: Block C is now a **domain-first RAG + agent** project (the guide: *"RAG + Agents = 70%+ of use cases"*), and Phase 3 gained timed take-home practice (take-homes are now a documented, dominant interview stage).
+
 **Phases**
 1. **Build** — May 25 → Dec 6, 2026 (28 weeks)
 2. **Showcase** — Dec 7 → Dec 20, 2026 (2 weeks)
@@ -18,14 +20,14 @@ The field guide's #1 portfolio red flag is "tutorial copies." Counter-signal: **
 
 ### Block A — Containerize + CI/CD foundation (May 25 → Jun 21, 4 weeks)
 
-Why now: Docker is in 31% of postings (field guide top skills); CI/CD in 29%. Both are filters before the AI work is even looked at.
+Why now: Docker is in 31.4% of postings (field guide top skills); CI/CD in 27.7%. Both are filters before the AI work is even looked at — the guide: *"93% need skills beyond just GenAI - it's a full-stack role."*
 
 - [x] `ai_hub/Dockerfile` + `docker-compose.yml` running the full stack locally — **done May 26**
 - [x] Tests (unit + component) running inside Docker build — **done May 26**
 - [x] README rewritten: architecture diagram (Mermaid), provider matrix, cost estimate, AWS + CI/CD plan — **done May 26**
 - [x] GitHub Actions CI: lint + vitest on every push; Docker smoke check on PRs to main — **done May 27**
 - [x] `.env.example` documenting every required key — **done May 27**
-- [ ] Structured cost/token logging in `onFinish` callback: `{model, provider, tokens_in, tokens_out, latency_ms, estimated_cost_usd}` — **due Jun 21**
+- [x] Structured cost/token logging in `onFinish` callback: `{model, provider, tokens_in, tokens_out, latency_ms, estimated_cost_usd}` — **done Jun 7**
 - [ ] NeetCode: 12 problems (3/week, arrays + hashing + two pointers)
 
 Exit criterion: `docker compose up` boots the app on a clean machine; CI is green on `main`; cost shows in logs per request.
@@ -34,55 +36,72 @@ Exit criterion: `docker compose up` boots the app on a clean machine; CI is gree
 
 Why: field guide says evaluation is *"the most important new skill"* for backend → AI transition, and *"unsuccessful LLM products almost always share a common root cause: a failure to create robust evaluation systems."*
 
-- [ ] Eval harness for chat route: golden dataset (~30 prompts), LLM-as-judge scoring, regression report on PR — **due Jul 12**
+- [ ] Eval harness for chat route: golden dataset (~30 prompts), LLM-as-judge scoring (judge criteria include groundedness/hallucination checks, not just quality), regression report on PR — **due Jul 12**
 - [ ] Per-provider error boundary with fallback UI (not a string error state) — **due Jul 19**
 - [ ] Model comparison view: same prompt → 2 models side-by-side — **due Jul 26**
 - [ ] Observability: request tracing, TTFT + tokens/sec + per-user cost surfaced in a `/metrics` route — **due Aug 2**
+- [ ] Extend the shipped cost logging with `request_id` + `prompt_version` fields — field guide's Jun 2026 logging spec is *"request ID, model name, prompt version, tool calls, latency, token use, cost"*; tool-call logging lands with the Block C agent project since ai_hub has no tools — **due Aug 2**
+- [ ] Platzi: *Curso de Observabilidad de Agentes AI con LangSmith* — concepts prep (tracing, datasets, LLM-as-judge, cost/retention dashboards) for the `/metrics` milestone; LangSmith itself is LangChain-native so it won't be wired directly into `ai_hub` — see Block C
 - [ ] NeetCode: 18 more problems (sliding window, binary search, stack)
 
 Exit criterion: opening a PR runs eval and posts pass/fail; you can answer "what's the cost per chat session?" with a number.
 
-### Block C — Second project: RAG system with eval (Aug 3 → Sep 27, 8 weeks)
+### Block C — Second project: domain-first RAG + agent with eval (Aug 3 → Sep 27, 8 weeks)
 
-Why two projects: field guide says *"Build 2–3 end-to-end projects"* and RAG appears in 36% of job postings (top-3 skill). You already have `RAG/` + `data/algorithms/` started — extend it into a polished standalone project.
+Why two projects: field guide says *"Build 2–3 end-to-end projects"*, RAG appears in 35.9% of postings (top-3 skill), and *"RAG + Agents = 70%+ of use cases"* — a portfolio with RAG but no agent misses half the demand. The Jun 2026 portfolio rework also flipped the picking method: *"Start from a real domain and real companies, not from a technology you want to use."* Tech-first ideas and generic chatbots are its top listed mistakes — which rules out the earlier "Algorithm Tutor RAG" framing.
 
-Pick **one** (don't try two):
-- **Option A (recommended): "Algorithm Tutor RAG"** — Q&A over your `data/algorithms/` corpus + LeetCode patterns. Uses pgvector or Pinecone, reranking, eval harness, citations.
-- **Option B:** PDF/docs RAG with chunking-strategy comparison (field guide explicitly praises this format — *"received two offers within 72 hours"*).
+**Project (decided Jul 3, replacing the old Option A/B choice): commerce/e-commerce domain assistant** — targeted at real companies in your target verticals (commerce/real-estate; the guide's `07-project-ideas.md` has a Marketplace/E-Commerce domain section). RAG core over realistic domain documents (product catalogs, policies, FAQs) **plus an agentic layer**: ≥2 tools (e.g. order lookup, product comparison) in a multi-step workflow. Scope "Version 1" per the guide: small dataset, runs from CLI/API/UI, one useful output, one normal case handled, one failure case handled. Boring tools unless a specific skill justifies otherwise.
+
+**Stack (decided Jul 3, one winner per layer — losers become interview talking points):**
+
+| Layer | Pick | Over | Why |
+|---|---|---|---|
+| Application | FastAPI | Flask, Django | AI-serving standard; async + Pydantic. (ai_hub already covers the React/Next.js half of this layer.) |
+| AI orchestration | LangChain + LangGraph | LlamaIndex, CrewAI | LangChain = 34.3% of listings; LangGraph is its agent layer (#2 in agentic listings, named in real take-homes) — they stack, not compete. |
+| LLM APIs | One primary provider | — | ai_hub already demonstrates multi-provider (OpenAI/Anthropic/Google); Block C keeps one primary to stay boring. Optional differentiator: an Ollama local-model fallback (appears in real take-homes). |
+| Vector DB | Postgres + pgvector | Pinecone, Weaviate | One DB for relational + vectors; agent tools need SQL joins anyway; cheapest below ~10M vectors; graduate to Pinecone only with a documented bottleneck. |
+| Infrastructure | Docker + AWS (ECS) | K8s, GCP, Azure | Already decided; K8s skip is documented below. |
+
+Plus eval/observability (cross-cutting): LangSmith tracing + Ragas metrics.
 
 Milestones:
+- [ ] `PROJECT_PLAN.md` with saved evidence: 3–5 real job descriptions + 2–3 engineering-blog posts from target-vertical companies; problem statement, user, input/output defined — **due Aug 9**
 - [ ] Vector store + ingest pipeline running — **due Aug 16**
+- [ ] LangSmith tracing wired into the RAG pipeline (LangChain-native, built in from the start rather than retrofit — unlike `ai_hub`)
 - [ ] Baseline RAG endpoint with citations — **due Aug 30**
-- [ ] Eval harness: retrieval@k, faithfulness, answer relevance (Ragas or hand-rolled) — **due Sep 13**
-- [ ] Reranking + chunking-strategy comparison documented in README — **due Sep 27**
+- [ ] Eval harness: retrieval@k, faithfulness, answer relevance — **use Ragas** (decided Jul 3: RAG-specific standard, and it publishes into LangSmith traces so the two compose; ai_hub's hand-rolled harness already shows you can build one from scratch) — **due Sep 13**
+- [ ] Agent layer: ≥2 tools, tool-call logging (per the guide's logging spec), agent eval cases added to the harness — **due Sep 27**
+- [ ] Reranking + a brief chunking-strategy comparison in the README (lighter than originally planned, to make room for the agent layer) — **due Sep 27**
 - [ ] NeetCode: 24 more problems (trees, graphs, BFS/DFS — you've done the Platzi course, this is reps)
 
-Exit criterion: README has eval results table; you can explain why you picked your chunking strategy with numbers.
+Exit criterion: README has eval results table covering both RAG and agent behavior; you can explain why you picked your chunking strategy with numbers and walk through one full agent tool-call trace.
 
 ### Block D — AWS deployment + monitoring (Sep 28 → Nov 8, 6 weeks)
 
 Why: AWS is in 40% of postings (field guide #3 skill); a live URL is on the field guide's portfolio must-list. `tasks.txt` already names ECS/EKS + GitHub Actions deploy.
 
 - [ ] Both projects on Vercel (free) as first live URLs — **due Oct 5** (fast win; do this even if AWS is in progress)
-- [ ] ai_hub deployed to AWS App Runner (service + health check verified live) — **due Oct 26**
-- [x] CI/CD pipeline: ECR push + App Runner deploy on merge to main (OIDC, no long-lived keys) — **done May 27**
+- [ ] ai_hub deployed to ECS Express Mode (service + health check verified live) — **due Oct 26**
+- [x] CI/CD pipeline: ECR push + ECS Express Mode deploy on merge to main (OIDC, no long-lived keys) — **done May 27** *(workflows migrated May 28)*
 - [x] ECR repository provisioned, IAM role + OIDC provider configured — **done May 27**
+- [ ] Provision ECS Express Mode IAM roles: execution-role + infrastructure-role; grant `iam:PassRole` on both to the OIDC role; add `ECS_EXECUTION_ROLE_ARN` + `ECS_INFRA_ROLE_ARN` GitHub secrets — **due Oct 26**
 - [ ] CloudWatch alarms on error rate + cost ceiling — **due Nov 8**
+- [ ] Drift monitoring: scheduled weekly eval run (GitHub Actions cron) against the live endpoint, scores logged over time, alert on score drop — catches provider-side model changes between deploys, not just code regressions — **due Nov 8**
 - [ ] NeetCode: 18 more (DP intro, greedy, intervals)
 
 Exit criterion: two public URLs; a hiring manager can click and use them.
 
 ### Block E — Polish: READMEs, architecture, video script (Nov 9 → Dec 6, 4 weeks)
 
-Field guide is explicit about what hiring managers spend 5-10 minutes scanning: problem statement, architecture diagram, eval results, cost, how to run.
+Field guide is explicit about what hiring managers spend 5-10 minutes scanning. Its Jun 2026 README spec: problem statement, **user**, **input/output**, **demo**, architecture, tests, eval results, **trade-offs**.
 
-- [ ] Both READMEs rewritten to field-guide spec: problem + architecture diagram (Mermaid) + models/providers matrix + cost estimate + run instructions + eval results — **due Nov 22**
-- [ ] Loom video script drafted (90 seconds per project) — **due Nov 29**
+- [ ] Both READMEs rewritten to field-guide spec: problem + user + input/output + demo (live URL or recording) + architecture diagram (Mermaid) + models/providers matrix + cost estimate + run instructions + eval results + trade-offs — **due Nov 22**
+- [ ] Loom video script drafted (90 seconds per project) using the guide's 5-part pitch: problem → user → solution → evidence → ownership; frame decisions as *"I chose X over Y because of constraint Z"* — **due Nov 29**
 - [ ] Resume drafted: lead with impact metrics, not tool names; Typst format (not multi-column LaTeX, fails ATS) — **due Dec 6**
 - [ ] NeetCode: 18 more — **running total ~90 problems by end of build**
-- [ ] **Decision point:** repo visibility strategy (see `memory/project_repo_visibility.md`) — **due Nov 15** so showcase phase can start with repo public
+- [ ] **Decision point:** repo visibility strategy (see `project-repo-visibility` in Claude project memory) — **due Nov 15** so showcase phase can start with repo public
 
-Exit criterion: a stranger can read either README in 5 min and understand what it does, what it cost, how it was evaluated.
+Exit criterion: a stranger can read either README in 5 min and understand what it does, what it cost, how it was evaluated — and both projects pass the field guide's 9-question "Quick Check" (`06-common-mistakes.md`) with all yeses.
 
 ---
 
@@ -94,7 +113,7 @@ Two weeks. Distribution only, no new features.
 - [ ] Landing/personal site: links to both projects, both Looms, resume, contact — **due Dec 13**
 - [ ] LinkedIn launch post with video + screenshots — **Dec 14**
 - [ ] LinkedIn follow-up posts: one technical deep-dive per project — **Dec 17 & Dec 20**
-- [ ] Direct outreach: 10 messages to founders/hiring managers at LATAM-friendly US companies (commerce/real-estate verticals first per `a.txt`) — **due Dec 20**
+- [ ] Direct outreach: 10 messages to founders/hiring managers at LATAM-friendly US companies (commerce/real-estate verticals first) — **due Dec 20**
 - [ ] (Optional, high-leverage) Weekend AI hackathon if any are running — field guide: *"hackathons more effective than courses"*
 
 Exit criterion: both projects are public, demoable in one link, and at least 10 humans have seen them.
@@ -116,13 +135,16 @@ Four weeks, ~25 hrs/week. The field guide's reference plan is 8–12 weeks at 6 
 - [ ] Alex Xu *System Design Interview* vol. 1, chs. 1–6
 - [ ] Design exercises (aloud, recorded): "design a RAG-based customer support bot", "design an agent platform with tool use", "design a model-routing layer with cost caps"
 - [ ] Chip Huyen *AI Engineering* ch. 6–10
+- [ ] Timed practice take-home #1 (RAG/document Q&A) — pick a real assignment from the guide's `interview/questions/06-home-assignments.md` June 2026 list, do it under its stated time constraint
+- [ ] Eval-tooling positioning (interview prep, ~2h): be able to name and compare LangSmith (LangChain-native tracing — used it), Ragas (RAG metrics — used it), Langfuse (open-source/self-hosted alternative), DeepEval (pytest-style CI eval gates), Arize Phoenix (OTel-native) — postings test eval *design* plus the ability to position tools, not one logo
 - [ ] NeetCode: 20 more problems, focus on patterns you missed
 
 ### Week 3 (Jan 4–10): Mocks + behavioral
 
 - [ ] 3 mock interviews on Pramp or interviewing.io (1 coding, 1 system design, 1 behavioral)
 - [ ] Draft 8 SAIL-format stories (Situation/Action/Impact/Learning) covering: technical leadership, conflict, ambiguity, failure, cross-team work
-- [ ] Record a 60-second pitch for each portfolio project — re-record until smooth
+- [ ] Record a 60-second pitch for each portfolio project (problem → user → solution → evidence → ownership) — re-record until smooth
+- [ ] Timed practice take-home #2 (agentic system) — from the same June 2026 list; note prompt-injection resistance is a recurring take-home requirement
 - [ ] NeetCode review: re-do the "Took time" and "Didn't get it" buckets
 
 ### Week 4 (Jan 11–17): Company-specific + final polish
@@ -133,6 +155,10 @@ Four weeks, ~25 hrs/week. The field guide's reference plan is 8–12 weeks at 6 
 - [ ] Resume final pass; LinkedIn headline + about section final
 - [ ] Reference list: line up 2–3 recent manager/colleague references (field guide flags this is increasingly required)
 
+### Aftermath
+
+- [ ] Review fullsteam in glassdoor
+
 Exit criterion: you can give a 60-sec project pitch and a 25-min AI system design without notes; 8 SAIL stories rehearsed; 3 references confirmed.
 
 ---
@@ -141,7 +167,7 @@ Exit criterion: you can give a 60-sec project pitch and a 25-min AI system desig
 
 Cadence: **5–10 quality applications/week** + **5 direct outreach messages/week**. Field guide: *"referrals beat cold applications"* and *"top candidates accept offers within 2–3 weeks"* once interviews start — so cluster onsites.
 
-- [ ] Platforms (per `a.txt`): LinkedIn, Turing, Arc, Talently, Toptal, BairesDev
+- [ ] Platforms: LinkedIn, Turing, Arc, Talently, Toptal, BairesDev
 - [ ] Target segments: product AI cos (Cursor-tier), infra (Modal/Pinecone-tier), commerce/real-estate verticals
 - [ ] Weekly review: applications sent, responses, mock-interview gaps emerging from real interviews
 - [ ] Negotiate on equity + total comp, not base (field guide: bands are narrow per level)
@@ -156,15 +182,16 @@ Maintain a Notion or markdown log with the field guide's 4 buckets per topic: **
 ## Field guide topics intentionally skipped
 
 These appear in the guide but are deprioritized for Diego's profile and timeline:
-- **Kubernetes** (29% of postings): ECS Fargate + Docker covers the deployment signal cheaper; revisit only if a target role explicitly requires it.
-- **Fine-tuning / LoRA / Transformer-from-scratch in NumPy**: high effort, low yield for backend-transition roles. Skim for theory; don't build. Field guide itself: *"default to prompt engineering with RAG; fine-tune only for extreme specialization."*
+- **Kubernetes** (26.6% of postings): ECS Fargate + Docker covers the deployment signal cheaper; revisit only if a target role explicitly requires it.
+- **Fine-tuning / LoRA / Transformer-from-scratch in NumPy**: high effort, low yield for backend-transition roles. Skim for theory; don't build. Field guide itself: *"default to prompt engineering with RAG; fine-tune only for extreme specialization."* Re-validated by Jun 2026 data: fine-tuning is mentioned in 30.8% of roles but is a primary responsibility in only 4%.
 - **Frontend deepening (React beyond what ai_hub already uses)**: not the bottleneck.
 - **TensorFlow**: PyTorch dominates; skip.
+- **PyTorch builds**: 26.6% of postings, but for backend-transition roles it's interview vocabulary, not a build requirement. Theory-level coverage (existing Platzi course + Chip Huyen chapters + the Deep-ML attention exercise in Phase 3) is enough; a PyTorch project would burn 4+ weeks for the weakest portfolio signal.
 
 ---
 
 ## Open decisions
 
-1. **Repo visibility strategy** — due Nov 15. See `memory/project_repo_visibility.md`.
-2. **Second project choice** (Block C) — Algorithm Tutor RAG vs. PDF RAG. Decide by **Aug 3**.
-3. ~~**AWS service for Block D** — ECS Fargate (recommended) vs. EKS. Decide by **Sep 28**.~~ **Decided May 27: App Runner** (simpler than ECS for a single container; no ALB/task-definition overhead). Revisit if custom domain subpath routing proves difficult.
+1. **Repo visibility strategy** — due Nov 15. See `project-repo-visibility` in Claude project memory.
+2. ~~**Second project choice** (Block C) — Algorithm Tutor RAG vs. PDF RAG. Decide by **Aug 3**.~~ **Decided Jul 3, 2026: domain-first commerce/e-commerce RAG + agent** (guide's Jun 2026 portfolio rework: domain-first picking, RAG + Agents = 70%+ of use cases). Vertical can still flip to finance at the Aug 9 PROJECT_PLAN.md milestone if the evidence is stronger there.
+3. ~~**AWS service for Block D** — ECS Fargate (recommended) vs. EKS. Decide by **Sep 28**.~~ ~~**Decided May 27: App Runner**~~ **Decided May 2026: ECS Express Mode** (App Runner no longer accepts new customers as of Apr 30 2026; ECS Express Mode is AWS's official replacement — auto-provisions ALB, Fargate, auto-scaling, CloudWatch).

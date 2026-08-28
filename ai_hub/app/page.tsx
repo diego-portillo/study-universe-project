@@ -33,7 +33,6 @@ import {
   UNSUPPORTED_AUDIO_PROVIDERS,
   UNSUPPORTED_IMAGE_PROVIDERS,
   DEFAULT_AUDIO_PROVIDER,
-  AUDIO_PROVIDER_OPTIONS,
 } from './constants';
 
 import './page.css';
@@ -64,7 +63,6 @@ export default function Page() {
         : setAudioMessages;
   const [input, setInput] = useState('');
 
-  // Provider / model
   const [selectedModel, setSelectedModel] =
     useState<ModelOption>(DEFAULT_MODEL);
 
@@ -74,9 +72,7 @@ export default function Page() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioPreview, setAudioPreview] = useState('');
   const [audioName, setAudioName] = useState('');
-  const [audioProvider, setAudioProvider] = useState<AudioProvider>(
-    DEFAULT_AUDIO_PROVIDER,
-  );
+  const audioProvider: AudioProvider = DEFAULT_AUDIO_PROVIDER;
 
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -89,17 +85,20 @@ export default function Page() {
 
   const [generatedImageUrl, setGeneratedImageUrl] = useState('');
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState('');
-  const [voice, setVoice] = useState<SpeechVoice>('alloy');
+  const voice: SpeechVoice = 'alloy';
 
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const audioRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const audioInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const visibleMessages = messages.filter((m) => m.role !== 'system');
+  const visibleMessages = messages.filter((message) => message.role !== 'system');
   const isEmpty = visibleMessages.length === 0;
+  const isImageAnalysis = messages.length > 2;
+  const imageAnalysisText = isImageAnalysis
+    ? getTextContent(messages[messages.length - 1].content)
+    : '';
 
-  // Whether the selected provider supports the current mode
   const isAnthropicSelected = selectedModel.provider === 'anthropic';
   const isGoogleSelected = selectedModel.provider === 'google';
   const isElevenLabsSelected = selectedModel.provider === 'elevenlabs';
@@ -115,54 +114,56 @@ export default function Page() {
   }, [audioPreview]);
 
   useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
   }, [input]);
 
-  function handleModelChange(e: ChangeEvent<HTMLSelectElement>) {
-    const found = MODEL_OPTIONS.find((m) => m.id === e.target.value);
-    if (!found) return;
-    setSelectedModel(found);
+  function handleModelChange(event: ChangeEvent<HTMLSelectElement>) {
+    const matchedModel = MODEL_OPTIONS.find(
+      (model) => model.id === event.target.value,
+    );
+    if (!matchedModel) return;
+    setSelectedModel(matchedModel);
+
     // warn if conversation has images and new model doesn't support vision
     const hasImages = messages.some(
-      (m) =>
-        Array.isArray(m.content) &&
-        m.content.some((p) => p.type === 'image_url'),
+      (message) =>
+        Array.isArray(message.content) &&
+        message.content.some((part) => part.type === 'image_url'),
     );
+    const isVisionUnsupported =
+      matchedModel.provider === 'anthropic' || matchedModel.provider === 'google';
 
-    const visionUnsupported =
-      found.provider === 'anthropic' || found.provider === 'google';
-
-    if (hasImages && visionUnsupported) {
+    if (hasImages && isVisionUnsupported) {
       setError(
-        `Warning: this conversation contains images. ${found.label} may not support vision — image messages will be sent as text placeholders.`,
+        `Warning: this conversation contains images. ${matchedModel.label} may not support vision — image messages will be sent as text placeholders.`,
       );
     } else {
       setError('');
     }
-    setChatMessages([makeSystemMessage(found.label)]);
-    setImageMessages([makeSystemMessage(found.label)]);
-    setAudioMessages([makeSystemMessage(found.label)]);
+    setChatMessages([makeSystemMessage(matchedModel.label)]);
+    setImageMessages([makeSystemMessage(matchedModel.label)]);
+    setAudioMessages([makeSystemMessage(matchedModel.label)]);
     setInput('');
     clearImage();
     clearAudio();
     setGeneratedImageUrl('');
     setGeneratedAudioUrl('');
-    if (found.provider === 'elevenlabs') {
+    if (matchedModel.provider === 'elevenlabs') {
       setMode('audio');
     }
     if (
-      (found.provider === 'anthropic' || found.provider === 'google') &&
+      (matchedModel.provider === 'anthropic' || matchedModel.provider === 'google') &&
       (mode === 'image' || mode === 'audio')
     ) {
       setMode('chat');
     }
   }
 
-  function switchMode(m: Mode) {
-    if (isElevenLabsSelected && (m === 'chat' || m === 'image')) {
+  function switchMode(targetMode: Mode) {
+    if (isElevenLabsSelected && (targetMode === 'chat' || targetMode === 'image')) {
       setError(
         'ElevenLabs only supports audio. Switch to another provider for text or image.',
       );
@@ -170,22 +171,22 @@ export default function Page() {
     }
     if (
       (isAnthropicSelected || isGoogleSelected) &&
-      (m === 'image' || m === 'audio')
+      (targetMode === 'image' || targetMode === 'audio')
     ) {
       const unsupportedProviders =
-        m === 'image'
+        targetMode === 'image'
           ? UNSUPPORTED_IMAGE_PROVIDERS
           : UNSUPPORTED_AUDIO_PROVIDERS;
 
       setError(
         `${
-          m === 'image' ? 'Image' : 'Audio'
+          targetMode === 'image' ? 'Image' : 'Audio'
         } features are not available with ${unsupportedProviders} providers. Switch to an OpenAI model to use this mode.`,
       );
 
       return;
     }
-    setMode(m);
+    setMode(targetMode);
     setError('');
     setGeneratedImageUrl('');
     setGeneratedAudioUrl('');
@@ -193,8 +194,8 @@ export default function Page() {
     clearAudio();
   }
 
-  function onPickFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
+  function onPickFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
     setImageFile(file);
     setImagePreview('');
     if (!file?.type.startsWith('image/')) return;
@@ -204,13 +205,13 @@ export default function Page() {
     reader.readAsDataURL(file);
   }
 
-  async function onPickAudio(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
+  async function onPickAudio(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
     if (!file) return;
     const audio = document.createElement('audio');
     audio.src = URL.createObjectURL(file);
-    await new Promise<void>((r) => {
-      audio.onloadedmetadata = () => r();
+    await new Promise<void>((resolve) => {
+      audio.onloadedmetadata = () => resolve();
     });
     if (audio.duration > MAX_AUDIO_LENGTH) {
       setError('Audio too long (max 60s)');
@@ -220,11 +221,15 @@ export default function Page() {
     setAudioPreview(audio.src);
     setAudioName(file.name);
     setError('');
+    if (generatedAudioUrl) {
+      URL.revokeObjectURL(generatedAudioUrl);
+      setGeneratedAudioUrl('');
+    }
   }
 
-  function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       handleSend();
     }
   }
@@ -250,8 +255,8 @@ export default function Page() {
       setAudioPreview,
       setAudioName,
       audioPreview,
-      fileInputRef: fileRef,
-      audioInputRef: audioRef,
+      fileInputRef,
+      audioInputRef,
     });
 
   function handleSend() {
@@ -269,8 +274,8 @@ export default function Page() {
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       recorder.onstop = () => {
@@ -282,7 +287,11 @@ export default function Page() {
         const url = URL.createObjectURL(blob);
         setAudioPreview(url);
         setAudioName(file.name);
-        streamRef.current?.getTracks().forEach((t) => t.stop());
+        if (generatedAudioUrl) {
+          URL.revokeObjectURL(generatedAudioUrl);
+          setGeneratedAudioUrl('');
+        }
+        streamRef.current?.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       };
 
@@ -296,7 +305,7 @@ export default function Page() {
       }, MAX_AUDIO_LENGTH * 1000);
 
       mediaRecorderRef.current = recorder;
-    } catch (err) {
+    } catch {
       setError('Microphone permission denied or unavailable');
     }
   }
@@ -333,13 +342,6 @@ export default function Page() {
           ? 'Audio ready — hit send to transcribe'
           : 'Enter text to convert to speech...';
 
-  // Group models by provider for the <optgroup> selector
-  const openaiModels = MODEL_OPTIONS.filter((m) => m.provider === 'openai');
-  const anthropicModels = MODEL_OPTIONS.filter(
-    (m) => m.provider === 'anthropic',
-  );
-  const googleModels = MODEL_OPTIONS.filter((m) => m.provider === 'google');
-
   return (
     <>
       <div className="layout">
@@ -348,281 +350,48 @@ export default function Page() {
           <span className="header-title">Diego&apos;s LLM Integration</span>
         </header>
 
-        {/* ── Model selector ─────────────────────────────────────────── */}
-        <div className="model-selector-row">
-          <label className="model-label" htmlFor="model-select">
-            Model
-          </label>
-          <div className="model-select-wrapper">
-            {/* Provider badge */}
-            <span
-              className={`provider-badge ${selectedModel.provider}`}
-              aria-label={selectedModel.provider}
-            >
-              {PROVIDER_LABELS[selectedModel.provider]}
-            </span>
-            <select
-              id="model-select"
-              className="model-select"
-              value={selectedModel.id}
-              onChange={handleModelChange}
-            >
-              <optgroup label="OpenAI">
-                {openaiModels.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Anthropic">
-                {anthropicModels.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Google">
-                {googleModels.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="ElevenLabs">
-                {MODEL_OPTIONS.filter((m) => m.provider === 'elevenlabs').map(
-                  (m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                    </option>
-                  ),
-                )}
-              </optgroup>
-            </select>
-          </div>
+        <ModelSelector
+          selectedModel={selectedModel}
+          onModelChange={handleModelChange}
+          isAnthropicSelected={isAnthropicSelected}
+          isGoogleSelected={isGoogleSelected}
+          isElevenLabsSelected={isElevenLabsSelected}
+        />
 
-          {(isAnthropicSelected || isGoogleSelected) && (
-            <span className="provider-notice">
-              Chat only — image and audio require OpenAI
-            </span>
-          )}
-          {isElevenLabsSelected && (
-            <span className="provider-notice">
-              Audio only — text and image require another provider
-            </span>
-          )}
-        </div>
-
-        {/* ── Mode tabs ──────────────────────────────────────────────── */}
-        <div className="mode-tabs">
-          {(['chat', 'image', 'audio'] as Mode[]).map((m) => {
-            const disabled =
-              ((isAnthropicSelected || isGoogleSelected) &&
-                (m === 'image' || m === 'audio')) ||
-              (isElevenLabsSelected && (m === 'chat' || m === 'image'));
-            return (
-              <button
-                key={m}
-                className={`tab ${mode === m ? 'active' : ''} ${disabled ? 'tab-disabled' : ''}`}
-                onClick={() => switchMode(m)}
-                title={
-                  disabled
-                    ? `Not supported by ${UNSUPPORTED_IMAGE_PROVIDERS} models`
-                    : undefined
-                }
-              >
-                {m === 'chat'
-                  ? '💬 Text'
-                  : m === 'image'
-                    ? '🎨 Image'
-                    : '🔊 Audio'}
-                {disabled && <span className="tab-lock">🔒</span>}
-              </button>
-            );
-          })}
-        </div>
+        <ModeTabs
+          mode={mode}
+          onSwitchMode={switchMode}
+          isAnthropicSelected={isAnthropicSelected}
+          isGoogleSelected={isGoogleSelected}
+          isElevenLabsSelected={isElevenLabsSelected}
+        />
 
         <div className="messages">
-          {/* TEXT mode */}
-          {mode === 'chat' &&
-            (isEmpty ? (
-              <div className="empty-state">
-                <h1 className="empty-title">Ask anything.</h1>
-                <p className="empty-sub">
-                  Select Text, Image or Audio according to your input.
-                </p>
-              </div>
-            ) : (
-              <>
-                {visibleMessages.map((m, i) => (
-                  <div key={i} className={`msg-row ${m.role}`}>
-                    <div className={`avatar ${m.role}`}>
-                      {m.role === 'user' ? 'D' : 'AI'}
-                    </div>
-                    <div className={`bubble ${m.role}`}>
-                      {typeof m.content === 'string' ? (
-                        m.content
-                      ) : (
-                        <>
-                          {getTextContent(m.content)}
-                          {hasImage(m.content) && (
-                            <img
-                              src={
-                                (
-                                  (
-                                    m.content as Array<TextPart | ImageUrlPart>
-                                  ).find(
-                                    (p) => p.type === 'image_url',
-                                  ) as ImageUrlPart
-                                )?.image_url.url ?? ''
-                              }
-                              alt="uploaded"
-                              className="bubble-image"
-                            />
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {loading && (
-                  <div className="msg-row assistant">
-                    <div className="avatar assistant">AI</div>
-                    <div className="bubble assistant">
-                      <div className="typing">
-                        <div className="typing-dot" />
-                        <div className="typing-dot" />
-                        <div className="typing-dot" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            ))}
-
-          {/* IMAGE mode */}
-          {mode === 'image' && (
-            <div className="output-area">
-              {loading ? (
-                <>
-                  <div className="typing">
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                  </div>
-                  <p className="output-label">
-                    {imageFile ? 'Analyzing image…' : 'Generating image…'}
-                  </p>
-                </>
-              ) : generatedImageUrl ? (
-                <>
-                  <p className="output-label">
-                    {messages.length > 2 ? 'Image Analysis' : 'Generated Image'}
-                  </p>
-                  <img
-                    src={generatedImageUrl}
-                    alt="result"
-                    className="generated-img"
-                  />
-                  <a
-                    href={generatedImageUrl}
-                    download="generated-image.jpg"
-                    style={{
-                      marginTop: 8,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      background: 'var(--surface2)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 10,
-                      padding: '7px 14px',
-                      fontSize: 13,
-                      color: 'var(--text-muted)',
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                      transition: 'color 0.15s',
-                    }}
-                  >
-                    <svg
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    Download image
-                  </a>
-                  {messages.length > 2 && (
-                    <p className="analysis-text">
-                      {getTextContent(messages[messages.length - 1].content)}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <div className="empty-state">
-                  <h1 className="empty-title">Generate or upload an image.</h1>
-                  <p className="empty-sub">
-                    Describe an image to generate, or upload one to analyze.
-                  </p>
-                </div>
-              )}
-            </div>
+          {mode === 'chat' && (
+            <ChatMessagesPanel
+              isEmpty={isEmpty}
+              visibleMessages={visibleMessages}
+              loading={loading}
+            />
           )}
 
-          {/* AUDIO mode */}
+          {mode === 'image' && (
+            <ImageOutputPanel
+              loading={loading}
+              imageFile={imageFile}
+              generatedImageUrl={generatedImageUrl}
+              isAnalysis={isImageAnalysis}
+              analysisText={imageAnalysisText}
+            />
+          )}
+
           {mode === 'audio' && (
-            <div className="output-area">
-              {loading ? (
-                <>
-                  <div className="typing">
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                  </div>
-                  <p className="output-label">
-                    {audioFile ? 'Transcribing…' : 'Generating audio…'}
-                  </p>
-                </>
-              ) : generatedAudioUrl ? (
-                <>
-                  <p className="output-label">Generated Audio</p>
-                  <audio
-                    controls
-                    src={generatedAudioUrl}
-                    className="audio-player"
-                  />
-                </>
-              ) : visibleMessages.length > 0 ? (
-                <div style={{ width: '100%', maxWidth: '600px' }}>
-                  {visibleMessages.map((m, i) => (
-                    <div key={i} className={`msg-row ${m.role}`}>
-                      <div className={`avatar ${m.role}`}>
-                        {m.role === 'user' ? 'D' : 'AI'}
-                      </div>
-                      <div className={`bubble ${m.role}`}>
-                        {typeof m.content === 'string'
-                          ? m.content
-                          : getTextContent(m.content)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <h1 className="empty-title">Transcribe or generate audio.</h1>
-                  <p className="empty-sub">
-                    Upload an audio file to transcribe, or type text to convert
-                    to speech.
-                  </p>
-                </div>
-              )}
-            </div>
+            <AudioOutputPanel
+              loading={loading}
+              audioFile={audioFile}
+              generatedAudioUrl={generatedAudioUrl}
+              visibleMessages={visibleMessages}
+            />
           )}
 
           <div ref={messagesEndRef} />
@@ -678,8 +447,8 @@ export default function Page() {
               <textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
+                onChange={(event) => {
+                  setInput(event.target.value);
                 }}
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
@@ -693,7 +462,7 @@ export default function Page() {
                   <button
                     className="icon-btn"
                     title="Attach image"
-                    onClick={() => fileRef.current?.click()}
+                    onClick={() => fileInputRef.current?.click()}
                   >
                     <svg
                       width="18"
@@ -717,7 +486,7 @@ export default function Page() {
                   <button
                     className="icon-btn"
                     title="Upload audio to transcribe"
-                    onClick={() => audioRef.current?.click()}
+                    onClick={() => audioInputRef.current?.click()}
                   >
                     <svg
                       width="18"
@@ -774,14 +543,14 @@ export default function Page() {
                 )}
 
                 <input
-                  ref={fileRef}
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   style={{ display: 'none' }}
                   onChange={onPickFile}
                 />
                 <input
-                  ref={audioRef}
+                  ref={audioInputRef}
                   type="file"
                   accept="audio/*"
                   style={{ display: 'none' }}
@@ -811,5 +580,344 @@ export default function Page() {
         </div>
       </div>
     </>
+  );
+}
+
+function MessageBubble({ message }: { message: Message }) {
+  return (
+    <div className={`msg-row ${message.role}`}>
+      <div className={`avatar ${message.role}`}>
+        {message.role === 'user' ? 'D' : 'AI'}
+      </div>
+      <div className={`bubble ${message.role}`}>
+        {typeof message.content === 'string' ? (
+          message.content
+        ) : (
+          <>
+            {getTextContent(message.content)}
+            {hasImage(message.content) && (
+              <img
+                src={
+                  (
+                    (message.content as Array<TextPart | ImageUrlPart>).find(
+                      (part) => part.type === 'image_url',
+                    ) as ImageUrlPart
+                  )?.image_url.url ?? ''
+                }
+                alt="uploaded"
+                className="bubble-image"
+              />
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ModelSelector({
+  selectedModel,
+  onModelChange,
+  isAnthropicSelected,
+  isGoogleSelected,
+  isElevenLabsSelected,
+}: {
+  selectedModel: ModelOption;
+  onModelChange: (event: ChangeEvent<HTMLSelectElement>) => void;
+  isAnthropicSelected: boolean;
+  isGoogleSelected: boolean;
+  isElevenLabsSelected: boolean;
+}) {
+  const openaiModels = MODEL_OPTIONS.filter((model) => model.provider === 'openai');
+  const anthropicModels = MODEL_OPTIONS.filter(
+    (model) => model.provider === 'anthropic',
+  );
+  const googleModels = MODEL_OPTIONS.filter((model) => model.provider === 'google');
+  const elevenLabsModels = MODEL_OPTIONS.filter(
+    (model) => model.provider === 'elevenlabs',
+  );
+
+  return (
+    <div className="model-selector-row">
+      <label className="model-label" htmlFor="model-select">
+        Model
+      </label>
+      <div className="model-select-wrapper">
+        <span
+          className={`provider-badge ${selectedModel.provider}`}
+          aria-label={selectedModel.provider}
+        >
+          {PROVIDER_LABELS[selectedModel.provider]}
+        </span>
+        <select
+          id="model-select"
+          className="model-select"
+          value={selectedModel.id}
+          onChange={onModelChange}
+        >
+          <optgroup label="OpenAI">
+            {openaiModels.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Anthropic">
+            {anthropicModels.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Google">
+            {googleModels.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.label}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="ElevenLabs">
+            {elevenLabsModels.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.label}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+      </div>
+
+      {(isAnthropicSelected || isGoogleSelected) && (
+        <span className="provider-notice">
+          Chat only — image and audio require OpenAI
+        </span>
+      )}
+      {isElevenLabsSelected && (
+        <span className="provider-notice">
+          Audio only — text and image require another provider
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ModeTabs({
+  mode,
+  onSwitchMode,
+  isAnthropicSelected,
+  isGoogleSelected,
+  isElevenLabsSelected,
+}: {
+  mode: Mode;
+  onSwitchMode: (targetMode: Mode) => void;
+  isAnthropicSelected: boolean;
+  isGoogleSelected: boolean;
+  isElevenLabsSelected: boolean;
+}) {
+  return (
+    <div className="mode-tabs">
+      {(['chat', 'image', 'audio'] as Mode[]).map((tabMode) => {
+        const isTabDisabled =
+          ((isAnthropicSelected || isGoogleSelected) &&
+            (tabMode === 'image' || tabMode === 'audio')) ||
+          (isElevenLabsSelected && (tabMode === 'chat' || tabMode === 'image'));
+        return (
+          <button
+            key={tabMode}
+            className={`tab ${mode === tabMode ? 'active' : ''} ${isTabDisabled ? 'tab-disabled' : ''}`}
+            onClick={() => onSwitchMode(tabMode)}
+            title={
+              isTabDisabled
+                ? `Not supported by ${UNSUPPORTED_IMAGE_PROVIDERS} models`
+                : undefined
+            }
+          >
+            {tabMode === 'chat'
+              ? '💬 Text'
+              : tabMode === 'image'
+                ? '🎨 Image'
+                : '🔊 Audio'}
+            {isTabDisabled && <span className="tab-lock">🔒</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ChatMessagesPanel({
+  isEmpty,
+  visibleMessages,
+  loading,
+}: {
+  isEmpty: boolean;
+  visibleMessages: Message[];
+  loading: boolean;
+}) {
+  if (isEmpty) {
+    return (
+      <div className="empty-state">
+        <h1 className="empty-title">Ask anything.</h1>
+        <p className="empty-sub">
+          Select Text, Image or Audio according to your input.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {visibleMessages.map((message, index) => (
+        <MessageBubble key={index} message={message} />
+      ))}
+      {loading && (
+        <div className="msg-row assistant">
+          <div className="avatar assistant">AI</div>
+          <div className="bubble assistant">
+            <div className="typing">
+              <div className="typing-dot" />
+              <div className="typing-dot" />
+              <div className="typing-dot" />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ImageOutputPanel({
+  loading,
+  imageFile,
+  generatedImageUrl,
+  isAnalysis,
+  analysisText,
+}: {
+  loading: boolean;
+  imageFile: File | null;
+  generatedImageUrl: string;
+  isAnalysis: boolean;
+  analysisText: string;
+}) {
+  return (
+    <div className="output-area">
+      {loading ? (
+        <>
+          <div className="typing">
+            <div className="typing-dot" />
+            <div className="typing-dot" />
+            <div className="typing-dot" />
+          </div>
+          <p className="output-label">
+            {imageFile ? 'Analyzing image…' : 'Generating image…'}
+          </p>
+        </>
+      ) : generatedImageUrl ? (
+        <>
+          <p className="output-label">
+            {isAnalysis ? 'Image Analysis' : 'Generated Image'}
+          </p>
+          <img
+            src={generatedImageUrl}
+            alt="result"
+            className="generated-img"
+          />
+          <a
+            href={generatedImageUrl}
+            download="generated-image.jpg"
+            style={{
+              marginTop: 8,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '7px 14px',
+              fontSize: 13,
+              color: 'var(--text-muted)',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'color 0.15s',
+            }}
+          >
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download image
+          </a>
+          {isAnalysis && <p className="analysis-text">{analysisText}</p>}
+        </>
+      ) : (
+        <div className="empty-state">
+          <h1 className="empty-title">Generate or upload an image.</h1>
+          <p className="empty-sub">
+            Describe an image to generate, or upload one to analyze.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudioOutputPanel({
+  loading,
+  audioFile,
+  generatedAudioUrl,
+  visibleMessages,
+}: {
+  loading: boolean;
+  audioFile: File | null;
+  generatedAudioUrl: string;
+  visibleMessages: Message[];
+}) {
+  return (
+    <div className="output-area">
+      {loading ? (
+        <>
+          <div className="typing">
+            <div className="typing-dot" />
+            <div className="typing-dot" />
+            <div className="typing-dot" />
+          </div>
+          <p className="output-label">
+            {audioFile ? 'Transcribing…' : 'Generating audio…'}
+          </p>
+        </>
+      ) : generatedAudioUrl ? (
+        <>
+          <p className="output-label">Generated Audio</p>
+          <audio
+            controls
+            src={generatedAudioUrl}
+            className="audio-player"
+          />
+        </>
+      ) : visibleMessages.length > 0 ? (
+        <div style={{ width: '100%', maxWidth: '600px' }}>
+          {visibleMessages.map((message, index) => (
+            <MessageBubble key={index} message={message} />
+          ))}
+        </div>
+      ) : (
+        <div className="empty-state">
+          <h1 className="empty-title">Transcribe or generate audio.</h1>
+          <p className="empty-sub">
+            Upload an audio file to transcribe, or type text to convert
+            to speech.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

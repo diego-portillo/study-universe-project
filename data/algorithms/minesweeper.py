@@ -1,7 +1,4 @@
 # Test 1: Click on empty cell with no adjacent mines (triggers BFS cascade)
-import bfs
-
-
 board1 = [
     ["E", "E", "E", "E", "E"],
     ["E", "E", "M", "E", "E"],
@@ -84,50 +81,50 @@ directions = [
         (-1,1),(1,1),(1,-1),(-1,-1)
     ]
 
-def count_adjacent_mines(board, click):
+def count_adjacent_mines(board: list[list[str]], click: list[int]) -> list[tuple[int, int]]:
     mines = []
     for direction in directions:
-        x = click[0] + direction[0]
-        y = click[1] + direction[1]
-        is_inside_bounds = 0 <= x < len(board) and 0 <= y < len(board[x])
-        if is_inside_bounds and board[x][y] == 'M':
-            mines.append((x,y))
+        row = click[0] + direction[0]
+        col = click[1] + direction[1]
+        is_inside_bounds = 0 <= row < len(board) and 0 <= col < len(board[row])
+        if is_inside_bounds and board[row][col] == 'M':
+            mines.append((row,col))
     return mines
 
-def bfs_minesweeper(board, click):
-    x = click[0]
-    y = click[1]
-    if board[x][y] == 'M':
-        board[x][y] = 'X'
+def bfs_minesweeper(board: list[list[str]], click: list[int]) -> list[list[str]]:
+    row = click[0]
+    col = click[1]
+    if board[row][col] == 'M':
+        board[row][col] = 'X'
         return board
     adjacent_mines = count_adjacent_mines(board, click)
-    if len(adjacent_mines) > 0: 
-        board[x][y] = str(len(adjacent_mines))
+    if len(adjacent_mines) > 0:
+        board[row][col] = str(len(adjacent_mines))
     elif len(adjacent_mines) == 0:
-        board[x][y] = 'B'
-        queue =[]
+        board[row][col] = 'B'
+        queue = []
         visited = set()
         for direction in directions:
-            x = click[0] + direction[0]
-            y = click[1] + direction[1]
-            is_inside_bounds = 0 <= x < len(board) and 0 <= y < len(board[x])
-            if is_inside_bounds and board[x][y] == 'E':
-                queue.append((x,y))  
+            row = click[0] + direction[0]
+            col = click[1] + direction[1]
+            is_inside_bounds = 0 <= row < len(board) and 0 <= col < len(board[row])
+            if is_inside_bounds and board[row][col] == 'E':
+                queue.append((row,col))
         while queue:
             i, j = queue.pop(0)
             if (i,j) not in visited:
                 visited.add((i,j))
                 adjacent_mines = count_adjacent_mines(board, [i,j])
-                if len(adjacent_mines) > 0: 
+                if len(adjacent_mines) > 0:
                     board[i][j] = str(len(adjacent_mines))
                 elif len(adjacent_mines) == 0:
                     board[i][j] = 'B'
                     for direction in directions:
-                        x2 = i + direction[0]
-                        y2 = j + direction[1]
-                        is_inside_bounds = 0 <= x2 < len(board) and 0 <= y2 < len(board[x2])
-                        if is_inside_bounds and board[x2][y2] == 'E':
-                            queue.append((x2,y2))   
+                        next_row = i + direction[0]
+                        next_col = j + direction[1]
+                        is_inside_bounds = 0 <= next_row < len(board) and 0 <= next_col < len(board[next_row])
+                        if is_inside_bounds and board[next_row][next_col] == 'E':
+                            queue.append((next_row,next_col))
 
     return board
 
