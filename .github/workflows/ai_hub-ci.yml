@@ -19,9 +19,9 @@ jobs:
         working-directory: ai_hub
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -53,7 +53,7 @@ jobs:
         with:
           context: ./ai_hub
           push: false
-          # No NEXT_PUBLIC_BASE_PATH — App Runner runs at root
+          # No NEXT_PUBLIC_BASE_PATH — ECS Express serves at root
           build-args: NEXT_PUBLIC_BASE_PATH=
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -1,8 +1,8 @@
 const express = require('express');
 const app = express();
 
-app.get('/Platzi', (req, res) => {
-  res.send('Hola desde un dev container con Express.');
+app.get('/Platzi', (request, response) => {
+  response.send('Hola desde un dev container con Express.');
 });
 
 const port = 3000;

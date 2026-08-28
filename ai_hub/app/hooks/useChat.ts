@@ -40,6 +40,29 @@ interface UseChatProps {
   audioInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
+async function readStreamedText(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onChunk?: (text: string) => void,
+): Promise<string> {
+  const decoder = new TextDecoder();
+  let fullText = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    fullText += decoder.decode(value, { stream: true });
+    onChunk?.(fullText);
+  }
+
+  const tail = decoder.decode();
+  if (tail) {
+    fullText += tail;
+    onChunk?.(fullText);
+  }
+
+  return fullText;
+}
+
 export function useChat({
   messages,
   input,
@@ -101,57 +124,54 @@ export function useChat({
       }
 
       const payload = [...messages, userMessage].filter(
-        (m) => typeof m.content !== 'string' || m.content.trim().length > 0,
+        (message) =>
+          typeof message.content !== 'string' || message.content.trim().length > 0,
       );
       setMessages(payload);
       setInput('');
       clearImage();
 
-      const res = await fetch('/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         body: JSON.stringify({
           messages: payload,
           conversationId: conversationIdRef.current,
           model: selectedModel.id,
           provider: selectedModel.provider,
-          reset: messages.filter((m) => m.role !== 'system').length === 0,
+          reset: messages.filter((message) => message.role !== 'system').length === 0,
         }),
         headers: { 'Content-Type': 'application/json' },
       });
 
-      if (!res.ok) {
-        const data = await res.json();
+      if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || 'Request failed');
       }
 
-      const reader = res.body?.getReader();
-
-      const decoder = new TextDecoder();
+      const reader = response.body?.getReader();
       let assistantText = '';
 
       setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
       if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          assistantText += decoder.decode(value, { stream: true });
+        assistantText = await readStreamedText(reader, (text) => {
           setMessages((prev) => [
             ...prev.slice(0, -1),
-            { role: 'assistant', content: assistantText },
+            { role: 'assistant', content: text },
           ]);
-        }
-        const tail = decoder.decode();
-        if (tail) {
-          assistantText += tail;
-          setMessages((prev) => [
-            ...prev.slice(0, -1),
-            { role: 'assistant', content: assistantText },
-          ]);
-        }
+        });
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
+
+      // A 200 with an empty body means the provider call failed after the
+      // stream had already started (see api/chat/route.ts onError) — there's
+      // no error payload to read, so surface a generic message instead of
+      // leaving an empty assistant bubble.
+      if (!assistantText) {
+        setMessages((prev) => prev.slice(0, -1));
+        setError('The AI provider returned an empty response. Please try again.');
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error');
     } finally {
       setLoading(false);
     }
@@ -174,7 +194,7 @@ export function useChat({
           ],
         };
         const payload = [makeSystemMessage(selectedModel.label), userMessage];
-        const res = await fetch('/api/chat', {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           body: JSON.stringify({
             messages: payload,
@@ -184,23 +204,13 @@ export function useChat({
           headers: { 'Content-Type': 'application/json' },
         });
 
-        if (!res.ok) {
-          const data = await res.json();
+        if (!response.ok) {
+          const data = await response.json();
           throw new Error(data.error || 'Analysis failed');
         }
 
-        const reader = res.body?.getReader();
-        const decoder = new TextDecoder();
-        let assistantText = '';
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            assistantText += decoder.decode(value, { stream: true });
-          }
-          assistantText += decoder.decode();
-        }
+        const reader = response.body?.getReader();
+        const assistantText = reader ? await readStreamedText(reader) : '';
 
         setGeneratedImageUrl(dataUrl);
         setMessages([
@@ -211,21 +221,23 @@ export function useChat({
         setInput('');
         clearImage();
       } else {
-        const res = await fetch('/api/image', {
+        const response = await fetch('/api/image', {
           method: 'POST',
           body: JSON.stringify({ prompt: trimmed }),
           headers: { 'Content-Type': 'application/json' },
         });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({ error: 'Image generation failed' }));
-          throw new Error(errData.error || 'Image generation failed');
+        if (!response.ok) {
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: 'Image generation failed' }));
+          throw new Error(errorData.error || 'Image generation failed');
         }
-        const data = await res.json();
+        const data = await response.json();
         setGeneratedImageUrl(data.url);
         setInput('');
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error');
     } finally {
       setLoading(false);
     }
@@ -244,20 +256,20 @@ export function useChat({
         const formData = new FormData();
         formData.append('audio', audioFile);
         formData.append('provider', effectiveAudioProvider);
-        const res = await fetch('/api/audio_to_text', {
+        const response = await fetch('/api/audio_to_text', {
           method: 'POST',
           body: formData,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Transcription failed');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Transcription failed');
         setMessages((prev) => [
           ...prev,
           { role: 'user', content: `[Audio: ${audioName}]` },
           { role: 'assistant', content: data.text },
         ]);
         clearAudio();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Error');
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Error');
       } finally {
         setLoading(false);
       }
@@ -269,7 +281,7 @@ export function useChat({
     setError('');
     setGeneratedAudioUrl('');
     try {
-      const res = await fetch('/api/text_to_audio', {
+      const response = await fetch('/api/text_to_audio', {
         method: 'POST',
         body: JSON.stringify({
           text: trimmed,
@@ -278,16 +290,16 @@ export function useChat({
         }),
         headers: { 'Content-Type': 'application/json' },
       });
-      if (!res.ok) {
-        const data = await res.json();
+      if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || 'TTS failed');
       }
-      const blob = await res.blob();
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       setGeneratedAudioUrl(url);
       setInput('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error');
     } finally {
       setLoading(false);
     }

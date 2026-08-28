@@ -46,26 +46,28 @@ binary_tree_444 = {
         }
 }
 
-sum = 0
-def sum_values(tree, collection= []):
-    global sum
+total_leaf_sum = 0
+def sum_values(tree: dict, collection: list[int] | None = None) -> None:
+    global total_leaf_sum
+    if collection is None:
+        collection = []
     if tree['value']:
         collection.append(tree['value'])
-        print(f'value {tree['value']} and collection {collection}')
+        print(f"value {tree['value']} and collection {collection}")
     if tree['right'] is not None:
-        # pass a copy instead of the same list to genetare separate paths
+        # pass a copy instead of the same list to generate separate paths
         # that's why we add the [:] symbol
         sum_values(tree['right'], collection[:])
     if tree['left'] is not None:
-        # pass a copy instead of the same list to genetare separate paths
+        # pass a copy instead of the same list to generate separate paths
         # that's why we add the [:] symbol
         sum_values(tree['left'], collection[:])
     if tree['right'] is None and tree['left'] is None and len(collection) > 0:
         leaf_value = int("".join(map(str, collection)))
         print(f'Leaf {leaf_value}')
-        sum += leaf_value
+        total_leaf_sum += leaf_value
         return
     return
 
 sum_values(binary_tree_444)
-print(sum)
+print(total_leaf_sum)

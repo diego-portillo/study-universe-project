@@ -4,7 +4,7 @@ import { openai } from '@ai-sdk/openai';
 import { elevenlabs } from '@ai-sdk/elevenlabs';
 import type { SpeechVoice } from '../../types';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const {
       text,
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       text: string;
       voice?: SpeechVoice;
       provider?: string;
-    } = await req.json();
+    } = await request.json();
 
     if (!text || typeof text !== 'string')
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
@@ -51,6 +51,6 @@ export async function POST(req: NextRequest) {
     const message =
       error instanceof Error ? error.message : 'Internal server error';
     console.error('[api/text_to_audio]', message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Speech generation failed' }, { status: 500 });
   }
 }

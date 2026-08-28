@@ -72,6 +72,6 @@ describe('POST /api/text_to_audio', () => {
     const res = await POST(makeJsonRequest({ text: 'hello world' }));
     expect(res.status).toBe(500);
     const data = await res.json();
-    expect(data.error).toMatch(/API failure/);
+    expect(data.error).toMatch(/Speech generation failed/);
   });
 });

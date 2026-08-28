@@ -1,22 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '../../api/chat/route';
 import { NextRequest } from 'next/server';
+import { MODEL_OPTIONS } from '../../constants';
 
-// Mock the AI SDK providers and streamText — we don't want real API calls
+// Mock the AI SDK providers and streamText — we don't want real API calls.
+// route.ts builds the response from `result.fullStream` (to surface error parts
+// as visible text, see app/api/chat/route.ts), not `toTextStreamResponse()`, so
+// the mock must provide an async-iterable fullStream, not just the old helper.
 vi.mock('ai', () => ({
   streamText: vi.fn(() => ({
-    toTextStreamResponse: () => new Response('streamed', { status: 200 }),
+    fullStream: (async function* () {
+      yield { type: 'text-delta', text: 'streamed-content' };
+    })(),
   })),
 }));
-vi.mock('@ai-sdk/openai', () => ({ openai: vi.fn(() => 'openai-model') }));
+function withTools(fn: (id: string) => string, toolNames: string[]) {
+  const mocked = vi.fn(fn) as unknown as Record<string, unknown>;
+  mocked.tools = Object.fromEntries(toolNames.map((name) => [name, vi.fn(() => ({}))]));
+  return mocked;
+}
+vi.mock('@ai-sdk/openai', () => ({
+  openai: withTools((id: string) => `openai:${id}`, ['webSearch']),
+}));
 vi.mock('@ai-sdk/anthropic', () => ({
-  anthropic: vi.fn(() => 'anthropic-model'),
+  anthropic: withTools((id: string) => `anthropic:${id}`, ['webSearch_20250305']),
 }));
-vi.mock('@ai-sdk/google', () => ({ google: vi.fn(() => 'google-model') }));
-vi.mock('../../api/lib/messages', () => ({
-  applyLowDetailToImages: (m: unknown) => m,
-  messagesIncludeVision: () => false,
+vi.mock('@ai-sdk/google', () => ({
+  google: withTools((id: string) => `google:${id}`, ['googleSearch']),
 }));
+vi.mock('../../api/lib/messages', async () => {
+  const actual = await vi.importActual<typeof import('../../api/lib/messages')>(
+    '../../api/lib/messages',
+  );
+  return {
+    ...actual,
+    messagesIncludeVision: () => false,
+  };
+});
 
 function makeRequest(body: unknown) {
   return new NextRequest('http://localhost/api/chat', {
@@ -100,5 +120,140 @@ describe('POST /api/chat — input validation', () => {
       makeRequest({ messages: validMessages, provider: 'openai' }),
     );
     expect(res.status).toBe(200);
+  });
+
+  it('returns 400 for an image_url with a disallowed scheme', async () => {
+    const res = await POST(
+      makeRequest({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'look at this' },
+              {
+                type: 'image_url',
+                image_url: { url: 'http://example.com/image.png' },
+              },
+            ],
+          },
+        ],
+        provider: 'openai',
+      }),
+    );
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toMatch(/data: or https:/);
+  });
+});
+
+// These tests catch the bug where selecting a non-OpenAI provider produced an
+// empty response: the route must reach streamText and return non-empty content.
+describe('POST /api/chat — provider routing', () => {
+  beforeEach(async () => {
+    vi.stubEnv('OPENAI_API_KEY', 'sk-test');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-test');
+    vi.stubEnv('GOOGLE_GENERATIVE_AI_API_KEY', 'goog-test');
+    const { streamText } = await import('ai');
+    vi.mocked(streamText).mockClear();
+  });
+
+  it('returns non-empty body for anthropic provider', async () => {
+    const res = await POST(
+      makeRequest({ messages: validMessages, provider: 'anthropic' }),
+    );
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text.length).toBeGreaterThan(0);
+  });
+
+  it('returns non-empty body for google provider', async () => {
+    const res = await POST(
+      makeRequest({ messages: validMessages, provider: 'google' }),
+    );
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text.length).toBeGreaterThan(0);
+  });
+
+  it('passes the explicit model ID to the anthropic SDK', async () => {
+    const { anthropic } = await import('@ai-sdk/anthropic');
+    const { streamText } = await import('ai');
+
+    await POST(
+      makeRequest({
+        messages: validMessages,
+        provider: 'anthropic',
+        model: 'claude-haiku-4-5-20251001',
+      }),
+    );
+
+    expect(vi.mocked(anthropic)).toHaveBeenCalledWith('claude-haiku-4-5-20251001');
+    expect(vi.mocked(streamText)).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'anthropic:claude-haiku-4-5-20251001' }),
+    );
+  });
+
+  it('passes the explicit model ID to the google SDK', async () => {
+    const { google } = await import('@ai-sdk/google');
+    const { streamText } = await import('ai');
+
+    await POST(
+      makeRequest({
+        messages: validMessages,
+        provider: 'google',
+        model: 'gemini-2.5-flash',
+      }),
+    );
+
+    expect(vi.mocked(google)).toHaveBeenCalledWith('gemini-2.5-flash');
+    expect(vi.mocked(streamText)).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'google:gemini-2.5-flash' }),
+    );
+  });
+
+  // Every model in constants.ts must route correctly and return non-empty content.
+  const chatModels = MODEL_OPTIONS.filter((m) =>
+    ['openai', 'anthropic', 'google'].includes(m.provider),
+  );
+
+  it.each(chatModels)(
+    '$provider / $id — routes to streamText and returns non-empty body',
+    async ({ id, provider }) => {
+      const res = await POST(
+        makeRequest({ messages: validMessages, provider, model: id }),
+      );
+      expect(res.status).toBe(200);
+      const text = await res.text();
+      expect(text.length).toBeGreaterThan(0);
+    },
+  );
+});
+
+// toTextStreamResponse() returns 200 synchronously, before the provider call
+// resolves — a streaming/upstream error can't change the response status or
+// body at that point. onError is the only way such errors become visible.
+describe('POST /api/chat — streaming error logging', () => {
+  beforeEach(() => {
+    vi.stubEnv('OPENAI_API_KEY', 'sk-test');
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-test');
+    vi.stubEnv('GOOGLE_GENERATIVE_AI_API_KEY', 'goog-test');
+  });
+
+  it('registers an onError handler that logs streaming errors server-side', async () => {
+    const { streamText } = await import('ai');
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await POST(makeRequest({ messages: validMessages, provider: 'anthropic' }));
+
+    const call = vi.mocked(streamText).mock.calls.at(-1)?.[0];
+    expect(call?.onError).toBeTypeOf('function');
+
+    call?.onError?.({ error: new Error('simulated upstream failure') });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[api/chat] anthropic stream error:'),
+      'simulated upstream failure',
+    );
+
+    consoleSpy.mockRestore();
   });
 });

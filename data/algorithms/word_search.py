@@ -5,34 +5,40 @@ matrix = [
   ["A", "D", "E", "E"]
 ]
 
-def find_word_in_matrix(word, matrix):
-    for x in range(len(matrix)):
-        for y in range(len(matrix[x])):
-            if recursive_search((x, y), word, matrix, "", set())==True:
+def find_word_in_matrix(word: str, matrix: list[list[str]]) -> bool:
+    for row in range(len(matrix)):
+        for col in range(len(matrix[row])):
+            if recursive_search((row, col), word, matrix, "", set()):
                 return True
     return False
 
-def recursive_search(location, word, matrix, sequence, visited):
-    x, y  = location
-    if x < 0 or x == len(matrix) or y < 0 or y == len(matrix[x]):
+def recursive_search(
+    location: tuple[int, int],
+    word: str,
+    matrix: list[list[str]],
+    sequence: str,
+    visited: set,
+) -> bool | None:
+    row, col = location
+    if row < 0 or row == len(matrix) or col < 0 or col == len(matrix[row]):
         return False
 
     print("current sequence", sequence)
-    print("current location", x, y)
+    print("current location", row, col)
     if sequence == word:
         return True
     # avoid exceeding the matrix limits
     next_letter_index = len(sequence)
-    print("current letter", matrix[x][y])
+    print("current letter", matrix[row][col])
     print("next letter", word[next_letter_index])
-    if matrix[x][y] == word[next_letter_index] and location not in visited:
+    if matrix[row][col] == word[next_letter_index] and location not in visited:
         visited.add(location)
-        sequence += matrix[x][y]
+        sequence += matrix[row][col]
         print("new sequence", sequence)
         directions = [(-1,0),(1,0),(0,-1),(0,1)]
         for direction in directions:
-            i,j = direction
-            if recursive_search((x+i, y+j), word, matrix, sequence, visited) == True:
+            row_delta, col_delta = direction
+            if recursive_search((row+row_delta, col+col_delta), word, matrix, sequence, visited):
                 return True
         # this is the most important part, where the actual backtracking occurs
         visited.remove(location)

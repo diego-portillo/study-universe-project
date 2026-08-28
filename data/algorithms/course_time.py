@@ -3,7 +3,7 @@ total_courses = 2
 courses_with_prerequired = [[1,0]]
 output = True
 
-def check_courses(total_courses, courses_with_prerequired):
+def check_courses(total_courses: int, courses_with_prerequired: list[list[int]]) -> bool:
     visited = set()
     in_degree = [0] * total_courses
     graph = {}
@@ -15,20 +15,18 @@ def check_courses(total_courses, courses_with_prerequired):
             graph[course[1]] = []
         graph[course[1]].append(course[0])
     for i in range(len(in_degree)):
-        if in_degree[i] == 0: queue.append(i)
+        if in_degree[i] == 0:
+            queue.append(i)
     while queue:
         requirement = queue.popleft()
         if requirement in graph:
             dependents = graph[requirement]
             for dependent in dependents:
                 in_degree[dependent] -= 1
-                if in_degree[dependent] ==0:
+                if in_degree[dependent] == 0:
                     queue.append(dependent)
-        count +=1
+        count += 1
     return total_courses == count
-
-
-
 
 
 print(check_courses(total_courses, courses_with_prerequired)==output)

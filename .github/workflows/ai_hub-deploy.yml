@@ -14,11 +14,13 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: ai-hub
-  APP_RUNNER_SERVICE: ai-hub
+  ECS_SERVICE: ai-hub
+  ECS_CLUSTER: ai-hub
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
-    name: Build → ECR → App Runner
+    name: Build → ECR → ECS Express Mode
     runs-on: ubuntu-latest
 
     permissions:
@@ -41,88 +43,74 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Build and push image to ECR
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./ai_hub
           push: true
-          # No base path — App Runner serves at root, no reverse proxy
+          # No base path — ECS Express serves at root; reverse-proxy subpath routing is a separate Block D task
           build-args: NEXT_PUBLIC_BASE_PATH=
           tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Deploy to App Runner
-        env:
-          IMAGE_URI: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+      - name: Get subnets from CloudFormation
+        id: cfn
         run: |
-          # Check if the service already exists
-          SERVICE_ARN=$(aws apprunner list-services \
-            --query "ServiceSummaryList[?ServiceName=='$APP_RUNNER_SERVICE'].ServiceArn" \
+          SUBNETS=$(aws cloudformation describe-stacks \
+            --stack-name ai-hub-infra \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='SubnetList'].OutputValue" \
             --output text)
+          echo "subnets=$SUBNETS" >> $GITHUB_OUTPUT
 
-          if [ -z "$SERVICE_ARN" ]; then
-            echo "Creating new App Runner service..."
-            aws apprunner create-service \
-              --service-name "$APP_RUNNER_SERVICE" \
-              --source-configuration "{
-                \"ImageRepository\": {
-                  \"ImageIdentifier\": \"$IMAGE_URI\",
-                  \"ImageConfiguration\": {
-                    \"Port\": \"3000\",
-                    \"RuntimeEnvironmentVariables\": {
-                      \"OPENAI_API_KEY\":              \"${{ secrets.OPENAI_API_KEY }}\",
-                      \"ANTHROPIC_API_KEY\":           \"${{ secrets.ANTHROPIC_API_KEY }}\",
-                      \"GOOGLE_GENERATIVE_AI_API_KEY\":\"${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}\",
-                      \"ELEVENLABS_API_KEY\":          \"${{ secrets.ELEVENLABS_API_KEY }}\"
-                    }
-                  },
-                  \"ImageRepositoryType\": \"ECR\"
-                },
-                \"AuthenticationConfiguration\": {
-                  \"AccessRoleArn\": \"arn:aws:iam::211125335109:role/AppRunnerECRAccessRole\"
-                },
-                \"AutoDeploymentsEnabled\": false
-              }" \
-              --instance-configuration "Cpu=0.25 vCPU,Memory=0.5 GB" \
-              --health-check-configuration "Protocol=HTTP,Path=/,Interval=10,Timeout=5,HealthyThreshold=2,UnhealthyThreshold=3"
+      - name: Ensure ECS cluster exists
+        run: |
+          STATUS=$(aws ecs describe-clusters --clusters ${{ env.ECS_CLUSTER }} --region ${{ env.AWS_REGION }} \
+            --query "clusters[0].status" --output text)
+          if [ "$STATUS" = "ACTIVE" ]; then
+            echo "Cluster '${{ env.ECS_CLUSTER }}' already active."
           else
-            echo "Updating existing App Runner service..."
-            aws apprunner update-service \
-              --service-arn "$SERVICE_ARN" \
-              --source-configuration "{
-                \"ImageRepository\": {
-                  \"ImageIdentifier\": \"$IMAGE_URI\",
-                  \"ImageConfiguration\": {
-                    \"Port\": \"3000\",
-                    \"RuntimeEnvironmentVariables\": {
-                      \"OPENAI_API_KEY\":              \"${{ secrets.OPENAI_API_KEY }}\",
-                      \"ANTHROPIC_API_KEY\":           \"${{ secrets.ANTHROPIC_API_KEY }}\",
-                      \"GOOGLE_GENERATIVE_AI_API_KEY\":\"${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}\",
-                      \"ELEVENLABS_API_KEY\":          \"${{ secrets.ELEVENLABS_API_KEY }}\"
-                    }
-                  },
-                  \"ImageRepositoryType\": \"ECR\"
-                },
-                \"AuthenticationConfiguration\": {
-                  \"AccessRoleArn\": \"arn:aws:iam::211125335109:role/AppRunnerECRAccessRole\"
-                }
-              }"
+            echo "Cluster '${{ env.ECS_CLUSTER }}' status is '$STATUS' — creating..."
+            aws ecs create-cluster \
+              --cluster-name ${{ env.ECS_CLUSTER }} \
+              --region ${{ env.AWS_REGION }} \
+              --capacity-providers FARGATE FARGATE_SPOT \
+              --default-capacity-provider-strategy capacityProvider=FARGATE,weight=1
           fi
 
-      - name: Wait for deployment and print URL
+      - name: Deploy to ECS Express Mode
+        id: deploy
+        uses: aws-actions/amazon-ecs-deploy-express-service@v1
+        with:
+          service-name: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          execution-role-arn: ${{ secrets.ECS_EXECUTION_ROLE_ARN }}
+          infrastructure-role-arn: ${{ secrets.ECS_INFRA_ROLE_ARN }}
+          container-port: 3000
+          cpu: 1024
+          memory: 2048
+          health-check-path: /
+          subnets: ${{ steps.cfn.outputs.subnets }}
+          environment-variables: >-
+            [
+              {"name": "OPENAI_API_KEY",                      "value": "${{ secrets.OPENAI_API_KEY }}"},
+              {"name": "ANTHROPIC_API_KEY",                   "value": "${{ secrets.ANTHROPIC_API_KEY }}"},
+              {"name": "GOOGLE_GENERATIVE_AI_API_KEY",        "value": "${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}"},
+              {"name": "ELEVENLABS_API_KEY",                  "value": "${{ secrets.ELEVENLABS_API_KEY }}"},
+              {"name": "OPENAI_MODEL",                        "value": "${{ secrets.OPENAI_MODEL }}"},
+              {"name": "OPENAI_IMAGE_MODEL",                  "value": "${{ secrets.OPENAI_IMAGE_MODEL }}"},
+              {"name": "OPENAI_VISION_MODEL",                 "value": "${{ secrets.OPENAI_VISION_MODEL }}"},
+              {"name": "OPENAI_MAX_TOKENS",                   "value": "${{ secrets.OPENAI_MAX_TOKENS }}"},
+              {"name": "OPENAI_AUDIO_TRANSCRIPTION_MODEL",    "value": "${{ secrets.OPENAI_AUDIO_TRANSCRIPTION_MODEL }}"},
+              {"name": "OPENAI_AUDIO_GENERATION_MODEL",       "value": "${{ secrets.OPENAI_AUDIO_GENERATION_MODEL }}"},
+              {"name": "ANTHROPIC_MODEL",                     "value": "${{ secrets.ANTHROPIC_MODEL }}"},
+              {"name": "ANTHROPIC_MAX_TOKENS",                "value": "${{ secrets.ANTHROPIC_MAX_TOKENS }}"},
+              {"name": "GEMINI_MODEL",                        "value": "${{ secrets.GEMINI_MODEL }}"}
+            ]
+
+      - name: Print service endpoint
         run: |
-          SERVICE_ARN=$(aws apprunner list-services \
-            --query "ServiceSummaryList[?ServiceName=='$APP_RUNNER_SERVICE'].ServiceArn" \
-            --output text)
-
-          echo "Waiting for service to be RUNNING..."
-          aws apprunner wait service-running --service-arn "$SERVICE_ARN" 2>/dev/null || true
-
-          URL=$(aws apprunner describe-service \
-            --service-arn "$SERVICE_ARN" \
-            --query "Service.ServiceUrl" \
-            --output text)
-
           echo ""
-          echo "✅ Deployed: https://$URL"
-          echo "SERVICE_URL=https://$URL" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deployed: https://${{ steps.deploy.outputs.endpoint }}"
+          echo "SERVICE_URL=https://${{ steps.deploy.outputs.endpoint }}" >> $GITHUB_STEP_SUMMARY

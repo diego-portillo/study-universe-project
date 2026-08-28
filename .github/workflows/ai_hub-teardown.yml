@@ -5,12 +5,14 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  APP_RUNNER_SERVICE: ai-hub
+  ECS_SERVICE: ai-hub
+  ECS_CLUSTER: ai-hub
   ECR_REPOSITORY: ai-hub
+  STACK_NAME: ai-hub-infra
 
 jobs:
   teardown:
-    name: Delete App Runner service
+    name: Delete ECS Express Mode service + cluster
     runs-on: ubuntu-latest
 
     permissions:
@@ -26,16 +28,67 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Delete App Runner service
+      # ECS Express Mode services must be deleted with delete-express-gateway-service,
+      # not delete-service. This also auto-removes the ALB, target groups, and
+      # security groups that Express Mode provisioned.
+      - name: Delete ECS Express Gateway service
         run: |
-          SERVICE_ARN=$(aws apprunner list-services \
-            --query "ServiceSummaryList[?ServiceName=='$APP_RUNNER_SERVICE'].ServiceArn" \
-            --output text)
+          SERVICE_ARN="arn:aws:ecs:${AWS_REGION}:${{ secrets.AWS_ACCOUNT_ID }}:service/${ECS_CLUSTER}/${ECS_SERVICE}"
 
-          if [ -z "$SERVICE_ARN" ]; then
-            echo "No App Runner service named '$APP_RUNNER_SERVICE' found — nothing to delete."
+          echo "Checking if service exists..."
+          STATUS=$(aws ecs describe-express-gateway-service \
+            --service-arn "$SERVICE_ARN" \
+            --query "service.status" --output text 2>/dev/null || echo "NOT_FOUND")
+
+          if [ "$STATUS" = "NOT_FOUND" ] || [ "$STATUS" = "None" ]; then
+            echo "Service not found — nothing to delete."
           else
-            echo "Deleting App Runner service: $SERVICE_ARN"
-            aws apprunner delete-service --service-arn "$SERVICE_ARN"
-            echo "✅ Service deleted. Billing stops immediately."
+            echo "Deleting Express Gateway service (also removes ALB, target groups, SGs)..."
+            aws ecs delete-express-gateway-service --service-arn "$SERVICE_ARN"
+            echo "✅ Service deletion initiated. Resources will be removed as tasks drain."
           fi
+
+      - name: Delete ECS cluster
+        run: |
+          if aws ecs delete-cluster --cluster "$ECS_CLUSTER" 2>/dev/null; then
+            echo "✅ Cluster '$ECS_CLUSTER' deleted."
+          else
+            echo "Cluster '$ECS_CLUSTER' not found or already deleted — nothing to do."
+          fi
+
+      # Delete untagged ECR images older than 1 day to avoid storage costs.
+      # Tagged images (active deploys) are preserved.
+      - name: Clean up untagged ECR images
+        run: |
+          echo "Looking for untagged ECR images to delete..."
+          IMAGES=$(aws ecr list-images \
+            --repository-name "$ECR_REPOSITORY" \
+            --filter tagStatus=UNTAGGED \
+            --query "imageIds[*]" --output json)
+
+          COUNT=$(echo "$IMAGES" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))")
+          if [ "$COUNT" = "0" ]; then
+            echo "No untagged images found."
+          else
+            echo "Deleting $COUNT untagged image(s)..."
+            echo "$IMAGES" | xargs -I{} aws ecr batch-delete-image \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-ids "$IMAGES"
+            echo "✅ Untagged images deleted."
+          fi
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "✅ Teardown complete. Resources removed:"
+          echo "   - ECS Express Gateway service (+ ALB, target groups, security groups)"
+          echo "   - ECS cluster"
+          echo "   - Untagged ECR images"
+          echo ""
+          echo "Resources that persist (no ongoing cost):"
+          echo "   - ECR repository (tagged images only)"
+          echo "   - VPC, subnets, IGW (CloudFormation stack: $STACK_NAME)"
+          echo "   - IAM roles and OIDC provider"
+          echo ""
+          echo "To fully tear down all infra including VPC:"
+          echo "   aws cloudformation delete-stack --stack-name $STACK_NAME --region $AWS_REGION"

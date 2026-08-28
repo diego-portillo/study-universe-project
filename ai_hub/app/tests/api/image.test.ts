@@ -6,13 +6,14 @@ const mockGenerate = vi.fn();
 // OpenAI must be mocked as a real class, not a plain function
 vi.mock('openai', () => {
   class MockOpenAI {
+    // Route checks `instanceof OpenAI.APIError`, so it must be a static
+    // property on the default export, not a separate named export.
+    static APIError = class APIError extends Error {};
     images = { generate: mockGenerate };
-    constructor(_opts: unknown) {}
+    constructor() {}
   }
-  // APIError needs to be a real class for instanceof checks in the route
-  class APIError extends Error {}
 
-  return { default: MockOpenAI, APIError };
+  return { default: MockOpenAI };
 });
 
 // Import AFTER the mock is set up
@@ -29,10 +30,9 @@ function makeRequest(body: unknown) {
 describe('POST /api/image — input validation', () => {
   beforeEach(() => {
     vi.stubEnv('OPENAI_API_KEY', 'sk-test');
-    vi.stubEnv('OPENAI_IMAGE_MODEL', 'dall-e-2');
-    vi.stubEnv('OPENAI_IMAGE_SIZE', '256x256');
+    vi.stubEnv('OPENAI_IMAGE_MODEL', 'gpt-image-2');
     mockGenerate.mockResolvedValue({
-      data: [{ url: 'https://example.com/img.png' }],
+      data: [{ b64_json: 'ZmFrZQ==' }],
     });
   });
 
@@ -65,16 +65,43 @@ describe('POST /api/image — input validation', () => {
     expect(data.error).toMatch(/OPENAI_API_KEY/);
   });
 
-  it('returns 200 with url for a valid dall-e-2 request', async () => {
+  it('returns 200 with data URL for a valid gpt-image-2 request', async () => {
     const res = await POST(makeRequest({ prompt: 'a cat' }));
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.url).toBe('https://example.com/img.png');
+    expect(data.url).toBe('data:image/png;base64,ZmFrZQ==');
   });
 
   it('returns 502 when OpenAI returns no image data', async () => {
     mockGenerate.mockResolvedValue({ data: [] });
     const res = await POST(makeRequest({ prompt: 'a cat' }));
     expect(res.status).toBe(502);
+  });
+
+  // Regression: the API rejects `response_format` with "400 Unknown parameter",
+  // which surfaced as a 502 in prod. gpt-image-* always returns b64_json
+  // without this param, so it is never sent.
+  it('does not send response_format to the OpenAI API', async () => {
+    await POST(makeRequest({ prompt: 'a cat' }));
+    const params = mockGenerate.mock.calls[0][0];
+    expect(params).not.toHaveProperty('response_format');
+  });
+
+  it('returns a data URL when OpenAI responds with b64_json only', async () => {
+    mockGenerate.mockResolvedValue({ data: [{ b64_json: 'ZmFrZQ==' }] });
+    const res = await POST(makeRequest({ prompt: 'a cat' }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.url).toBe('data:image/png;base64,ZmFrZQ==');
+  });
+
+  it('returns 502 when the OpenAI API call throws', async () => {
+    mockGenerate.mockRejectedValue(
+      new Error("400 Unknown parameter: 'response_format'."),
+    );
+    const res = await POST(makeRequest({ prompt: 'a cat' }));
+    expect(res.status).toBe(502);
+    const data = await res.json();
+    expect(data.error).toBe('Image generation failed');
   });
 });

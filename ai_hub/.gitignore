@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# eval harness run output (raw per-run logs, not meant to be tracked)
+/evals/results
+
 # next.js
 /.next/
 /out/

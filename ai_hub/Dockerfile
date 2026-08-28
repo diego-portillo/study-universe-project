@@ -7,6 +7,9 @@
 
 FROM node:20-alpine AS base
 
+# Pick up patched OS packages (e.g. OpenSSL) on top of the pinned base image.
+RUN apk update && apk upgrade --no-cache
+
 # --- deps ---
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
@@ -36,6 +39,12 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Runtime only needs `node server.js` — strip npm/yarn/corepack (unused build
+# tooling from the base image) to drop their vulnerable bundled dependencies.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /opt/yarn-* /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn* \
+    /usr/local/bin/corepack
 
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
