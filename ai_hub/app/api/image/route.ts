@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ImageRequestBody } from '../lib/types';
 
-const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-2';
+// gpt-image-2 shares a org-wide rate-limit bucket this account's tier caps at 0 TPM
+// (every request 429s: "Request too large ... for limit gpt-image ... Limit 0") —
+// gpt-image-1-mini works today; re-verify tier access before switching back.
+const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-1-mini';
 
 export async function POST(request: NextRequest) {
   let body: ImageRequestBody;
