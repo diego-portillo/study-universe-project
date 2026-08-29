@@ -1,4 +1,4 @@
-import type { Message, ModelOption, AudioProvider } from './types';
+import type { Message, ModelOption, AudioProvider, Provider, ProviderErrorKind } from './types';
 export const MAX_PROMPT_CHARS = 2000;
 export const MAX_AUDIO_LENGTH = 60;
 
@@ -50,3 +50,28 @@ export const AUDIO_PROVIDER_OPTIONS: { id: AudioProvider; label: string }[] = [
 ];
 
 export const DEFAULT_AUDIO_PROVIDER: AudioProvider = 'openai';
+
+export const PROVIDER_ERROR_TITLES: Record<ProviderErrorKind, string> = {
+  rate_limit: 'Rate limit reached',
+  quota: 'Quota exceeded',
+  missing_key: 'Provider not configured',
+  network: 'Network error',
+  empty_response: 'No response received',
+  unknown: 'Request failed',
+};
+
+// Chat mode supports openai/anthropic/google — picks the first other chat
+// provider in MODEL_OPTIONS order so a failing provider always has a suggested
+// fallback (elevenlabs is audio-only and never eligible here).
+export function nextChatModel(currentProvider: Provider): ModelOption | undefined {
+  return MODEL_OPTIONS.find(
+    (model) => model.provider !== currentProvider && model.provider !== 'elevenlabs',
+  );
+}
+
+// Audio mode only ever runs on openai or elevenlabs (see UNSUPPORTED_AUDIO_PROVIDERS),
+// so the fallback is just the other of the two.
+export function nextAudioModel(currentProvider: Provider): ModelOption | undefined {
+  const fallbackProvider = currentProvider === 'elevenlabs' ? 'openai' : 'elevenlabs';
+  return MODEL_OPTIONS.find((model) => model.provider === fallbackProvider);
+}

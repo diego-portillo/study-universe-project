@@ -469,6 +469,46 @@ textarea::-webkit-scrollbar-thumb {
   margin-bottom: 12px;
 }
 
+.provider-error {
+  background: rgba(255, 80, 80, 0.08);
+  border: 1px solid rgba(255, 80, 80, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.provider-error-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.provider-error-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff6b6b;
+  flex: 1;
+}
+.provider-error-message {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.provider-error-switch {
+  margin-top: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.provider-error-switch:hover {
+  background: var(--border);
+}
+
 /* Model selector row */
 .model-selector-row {
   justify-content: center;
@@ -515,6 +555,10 @@ textarea::-webkit-scrollbar-thumb {
 .provider-badge.google {
   background: #1a73e822;
   color: #1a73e8;
+}
+.provider-badge.elevenlabs {
+  background: #9b59b622;
+  color: #9b59b6;
 }
 .provider-notice {
   font-size: 11px;

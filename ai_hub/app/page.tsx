@@ -22,6 +22,7 @@ import type {
   Message,
   ModelOption,
   AudioProvider,
+  ProviderError,
 } from './types';
 
 import {
@@ -30,9 +31,12 @@ import {
   MODEL_OPTIONS,
   DEFAULT_MODEL,
   PROVIDER_LABELS,
+  PROVIDER_ERROR_TITLES,
   UNSUPPORTED_AUDIO_PROVIDERS,
   UNSUPPORTED_IMAGE_PROVIDERS,
   DEFAULT_AUDIO_PROVIDER,
+  nextChatModel,
+  nextAudioModel,
 } from './constants';
 
 import './page.css';
@@ -82,6 +86,7 @@ export default function Page() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [providerError, setProviderError] = useState<ProviderError | null>(null);
 
   const [generatedImageUrl, setGeneratedImageUrl] = useState('');
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState('');
@@ -120,12 +125,9 @@ export default function Page() {
     textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
   }, [input]);
 
-  function handleModelChange(event: ChangeEvent<HTMLSelectElement>) {
-    const matchedModel = MODEL_OPTIONS.find(
-      (model) => model.id === event.target.value,
-    );
-    if (!matchedModel) return;
+  function applyModelChange(matchedModel: ModelOption) {
     setSelectedModel(matchedModel);
+    setProviderError(null);
 
     // warn if conversation has images and new model doesn't support vision
     const hasImages = messages.some(
@@ -160,6 +162,14 @@ export default function Page() {
     ) {
       setMode('chat');
     }
+  }
+
+  function handleModelChange(event: ChangeEvent<HTMLSelectElement>) {
+    const matchedModel = MODEL_OPTIONS.find(
+      (model) => model.id === event.target.value,
+    );
+    if (!matchedModel) return;
+    applyModelChange(matchedModel);
   }
 
   function switchMode(targetMode: Mode) {
@@ -246,6 +256,7 @@ export default function Page() {
       setMessages,
       setInput,
       setError,
+      setProviderError,
       setLoading,
       setGeneratedImageUrl,
       setGeneratedAudioUrl,
@@ -399,6 +410,14 @@ export default function Page() {
 
         {/* ── Input box ──────────────────────────────────────────────── */}
         <div className="input-area">
+          {providerError && (
+            <ProviderErrorBanner
+              providerError={providerError}
+              mode={mode}
+              onSwitchModel={applyModelChange}
+              onDismiss={() => setProviderError(null)}
+            />
+          )}
           {error && <div className="error-msg">{error}</div>}
 
           <div className="input-wrapper">
@@ -580,6 +599,55 @@ export default function Page() {
         </div>
       </div>
     </>
+  );
+}
+
+function ProviderErrorBanner({
+  providerError,
+  mode,
+  onSwitchModel,
+  onDismiss,
+}: {
+  providerError: ProviderError;
+  mode: Mode;
+  onSwitchModel: (model: ModelOption) => void;
+  onDismiss: () => void;
+}) {
+  // No fallback model in image mode — OpenAI is the only provider that
+  // supports it, so there's nothing to switch to.
+  const fallbackModel =
+    mode === 'chat'
+      ? nextChatModel(providerError.provider)
+      : mode === 'audio'
+        ? nextAudioModel(providerError.provider)
+        : undefined;
+
+  return (
+    <div className="provider-error">
+      <div className="provider-error-header">
+        <span
+          className={`provider-badge ${providerError.provider}`}
+          aria-label={providerError.provider}
+        >
+          {PROVIDER_LABELS[providerError.provider]}
+        </span>
+        <span className="provider-error-title">
+          {PROVIDER_ERROR_TITLES[providerError.kind]}
+        </span>
+        <button className="remove-btn" onClick={onDismiss} title="Dismiss">
+          ✕
+        </button>
+      </div>
+      <p className="provider-error-message">{providerError.message}</p>
+      {fallbackModel && (
+        <button
+          className="provider-error-switch"
+          onClick={() => onSwitchModel(fallbackModel)}
+        >
+          Switch to {fallbackModel.label}
+        </button>
+      )}
+    </div>
   );
 }
 

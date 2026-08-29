@@ -12,6 +12,8 @@ Source: synthesized from `alexeygrigorev/ai-engineering-field-guide` (interview,
 
 Hour budget assumption: Diego is employed, so plan against **~12 focused hrs/week** during build (evenings + weekends), ramping to **~25 hrs/week** during prep. If real budget differs, shift block lengths, not deliverables.
 
+**Weekly cap (decided Aug 27, 2026, Build phase only):** max **1 LeetCode/NeetCode problem/week** and **1 reading topic/week**. The project (currently Block C) is the priority for all remaining hours. This replaces the higher per-week NeetCode rates below for Block C onward; earlier blocks' completed reps stand as-is.
+
 ---
 
 ## Phase 1 — Build (May 25 → Dec 6, 2026)
@@ -36,8 +38,8 @@ Exit criterion: `docker compose up` boots the app on a clean machine; CI is gree
 
 Why: field guide says evaluation is *"the most important new skill"* for backend → AI transition, and *"unsuccessful LLM products almost always share a common root cause: a failure to create robust evaluation systems."*
 
-- [ ] Eval harness for chat route: golden dataset (~30 prompts), LLM-as-judge scoring (judge criteria include groundedness/hallucination checks, not just quality), regression report on PR — **due Jul 12**
-- [ ] Per-provider error boundary with fallback UI (not a string error state) — **due Jul 19**
+- [x] Eval harness for chat route: golden dataset (~30 prompts), LLM-as-judge scoring (judge criteria include groundedness/hallucination checks, not just quality), regression report on PR — **due Jul 12, done Aug 26** (OpenAI-scoped, 16/16 passing; CI wiring + Anthropic/Google still open, see Block B remaining items)
+- [x] Per-provider error boundary with fallback UI (not a string error state) — **due Jul 19, done Aug 28** (see `this_week.txt` for details, incl. a real mid-stream-error rendering bug it surfaced and fixed)
 - [ ] Model comparison view: same prompt → 2 models side-by-side — **due Jul 26**
 - [ ] Observability: request tracing, TTFT + tokens/sec + per-user cost surfaced in a `/metrics` route — **due Aug 2**
 - [ ] Extend the shipped cost logging with `request_id` + `prompt_version` fields — field guide's Jun 2026 logging spec is *"request ID, model name, prompt version, tool calls, latency, token use, cost"*; tool-call logging lands with the Block C agent project since ai_hub has no tools — **due Aug 2**
@@ -72,7 +74,7 @@ Milestones:
 - [ ] Eval harness: retrieval@k, faithfulness, answer relevance — **use Ragas** (decided Jul 3: RAG-specific standard, and it publishes into LangSmith traces so the two compose; ai_hub's hand-rolled harness already shows you can build one from scratch) — **due Sep 13**
 - [ ] Agent layer: ≥2 tools, tool-call logging (per the guide's logging spec), agent eval cases added to the harness — **due Sep 27**
 - [ ] Reranking + a brief chunking-strategy comparison in the README (lighter than originally planned, to make room for the agent layer) — **due Sep 27**
-- [ ] NeetCode: 24 more problems (trees, graphs, BFS/DFS — you've done the Platzi course, this is reps)
+- [ ] NeetCode: 1 problem/week (trees, graphs, BFS/DFS — you've done the Platzi course, this is reps) — reduced from 3/week, see Weekly cap above
 
 Exit criterion: README has eval results table covering both RAG and agent behavior; you can explain why you picked your chunking strategy with numbers and walk through one full agent tool-call trace.
 
@@ -87,7 +89,8 @@ Why: AWS is in 40% of postings (field guide #3 skill); a live URL is on the fiel
 - [ ] Provision ECS Express Mode IAM roles: execution-role + infrastructure-role; grant `iam:PassRole` on both to the OIDC role; add `ECS_EXECUTION_ROLE_ARN` + `ECS_INFRA_ROLE_ARN` GitHub secrets — **due Oct 26**
 - [ ] CloudWatch alarms on error rate + cost ceiling — **due Nov 8**
 - [ ] Drift monitoring: scheduled weekly eval run (GitHub Actions cron) against the live endpoint, scores logged over time, alert on score drop — catches provider-side model changes between deploys, not just code regressions — **due Nov 8**
-- [ ] NeetCode: 18 more (DP intro, greedy, intervals)
+- [ ] Merge `ai_hub` branch into `main`/prod once the ai_hub project is finished, then retest everything wired up while on the branch — in particular `ai_hub-eval.yml` (`workflow_dispatch` only registers for a workflow once its file is on the default branch, so it's never actually been run — see `project_eval-harness-triage` memory) — **due Nov 8**
+- [ ] NeetCode: 1 problem/week (DP intro, greedy, intervals)
 
 Exit criterion: two public URLs; a hiring manager can click and use them.
 
@@ -98,7 +101,7 @@ Field guide is explicit about what hiring managers spend 5-10 minutes scanning. 
 - [ ] Both READMEs rewritten to field-guide spec: problem + user + input/output + demo (live URL or recording) + architecture diagram (Mermaid) + models/providers matrix + cost estimate + run instructions + eval results + trade-offs — **due Nov 22**
 - [ ] Loom video script drafted (90 seconds per project) using the guide's 5-part pitch: problem → user → solution → evidence → ownership; frame decisions as *"I chose X over Y because of constraint Z"* — **due Nov 29**
 - [ ] Resume drafted: lead with impact metrics, not tool names; Typst format (not multi-column LaTeX, fails ATS) — **due Dec 6**
-- [ ] NeetCode: 18 more — **running total ~90 problems by end of build**
+- [ ] NeetCode: 1 problem/week — running total lower than the original ~90 estimate given the reduced pace; not a target to chase
 - [ ] **Decision point:** repo visibility strategy (see `project-repo-visibility` in Claude project memory) — **due Nov 15** so showcase phase can start with repo public
 
 Exit criterion: a stranger can read either README in 5 min and understand what it does, what it cost, how it was evaluated — and both projects pass the field guide's 9-question "Quick Check" (`06-common-mistakes.md`) with all yeses.

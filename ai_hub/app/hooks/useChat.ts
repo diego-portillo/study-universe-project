@@ -1,12 +1,14 @@
 'use client';
 
 import { Dispatch, SetStateAction, useRef } from 'react';
-import { fileToLowResDataUrl } from '../utils';
+import { classifyProviderError, extractStreamError, fileToLowResDataUrl } from '../utils';
 import type {
   Message,
   ModelOption,
   SpeechVoice,
   AudioProvider,
+  Provider,
+  ProviderError,
 } from '../types';
 import { MAX_PROMPT_CHARS, makeSystemMessage } from '../constants';
 
@@ -14,6 +16,14 @@ type SetMessages = Dispatch<SetStateAction<Message[]>>;
 type SetString = Dispatch<SetStateAction<string>>;
 type SetBool = Dispatch<SetStateAction<boolean>>;
 type SetNullable<T> = Dispatch<SetStateAction<T | null>>;
+
+// Turns a caught error/thrown message into the richer ProviderError shape the
+// UI's error boundary needs (kind + which provider) instead of a bare string —
+// callers just supply which provider they were talking to.
+function toProviderError(error: unknown, provider: Provider): ProviderError {
+  const message = error instanceof Error ? error.message : 'Error';
+  return { kind: classifyProviderError(message), provider, message };
+}
 
 interface UseChatProps {
   messages: Message[];
@@ -26,6 +36,7 @@ interface UseChatProps {
   setMessages: SetMessages;
   setInput: SetString;
   setError: SetString;
+  setProviderError: SetNullable<ProviderError>;
   setLoading: SetBool;
   setGeneratedImageUrl: SetString;
   setGeneratedAudioUrl: SetString;
@@ -75,6 +86,7 @@ export function useChat({
   setMessages,
   setInput,
   setError,
+  setProviderError,
   setLoading,
   setGeneratedImageUrl,
   setGeneratedAudioUrl,
@@ -108,6 +120,7 @@ export function useChat({
     if (!trimmed && !imageFile) return;
     setLoading(true);
     setError('');
+    setProviderError(null);
     try {
       let userMessage: Message;
       if (imageFile) {
@@ -162,16 +175,35 @@ export function useChat({
         });
       }
 
-      // A 200 with an empty body means the provider call failed after the
-      // stream had already started (see api/chat/route.ts onError) — there's
-      // no error payload to read, so surface a generic message instead of
-      // leaving an empty assistant bubble.
-      if (!assistantText) {
+      const streamError = extractStreamError(assistantText);
+      if (streamError) {
+        // A mid-stream provider failure — see extractStreamError's comment.
+        // Keep any text the model produced before it failed; drop the bubble
+        // entirely if it failed before saying anything.
+        setMessages((prev) =>
+          streamError.cleanText
+            ? [...prev.slice(0, -1), { role: 'assistant', content: streamError.cleanText }]
+            : prev.slice(0, -1),
+        );
+        setProviderError({
+          kind: classifyProviderError(streamError.errorMessage),
+          provider: selectedModel.provider,
+          message: streamError.errorMessage,
+        });
+      } else if (!assistantText) {
+        // A 200 with a genuinely empty body means the provider call failed
+        // before emitting anything at all (no text, no error part) — there's
+        // no error payload to read, so surface a generic message instead of
+        // leaving an empty assistant bubble.
         setMessages((prev) => prev.slice(0, -1));
-        setError('The AI provider returned an empty response. Please try again.');
+        setProviderError({
+          kind: 'empty_response',
+          provider: selectedModel.provider,
+          message: 'The AI provider returned an empty response. Please try again.',
+        });
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error');
+      setProviderError(toProviderError(error, selectedModel.provider));
     } finally {
       setLoading(false);
     }
@@ -182,6 +214,7 @@ export function useChat({
     if (!trimmed && !imageFile) return;
     setLoading(true);
     setError('');
+    setProviderError(null);
     setGeneratedImageUrl('');
     try {
       if (imageFile) {
@@ -213,11 +246,29 @@ export function useChat({
         const assistantText = reader ? await readStreamedText(reader) : '';
 
         setGeneratedImageUrl(dataUrl);
-        setMessages([
-          makeSystemMessage(selectedModel.label),
-          userMessage,
-          { role: 'assistant', content: assistantText },
-        ]);
+        const streamError = extractStreamError(assistantText);
+        if (streamError) {
+          setMessages(
+            streamError.cleanText
+              ? [
+                  makeSystemMessage(selectedModel.label),
+                  userMessage,
+                  { role: 'assistant', content: streamError.cleanText },
+                ]
+              : [makeSystemMessage(selectedModel.label), userMessage],
+          );
+          setProviderError({
+            kind: classifyProviderError(streamError.errorMessage),
+            provider: selectedModel.provider,
+            message: streamError.errorMessage,
+          });
+        } else {
+          setMessages([
+            makeSystemMessage(selectedModel.label),
+            userMessage,
+            { role: 'assistant', content: assistantText },
+          ]);
+        }
         setInput('');
         clearImage();
       } else {
@@ -237,7 +288,11 @@ export function useChat({
         setInput('');
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error');
+      // vision analysis (imageFile set) goes through /api/chat under the
+      // selected model's provider; pure generation always goes through
+      // /api/image, which is OpenAI-only.
+      const provider = imageFile ? selectedModel.provider : 'openai';
+      setProviderError(toProviderError(error, provider));
     } finally {
       setLoading(false);
     }
@@ -252,6 +307,7 @@ export function useChat({
     if (audioFile) {
       setLoading(true);
       setError('');
+      setProviderError(null);
       try {
         const formData = new FormData();
         formData.append('audio', audioFile);
@@ -269,7 +325,7 @@ export function useChat({
         ]);
         clearAudio();
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Error');
+        setProviderError(toProviderError(error, effectiveAudioProvider));
       } finally {
         setLoading(false);
       }
@@ -279,6 +335,7 @@ export function useChat({
     if (!trimmed) return;
     setLoading(true);
     setError('');
+    setProviderError(null);
     setGeneratedAudioUrl('');
     try {
       const response = await fetch('/api/text_to_audio', {
@@ -299,7 +356,7 @@ export function useChat({
       setGeneratedAudioUrl(url);
       setInput('');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error');
+      setProviderError(toProviderError(error, effectiveAudioProvider));
     } finally {
       setLoading(false);
     }

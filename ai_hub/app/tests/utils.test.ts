@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { getTextContent, hasImage, fileToLowResDataUrl } from '../utils';
+import {
+  getTextContent,
+  hasImage,
+  fileToLowResDataUrl,
+  classifyProviderError,
+  extractStreamError,
+} from '../utils';
 import type { MessageContent } from '../types';
 
 describe('getTextContent', () => {
@@ -63,6 +69,70 @@ describe('hasImage', () => {
       { type: 'image_url', image_url: { url: 'data:image/png;base64,...' } },
     ];
     expect(hasImage(content)).toBe(true);
+  });
+});
+
+describe('classifyProviderError', () => {
+  // Real error strings captured from the Aug 28, 2026 all-provider eval run
+  // (evals/results/2026-08-28T18-05-14-036Z.json) — the harness's judge model
+  // hit an OpenAI RPD 429, and every Google request failed with a quota error.
+  it('classifies OpenAI-style 429 messages as rate_limit', () => {
+    expect(
+      classifyProviderError(
+        '429 Rate limit reached for gpt-4.1-mini in organization org-xyz on requests per day (RPD): Limit 50, Used 50, Requested 1.',
+      ),
+    ).toBe('rate_limit');
+  });
+
+  it('classifies Gemini quota-exceeded messages as quota, not rate_limit', () => {
+    // Full real message: the boilerplate links contain "rate-limits"/"rate-limit",
+    // which must not shadow the actual "quota" failure reason.
+    expect(
+      classifyProviderError(
+        'Failed after 3 attempts. Last error: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit.',
+      ),
+    ).toBe('quota');
+  });
+
+  it('classifies route.ts missingApiKeyResponse messages as missing_key', () => {
+    expect(classifyProviderError('Missing ANTHROPIC_API_KEY')).toBe('missing_key');
+  });
+
+  it('classifies fetch network failures as network', () => {
+    expect(classifyProviderError('Failed to fetch')).toBe('network');
+  });
+
+  it('falls back to unknown for an unrecognized message', () => {
+    expect(classifyProviderError('Internal Server Error')).toBe('unknown');
+  });
+});
+
+describe('extractStreamError', () => {
+  // route.ts commits a 200 before the provider call resolves, so a mid-stream
+  // failure gets appended to the body as `\n\n[Error: <message>]` instead of
+  // changing the HTTP status (see the fullStream loop in api/chat/route.ts).
+  it('returns null for plain text with no error marker', () => {
+    expect(extractStreamError('Hello, world!')).toBeNull();
+  });
+
+  it('splits clean text from a trailing embedded error', () => {
+    const result = extractStreamError(
+      'Partial answer before it broke.\n\n[Error: Rate limit reached]',
+    );
+    expect(result).toEqual({
+      cleanText: 'Partial answer before it broke.',
+      errorMessage: 'Rate limit reached',
+    });
+  });
+
+  it('handles the error marker with no preceding text', () => {
+    // real shape from the Aug 28, 2026 eval run — Gemini failed before
+    // emitting any text at all.
+    const result = extractStreamError(
+      '\n\n[Error: You exceeded your current quota, please check your plan and billing details. ]',
+    );
+    expect(result?.cleanText).toBe('');
+    expect(result?.errorMessage).toContain('exceeded your current quota');
   });
 });
 
