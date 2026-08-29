@@ -1,0 +1,109 @@
+name: AI Hub — Eval
+
+# Manual only, deliberately — see "CI/CD" in ai_hub/README.md for why. Every run
+# makes real OpenAI (and, per the `provider` input, Anthropic/Google) API calls, so
+# this is never wired to push/pull_request; trigger it from the Actions tab or
+# `gh workflow run ai_hub-eval.yml`.
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Comma-separated provider filter — only 'openai' is verified working as of Aug 2026 (see this_week.txt)"
+        required: false
+        default: "openai"
+      pr_number:
+        description: "PR number to post the report as a comment on (optional — leave blank to only see it in the job summary/artifact)"
+        required: false
+      update_baseline:
+        description: "Save this run as the new evals/baseline.json (only takes effect when run on main)"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  eval:
+    name: Run eval harness
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai_hub
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ai_hub/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Start app
+        # output: "standalone" means `next start` doesn't work (Next warns and exits) —
+        # serve the traced server.js the same way the Dockerfile's runtime image does,
+        # copying in the static assets and public dir it doesn't self-trace.
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+          PORT=3000 HOSTNAME=0.0.0.0 node .next/standalone/server.js &
+
+      - name: Wait for app to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "App is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready in time" >&2
+          exit 1
+
+      - name: Run eval
+        run: npm run eval:ci
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          EVAL_PROVIDER: ${{ inputs.provider }}
+
+      - name: Write job summary
+        run: npm run eval:report --silent >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: ai_hub/evals/results/*.json
+
+      - name: Post PR comment
+        if: ${{ inputs.pr_number != '' }}
+        run: |
+          npm run eval:report --silent > /tmp/eval-report.md
+          gh pr comment "${{ inputs.pr_number }}" --body-file /tmp/eval-report.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Update baseline
+        if: ${{ inputs.update_baseline == 'true' && github.ref == 'refs/heads/main' }}
+        run: |
+          latest=$(ls -t evals/results/*.json | head -n1)
+          cp "$latest" evals/baseline.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add evals/baseline.json
+          if git diff --cached --quiet; then
+            echo "No baseline changes to commit"
+          else
+            git commit -m "Update eval baseline"
+            git push
+          fi
