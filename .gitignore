@@ -48,5 +48,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Samples for tests
-samples/
+# Samples for tests — audio recordings stay local-only; the eval harness's golden
+# dataset references these images by path (see evals/golden_dataset.json), so they
+# need to exist in every checkout, including CI.
+samples/*
+!samples/dog.webp
+!samples/plant.jpg
+!samples/el_robo_del_siglo.jpg
+!samples/generated-image (1).jpg
