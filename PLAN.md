@@ -12,7 +12,7 @@ Source: synthesized from `alexeygrigorev/ai-engineering-field-guide` (interview,
 
 Hour budget assumption: Diego is employed, so plan against **~12 focused hrs/week** during build (evenings + weekends), ramping to **~25 hrs/week** during prep. If real budget differs, shift block lengths, not deliverables.
 
-**Weekly cap (decided Aug 27, 2026, Build phase only):** max **1 LeetCode/NeetCode problem/week** and **1 reading topic/week**. The project (currently Block C) is the priority for all remaining hours. This replaces the higher per-week NeetCode rates below for Block C onward; earlier blocks' completed reps stand as-is.
+**Weekly cap (decided Aug 27, 2026, Build phase only):** max **1 LeetCode/NeetCode problem/week** and **1 reading topic/week**. The project (currently finishing Block B before Block C) is the priority for all remaining hours. This replaces the higher per-week NeetCode rates below from Aug 27, 2026 onward, effective immediately (mid-Block B) rather than waiting for Block C; earlier completed reps stand as-is.
 
 ---
 
@@ -38,15 +38,16 @@ Exit criterion: `docker compose up` boots the app on a clean machine; CI is gree
 
 Why: field guide says evaluation is *"the most important new skill"* for backend → AI transition, and *"unsuccessful LLM products almost always share a common root cause: a failure to create robust evaluation systems."*
 
-- [x] Eval harness for chat route: golden dataset (~30 prompts), LLM-as-judge scoring (judge criteria include groundedness/hallucination checks, not just quality), regression report on PR — **due Jul 12, done Aug 26** (OpenAI-scoped, 16/16 passing; CI wiring + Anthropic/Google still open, see Block B remaining items)
+- [x] Eval harness for chat route: golden dataset (~30 prompts), LLM-as-judge scoring (judge criteria include groundedness/hallucination checks, not just quality), regression report on PR — **due Jul 12, done Aug 26** (OpenAI-scoped, 16/16 passing); CI wiring **done Aug 28** (`workflow_dispatch`-only, PR-comment path untested live); all 3 providers triaged **done Aug 31** (28/30 passing — Google still blocked by account-level quota, not a code bug)
 - [x] Per-provider error boundary with fallback UI (not a string error state) — **due Jul 19, done Aug 28** (see `this_week.txt` for details, incl. a real mid-stream-error rendering bug it surfaced and fixed)
-- [ ] Model comparison view: same prompt → 2 models side-by-side — **due Jul 26**
-- [ ] Observability: request tracing, TTFT + tokens/sec + per-user cost surfaced in a `/metrics` route — **due Aug 2**
-- [ ] Extend the shipped cost logging with `request_id` + `prompt_version` fields — field guide's Jun 2026 logging spec is *"request ID, model name, prompt version, tool calls, latency, token use, cost"*; tool-call logging lands with the Block C agent project since ai_hub has no tools — **due Aug 2**
-- [ ] Platzi: *Curso de Observabilidad de Agentes AI con LangSmith* — concepts prep (tracing, datasets, LLM-as-judge, cost/retention dashboards) for the `/metrics` milestone; LangSmith itself is LangChain-native so it won't be wired directly into `ai_hub` — see Block C
-- [ ] NeetCode: 18 more problems (sliding window, binary search, stack)
+- [x] Observability: request tracing, TTFT + tokens/sec + per-user cost surfaced in a `/metrics` route — **due Aug 2, done Sep 1** (in-memory per-session store, `GET /api/metrics` + a `/metrics` dashboard page; DB persistence deferred to Block C, see open decisions)
+- [x] Extend the shipped cost logging with `request_id` + `prompt_version` fields — field guide's Jun 2026 logging spec is *"request ID, model name, prompt version, tool calls, latency, token use, cost"*; tool-call logging lands with the Block C agent project since ai_hub has no tools — **due Aug 2, done Sep 1** (`crypto.randomUUID()` per request; `PROMPT_VERSION` constant next to `makeSystemMessage` in `constants.ts`, the only fixed prompt template ai_hub ships)
+- [x] Platzi: *Curso de Observabilidad de Agentes AI con LangSmith* — concepts prep (tracing, datasets, LLM-as-judge, cost/retention dashboards) for the `/metrics` milestone; LangSmith itself is LangChain-native so it won't be wired directly into `ai_hub` — see Block C — **done Aug 31**
+- [x] NeetCode: Best Time to Buy and Sell Stock (121) — **done Aug 27** (original 18-problem/6-week target below superseded by the Aug 27, 2026 1-problem/week cap; sliding window mini-series of 3)
+- [x] NeetCode: Longest Substring Without Repeating Characters (3) — **done Aug 31**
+- [x] NeetCode: Longest Repeating Character Replacement (424) — **done Sep 2**, closes the sliding-window series (121 → 3 → 424)
 
-Exit criterion: opening a PR runs eval and posts pass/fail; you can answer "what's the cost per chat session?" with a number.
+Exit criterion: opening a PR runs eval and posts pass/fail; you can answer "what's the cost per chat session?" with a number. **MET — Block B fully closed Sep 2, 2026.** Block C is now the active block.
 
 ### Block C — Second project: domain-first RAG + agent with eval (Aug 3 → Sep 27, 8 weeks)
 
@@ -136,6 +137,7 @@ Four weeks, ~25 hrs/week. The field guide's reference plan is 8–12 weeks at 6 
 ### Week 2 (Dec 28 – Jan 3): System design for AI
 
 - [ ] Alex Xu *System Design Interview* vol. 1, chs. 1–6
+- [ ] Kleppmann *Designing Data-Intensive Applications*, chs. 1–11 (skim) — field guide's own interview-prep resource list (`interview/03-get-hired.md`, via Yuan Meng's actual prep), paired with the Alex Xu read above; not a Block C/pgvector background read, added Aug 31, 2026
 - [ ] Design exercises (aloud, recorded): "design a RAG-based customer support bot", "design an agent platform with tool use", "design a model-routing layer with cost caps"
 - [ ] Chip Huyen *AI Engineering* ch. 6–10
 - [ ] Timed practice take-home #1 (RAG/document Q&A) — pick a real assignment from the guide's `interview/questions/06-home-assignments.md` June 2026 list, do it under its stated time constraint

@@ -2,6 +2,10 @@ import type { Message, ModelOption, AudioProvider, Provider, ProviderErrorKind }
 export const MAX_PROMPT_CHARS = 2000;
 export const MAX_AUDIO_LENGTH = 60;
 
+// Bump when the wording below changes, so cost/metrics logs can be
+// correlated with which prompt produced them.
+export const PROMPT_VERSION = 'v1';
+
 export function makeSystemMessage(modelLabel: string): Message {
   return {
     role: 'system',
