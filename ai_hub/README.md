@@ -2,6 +2,8 @@
 
 A production-ready Next.js 16 + React 19 web app that unifies **chat, image generation, and audio (TTS/STT)** across four AI providers behind a single UI. Built as a portfolio project demonstrating AI backend engineering: provider abstraction, streaming, Docker, CI/CD, and AWS deployment.
 
+**Problem:** switching between OpenAI, Anthropic, Google, and ElevenLabs playgrounds to compare models means juggling separate UIs, API shapes, and pricing pages. **Who it's for:** developers evaluating providers/models for a project, and anyone who wants one chat/image/audio interface instead of four. **Input:** text, images, or audio (mic or file upload). **Output:** streamed text, generated images, or synthesized/transcribed audio — routed to whichever provider and model you pick per request.
+
 **Live:** `https://ai-<ecs-id>.ecs.us-east-1.on.aws` *(ECS Express Mode endpoint, served at root; custom domain `www.diegoportillo.dev/ai_hub` routing still pending — see [AWS Deployment](#aws-deployment))*
 
 > ⚠️ **`<ecs-id>` changes whenever the ECS service is recreated** (e.g. after running `ai_hub-teardown.yml` and redeploying) — see [AWS Deployment](#aws-deployment) for how to find the current value.
@@ -166,12 +168,14 @@ GitHub Actions
 
 ---
 
-## Monitoring & Observability *(planned — due Nov 8)*
+## Monitoring & Observability
 
-Structured JSON logging from `onFinish` per request:
+Structured JSON logging from `onFinish` per request, plus an in-memory metrics store surfaced at `GET /api/metrics` and the `/metrics` dashboard page (per-session request count, tokens, cost, TTFT, tokens/sec):
 
 ```json
 {
+  "requestId": "b2b1e...",
+  "promptVersion": "v1",
   "model": "gpt-4o",
   "provider": "openai",
   "tokens_in": 142,
@@ -181,7 +185,9 @@ Structured JSON logging from `onFinish` per request:
 }
 ```
 
-Planned CloudWatch alarms: CPU > 80%, 5xx > 5%, monthly cost > $50.
+The metrics store is process-local (resets on restart, not shared across ECS tasks) — deliberately kept simple rather than adding a DB dependency at this stage; see [Server-side conversation memory](#key-design-decisions) for the same tradeoff applied to chat history.
+
+*(Planned — due Nov 8)*: CloudWatch log group wired to the same structured logs, and alarms for CPU > 80%, 5xx > 5%, monthly cost > $50.
 
 ---
 
@@ -192,6 +198,7 @@ Runs a golden dataset of 31 prompts (`evals/golden_dataset.json`) against the ch
 - **Locally:** `npm run eval` (reads `.env.local`), then `npm run eval:report` for the markdown summary.
 - **In CI:** the `ai_hub-eval.yml` workflow (see [CI/CD](#cicd--github-actions-)) runs the same suite and can post the report as a PR comment — triggered manually, not on every push, since each run costs real API money.
 - **Provider coverage:** only `openai` is currently exercised in CI by default. Anthropic/Google web-search tool wiring in `route.ts` is untested — see `this_week.txt`.
+- **Current results:** OpenAI baseline is **16/16 passing** (`evals/baseline.json`). A full run across all three chat providers scored 28/30 — the 2 failures traced to Google API quota exhaustion, not a code defect.
 
 ---
 
@@ -235,5 +242,6 @@ ai_hub/
 │   └── page.tsx                   # single-page UI
 ├── Dockerfile                     # multi-stage: deps → test → build → runner
 ├── docker-compose.yml             # local dev
-└── .env.example                   # required keys documented
+├── .env.example                   # required keys documented
+└── MANUAL_TESTING.md              # manual QA checklist (mic/audio flows vitest can't cover)
 ```

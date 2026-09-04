@@ -34,3 +34,17 @@ export interface ModelOption {
   label: string;
   provider: Provider;
 }
+
+export type ProviderErrorKind =
+  | 'rate_limit'
+  | 'quota'
+  | 'missing_key'
+  | 'network'
+  | 'empty_response'
+  | 'unknown';
+
+export type ProviderError = {
+  kind: ProviderErrorKind;
+  provider: Provider;
+  message: string;
+};

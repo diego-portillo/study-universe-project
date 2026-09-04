@@ -522,7 +522,7 @@
         "content": "   \n\t  "
       }
     ],
-    "criteria": "Same expectation as edge-001 — no crash, no hang. Ideally the model asks for clarification since there's no real content to respond to.",
+    "criteria": "Whitespace-only content, which route.ts's aiMessages filter trims to empty — the same code path and same deterministic 400 response as edge-001's empty string. Must not crash (500) or hang. Acceptable: a benign clarifying reply, or a clean error — not an unhandled exception.",
     "tags": [
       "edge-case",
       "empty-input"

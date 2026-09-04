@@ -5,6 +5,8 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { applyLowDetailToImages, messagesIncludeVision } from '../lib/messages';
 import { estimateCostUsd } from '../lib/cost';
+import { recordCompletion } from '../lib/metrics';
+import { PROMPT_VERSION } from '../../constants';
 import type { ChatBody } from '../lib/types';
 import type { Message } from '../../types';
 
@@ -183,7 +185,9 @@ export async function POST(request: NextRequest) {
     if (providerConfig instanceof Response) return providerConfig;
     const { modelId, resolvedModel, tools } = providerConfig;
 
+    const requestId = crypto.randomUUID();
     const startTime = Date.now();
+    let firstTokenTime: number | null = null;
 
     const result = streamText({
       model: resolvedModel,
@@ -201,17 +205,41 @@ export async function POST(request: NextRequest) {
         const inputTokens = usage.inputTokens ?? 0;
         const outputTokens = usage.outputTokens ?? 0;
         const estimatedCostUsd = estimateCostUsd(modelId, inputTokens, outputTokens);
+        const latencyMs = Date.now() - startTime;
+        const ttftMs = firstTokenTime !== null ? firstTokenTime - startTime : null;
+        const generationMs = firstTokenTime !== null ? Date.now() - firstTokenTime : latencyMs;
+        const tokensPerSec =
+          generationMs > 0 ? outputTokens / (generationMs / 1000) : null;
 
         console.log(JSON.stringify({
           event: 'chat_completion',
+          request_id: requestId,
           provider,
           model: modelId,
+          prompt_version: PROMPT_VERSION,
           conversationId,
           tokens_in: inputTokens,
           tokens_out: outputTokens,
-          latency_ms: Date.now() - startTime,
+          latency_ms: latencyMs,
+          ttft_ms: ttftMs,
+          tokens_per_sec: tokensPerSec,
           estimated_cost_usd: estimatedCostUsd,
         }));
+
+        recordCompletion({
+          conversationId,
+          requestId,
+          provider,
+          model: modelId,
+          promptVersion: PROMPT_VERSION,
+          ttftMs,
+          latencyMs,
+          tokensIn: inputTokens,
+          tokensOut: outputTokens,
+          tokensPerSec,
+          costUsd: estimatedCostUsd,
+          timestamp: new Date().toISOString(),
+        });
       },
     });
 
@@ -225,6 +253,7 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         for await (const part of result.fullStream) {
           if (part.type === 'text-delta') {
+            if (firstTokenTime === null) firstTokenTime = Date.now();
             controller.enqueue(encoder.encode(part.text));
           } else if (part.type === 'error') {
             controller.enqueue(encoder.encode(`\n\n[Error: ${describeStreamError(part.error)}]`));

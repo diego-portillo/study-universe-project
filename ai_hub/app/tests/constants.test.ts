@@ -6,6 +6,9 @@ import {
   MODEL_OPTIONS,
   DEFAULT_MODEL,
   DEFAULT_AUDIO_PROVIDER,
+  PROVIDER_ERROR_TITLES,
+  nextChatModel,
+  nextAudioModel,
 } from '../constants';
 
 describe('makeSystemMessage', () => {
@@ -54,6 +57,35 @@ describe('DEFAULT_MODEL', () => {
   it('is included in MODEL_OPTIONS', () => {
     const found = MODEL_OPTIONS.find((m) => m.id === DEFAULT_MODEL.id);
     expect(found).toBeDefined();
+  });
+});
+
+describe('PROVIDER_ERROR_TITLES', () => {
+  it('has a non-empty, distinct title for every error kind', () => {
+    const titles = Object.values(PROVIDER_ERROR_TITLES);
+    expect(titles.every((title) => title.length > 0)).toBe(true);
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+});
+
+describe('nextChatModel', () => {
+  it('suggests a different, non-elevenlabs provider than the one that failed', () => {
+    for (const provider of ['openai', 'anthropic', 'google'] as const) {
+      const fallback = nextChatModel(provider);
+      expect(fallback).toBeDefined();
+      expect(fallback!.provider).not.toBe(provider);
+      expect(fallback!.provider).not.toBe('elevenlabs');
+    }
+  });
+});
+
+describe('nextAudioModel', () => {
+  it('suggests elevenlabs when openai audio fails', () => {
+    expect(nextAudioModel('openai')?.provider).toBe('elevenlabs');
+  });
+
+  it('suggests an openai model when elevenlabs audio fails', () => {
+    expect(nextAudioModel('elevenlabs')?.provider).toBe('openai');
   });
 });
 

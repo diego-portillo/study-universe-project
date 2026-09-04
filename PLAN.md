@@ -12,6 +12,8 @@ Source: synthesized from `alexeygrigorev/ai-engineering-field-guide` (interview,
 
 Hour budget assumption: Diego is employed, so plan against **~12 focused hrs/week** during build (evenings + weekends), ramping to **~25 hrs/week** during prep. If real budget differs, shift block lengths, not deliverables.
 
+**Weekly cap (decided Aug 27, 2026, Build phase only):** max **1 LeetCode/NeetCode problem/week** and **1 reading topic/week**. The project (currently finishing Block B before Block C) is the priority for all remaining hours. This replaces the higher per-week NeetCode rates below from Aug 27, 2026 onward, effective immediately (mid-Block B) rather than waiting for Block C; earlier completed reps stand as-is.
+
 ---
 
 ## Phase 1 — Build (May 25 → Dec 6, 2026)
@@ -36,21 +38,22 @@ Exit criterion: `docker compose up` boots the app on a clean machine; CI is gree
 
 Why: field guide says evaluation is *"the most important new skill"* for backend → AI transition, and *"unsuccessful LLM products almost always share a common root cause: a failure to create robust evaluation systems."*
 
-- [ ] Eval harness for chat route: golden dataset (~30 prompts), LLM-as-judge scoring (judge criteria include groundedness/hallucination checks, not just quality), regression report on PR — **due Jul 12**
-- [ ] Per-provider error boundary with fallback UI (not a string error state) — **due Jul 19**
-- [ ] Model comparison view: same prompt → 2 models side-by-side — **due Jul 26**
-- [ ] Observability: request tracing, TTFT + tokens/sec + per-user cost surfaced in a `/metrics` route — **due Aug 2**
-- [ ] Extend the shipped cost logging with `request_id` + `prompt_version` fields — field guide's Jun 2026 logging spec is *"request ID, model name, prompt version, tool calls, latency, token use, cost"*; tool-call logging lands with the Block C agent project since ai_hub has no tools — **due Aug 2**
-- [ ] Platzi: *Curso de Observabilidad de Agentes AI con LangSmith* — concepts prep (tracing, datasets, LLM-as-judge, cost/retention dashboards) for the `/metrics` milestone; LangSmith itself is LangChain-native so it won't be wired directly into `ai_hub` — see Block C
-- [ ] NeetCode: 18 more problems (sliding window, binary search, stack)
+- [x] Eval harness for chat route: golden dataset (~30 prompts), LLM-as-judge scoring (judge criteria include groundedness/hallucination checks, not just quality), regression report on PR — **due Jul 12, done Aug 26** (OpenAI-scoped, 16/16 passing); CI wiring **done Aug 28** (`workflow_dispatch`-only, PR-comment path untested live); all 3 providers triaged **done Aug 31** (28/30 passing — Google still blocked by account-level quota, not a code bug)
+- [x] Per-provider error boundary with fallback UI (not a string error state) — **due Jul 19, done Aug 28** (see `this_week.txt` for details, incl. a real mid-stream-error rendering bug it surfaced and fixed)
+- [x] Observability: request tracing, TTFT + tokens/sec + per-user cost surfaced in a `/metrics` route — **due Aug 2, done Sep 1** (in-memory per-session store, `GET /api/metrics` + a `/metrics` dashboard page; DB persistence deferred to Block C, see open decisions)
+- [x] Extend the shipped cost logging with `request_id` + `prompt_version` fields — field guide's Jun 2026 logging spec is *"request ID, model name, prompt version, tool calls, latency, token use, cost"*; tool-call logging lands with the Block C agent project since ai_hub has no tools — **due Aug 2, done Sep 1** (`crypto.randomUUID()` per request; `PROMPT_VERSION` constant next to `makeSystemMessage` in `constants.ts`, the only fixed prompt template ai_hub ships)
+- [x] Platzi: *Curso de Observabilidad de Agentes AI con LangSmith* — concepts prep (tracing, datasets, LLM-as-judge, cost/retention dashboards) for the `/metrics` milestone; LangSmith itself is LangChain-native so it won't be wired directly into `ai_hub` — see Block C — **done Aug 31**
+- [x] NeetCode: Best Time to Buy and Sell Stock (121) — **done Aug 27** (original 18-problem/6-week target below superseded by the Aug 27, 2026 1-problem/week cap; sliding window mini-series of 3)
+- [x] NeetCode: Longest Substring Without Repeating Characters (3) — **done Aug 31**
+- [x] NeetCode: Longest Repeating Character Replacement (424) — **done Sep 2**, closes the sliding-window series (121 → 3 → 424)
 
-Exit criterion: opening a PR runs eval and posts pass/fail; you can answer "what's the cost per chat session?" with a number.
+Exit criterion: opening a PR runs eval and posts pass/fail; you can answer "what's the cost per chat session?" with a number. **MET — Block B fully closed Sep 2, 2026.** Block C is now the active block.
 
 ### Block C — Second project: domain-first RAG + agent with eval (Aug 3 → Sep 27, 8 weeks)
 
 Why two projects: field guide says *"Build 2–3 end-to-end projects"*, RAG appears in 35.9% of postings (top-3 skill), and *"RAG + Agents = 70%+ of use cases"* — a portfolio with RAG but no agent misses half the demand. The Jun 2026 portfolio rework also flipped the picking method: *"Start from a real domain and real companies, not from a technology you want to use."* Tech-first ideas and generic chatbots are its top listed mistakes — which rules out the earlier "Algorithm Tutor RAG" framing.
 
-**Project (decided Jul 3, replacing the old Option A/B choice): commerce/e-commerce domain assistant** — targeted at real companies in your target verticals (commerce/real-estate; the guide's `07-project-ideas.md` has a Marketplace/E-Commerce domain section). RAG core over realistic domain documents (product catalogs, policies, FAQs) **plus an agentic layer**: ≥2 tools (e.g. order lookup, product comparison) in a multi-step workflow. Scope "Version 1" per the guide: small dataset, runs from CLI/API/UI, one useful output, one normal case handled, one failure case handled. Boring tools unless a specific skill justifies otherwise.
+**Project (decided Aug 28, 2026, flipping the Jul 3 commerce/e-commerce pick): finance domain assistant — a filing risk-change assistant.** Flip rationale: finance has the highest demand of any domain in the guide's data (2,321 mentions, 9.5% of use cases, vs. 226/0.9% for retail/e-commerce) and a lower-risk data story than either alternative — SEC filings are public record via a free, keyless API (`data.sec.gov`, live-verified), unlike e-commerce's proprietary catalogs or healthcare's PHI exposure on anything clinical. RAG core over SEC 10-K/10-Q filings (Item 1A risk factors) **plus an agentic layer**: 2 tools (`list_filings` to find current + prior period, `fetch_filing` to pull the risk-factors section) chained into a "find both periods → diff risk language → cite" workflow. Scope "Version 1" per the guide: small dataset (2–3 companies, last 4 filed periods), one useful output, one normal case (grounded cited diff) and one failure case (refuse when unanswerable) handled. Full evidence trail (job descriptions, blog/case-study sources, reference-repo study) in `PROJECT_PLAN.md`.
 
 **Stack (decided Jul 3, one winner per layer — losers become interview talking points):**
 
@@ -65,14 +68,14 @@ Why two projects: field guide says *"Build 2–3 end-to-end projects"*, RAG appe
 Plus eval/observability (cross-cutting): LangSmith tracing + Ragas metrics.
 
 Milestones:
-- [ ] `PROJECT_PLAN.md` with saved evidence: 3–5 real job descriptions + 2–3 engineering-blog posts from target-vertical companies; problem statement, user, input/output defined — **due Aug 9**
+- [x] `PROJECT_PLAN.md` with saved evidence: 3–5 real job descriptions + 2–3 engineering-blog posts from target-vertical companies; problem statement, user, input/output defined — **due Aug 9, done Aug 28** (late — domain itself flipped to Finance same day, see open decisions)
 - [ ] Vector store + ingest pipeline running — **due Aug 16**
 - [ ] LangSmith tracing wired into the RAG pipeline (LangChain-native, built in from the start rather than retrofit — unlike `ai_hub`)
 - [ ] Baseline RAG endpoint with citations — **due Aug 30**
 - [ ] Eval harness: retrieval@k, faithfulness, answer relevance — **use Ragas** (decided Jul 3: RAG-specific standard, and it publishes into LangSmith traces so the two compose; ai_hub's hand-rolled harness already shows you can build one from scratch) — **due Sep 13**
 - [ ] Agent layer: ≥2 tools, tool-call logging (per the guide's logging spec), agent eval cases added to the harness — **due Sep 27**
 - [ ] Reranking + a brief chunking-strategy comparison in the README (lighter than originally planned, to make room for the agent layer) — **due Sep 27**
-- [ ] NeetCode: 24 more problems (trees, graphs, BFS/DFS — you've done the Platzi course, this is reps)
+- [ ] NeetCode: 1 problem/week (trees, graphs, BFS/DFS — you've done the Platzi course, this is reps) — reduced from 3/week, see Weekly cap above
 
 Exit criterion: README has eval results table covering both RAG and agent behavior; you can explain why you picked your chunking strategy with numbers and walk through one full agent tool-call trace.
 
@@ -87,7 +90,8 @@ Why: AWS is in 40% of postings (field guide #3 skill); a live URL is on the fiel
 - [ ] Provision ECS Express Mode IAM roles: execution-role + infrastructure-role; grant `iam:PassRole` on both to the OIDC role; add `ECS_EXECUTION_ROLE_ARN` + `ECS_INFRA_ROLE_ARN` GitHub secrets — **due Oct 26**
 - [ ] CloudWatch alarms on error rate + cost ceiling — **due Nov 8**
 - [ ] Drift monitoring: scheduled weekly eval run (GitHub Actions cron) against the live endpoint, scores logged over time, alert on score drop — catches provider-side model changes between deploys, not just code regressions — **due Nov 8**
-- [ ] NeetCode: 18 more (DP intro, greedy, intervals)
+- [ ] Merge `ai_hub` branch into `main`/prod once the ai_hub project is finished, then retest everything wired up while on the branch — in particular `ai_hub-eval.yml` (`workflow_dispatch` only registers for a workflow once its file is on the default branch, so it's never actually been run — see `project_eval-harness-triage` memory) — **due Nov 8**
+- [ ] NeetCode: 1 problem/week (DP intro, greedy, intervals)
 
 Exit criterion: two public URLs; a hiring manager can click and use them.
 
@@ -98,7 +102,7 @@ Field guide is explicit about what hiring managers spend 5-10 minutes scanning. 
 - [ ] Both READMEs rewritten to field-guide spec: problem + user + input/output + demo (live URL or recording) + architecture diagram (Mermaid) + models/providers matrix + cost estimate + run instructions + eval results + trade-offs — **due Nov 22**
 - [ ] Loom video script drafted (90 seconds per project) using the guide's 5-part pitch: problem → user → solution → evidence → ownership; frame decisions as *"I chose X over Y because of constraint Z"* — **due Nov 29**
 - [ ] Resume drafted: lead with impact metrics, not tool names; Typst format (not multi-column LaTeX, fails ATS) — **due Dec 6**
-- [ ] NeetCode: 18 more — **running total ~90 problems by end of build**
+- [ ] NeetCode: 1 problem/week — running total lower than the original ~90 estimate given the reduced pace; not a target to chase
 - [ ] **Decision point:** repo visibility strategy (see `project-repo-visibility` in Claude project memory) — **due Nov 15** so showcase phase can start with repo public
 
 Exit criterion: a stranger can read either README in 5 min and understand what it does, what it cost, how it was evaluated — and both projects pass the field guide's 9-question "Quick Check" (`06-common-mistakes.md`) with all yeses.
@@ -133,6 +137,7 @@ Four weeks, ~25 hrs/week. The field guide's reference plan is 8–12 weeks at 6 
 ### Week 2 (Dec 28 – Jan 3): System design for AI
 
 - [ ] Alex Xu *System Design Interview* vol. 1, chs. 1–6
+- [ ] Kleppmann *Designing Data-Intensive Applications*, chs. 1–11 (skim) — field guide's own interview-prep resource list (`interview/03-get-hired.md`, via Yuan Meng's actual prep), paired with the Alex Xu read above; not a Block C/pgvector background read, added Aug 31, 2026
 - [ ] Design exercises (aloud, recorded): "design a RAG-based customer support bot", "design an agent platform with tool use", "design a model-routing layer with cost caps"
 - [ ] Chip Huyen *AI Engineering* ch. 6–10
 - [ ] Timed practice take-home #1 (RAG/document Q&A) — pick a real assignment from the guide's `interview/questions/06-home-assignments.md` June 2026 list, do it under its stated time constraint
@@ -193,5 +198,5 @@ These appear in the guide but are deprioritized for Diego's profile and timeline
 ## Open decisions
 
 1. **Repo visibility strategy** — due Nov 15. See `project-repo-visibility` in Claude project memory.
-2. ~~**Second project choice** (Block C) — Algorithm Tutor RAG vs. PDF RAG. Decide by **Aug 3**.~~ **Decided Jul 3, 2026: domain-first commerce/e-commerce RAG + agent** (guide's Jun 2026 portfolio rework: domain-first picking, RAG + Agents = 70%+ of use cases). Vertical can still flip to finance at the Aug 9 PROJECT_PLAN.md milestone if the evidence is stronger there.
+2. ~~**Second project choice** (Block C) — Algorithm Tutor RAG vs. PDF RAG. Decide by **Aug 3**.~~ ~~**Decided Jul 3, 2026: domain-first commerce/e-commerce RAG + agent**~~ **Flipped to Finance, Aug 28, 2026**: highest demand of any domain in the guide's data (2,321 mentions/9.5%, vs. 226/0.9% for retail/e-commerce) with a lower-risk data story (SEC filings/earnings calls are public record, unlike catalog/inventory data which is proprietary per-retailer) and a stronger comp story for the engineering seat. See `this_week.txt` for the full comparison against healthcare (also higher-demand than e-commerce, but ruled out here on data-access risk — clinical/PHI data isn't usable without deliberate scoping the way public filings are).
 3. ~~**AWS service for Block D** — ECS Fargate (recommended) vs. EKS. Decide by **Sep 28**.~~ ~~**Decided May 27: App Runner**~~ **Decided May 2026: ECS Express Mode** (App Runner no longer accepts new customers as of Apr 30 2026; ECS Express Mode is AWS's official replacement — auto-provisions ALB, Fargate, auto-scaling, CloudWatch).
