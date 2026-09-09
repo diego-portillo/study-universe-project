@@ -43,9 +43,11 @@ Why: field guide says evaluation is *"the most important new skill"* for backend
 - [x] Observability: request tracing, TTFT + tokens/sec + per-user cost surfaced in a `/metrics` route — **due Aug 2, done Sep 1** (in-memory per-session store, `GET /api/metrics` + a `/metrics` dashboard page; DB persistence deferred to Block C, see open decisions)
 - [x] Extend the shipped cost logging with `request_id` + `prompt_version` fields — field guide's Jun 2026 logging spec is *"request ID, model name, prompt version, tool calls, latency, token use, cost"*; tool-call logging lands with the Block C agent project since ai_hub has no tools — **due Aug 2, done Sep 1** (`crypto.randomUUID()` per request; `PROMPT_VERSION` constant next to `makeSystemMessage` in `constants.ts`, the only fixed prompt template ai_hub ships)
 - [x] Platzi: *Curso de Observabilidad de Agentes AI con LangSmith* — concepts prep (tracing, datasets, LLM-as-judge, cost/retention dashboards) for the `/metrics` milestone; LangSmith itself is LangChain-native so it won't be wired directly into `ai_hub` — see Block C — **done Aug 31**
-- [x] NeetCode: Best Time to Buy and Sell Stock (121) — **done Aug 27** (original 18-problem/6-week target below superseded by the Aug 27, 2026 1-problem/week cap; sliding window mini-series of 3)
-- [x] NeetCode: Longest Substring Without Repeating Characters (3) — **done Aug 31**
-- [x] NeetCode: Longest Repeating Character Replacement (424) — **done Sep 2**, closes the sliding-window series (121 → 3 → 424)
+- [x] NeetCode: Two Sum II - Input Array Is Sorted (167) — **done Jun 30** (two-pointers, same session as 15 and 121 below)
+- [x] NeetCode: 3Sum (15) — **done Jun 30**
+- [x] NeetCode: Best Time to Buy and Sell Stock (121) — **done Jun 30** (original 18-problem/6-week target below superseded by the Aug 27, 2026 1-problem/week cap; sliding window mini-series of 3, first of the series)
+- [x] NeetCode: Longest Substring Without Repeating Characters (3) — **done Aug 27**
+- [x] NeetCode: Longest Repeating Character Replacement (424) — **done Aug 31**, closes the sliding-window series (121 → 3 → 424)
 
 Exit criterion: opening a PR runs eval and posts pass/fail; you can answer "what's the cost per chat session?" with a number. **MET — Block B fully closed Sep 2, 2026.** Block C is now the active block.
 
@@ -75,6 +77,7 @@ Milestones:
 - [ ] Eval harness: retrieval@k, faithfulness, answer relevance — **use Ragas** (decided Jul 3: RAG-specific standard, and it publishes into LangSmith traces so the two compose; ai_hub's hand-rolled harness already shows you can build one from scratch) — **due Sep 13**
 - [ ] Agent layer: ≥2 tools, tool-call logging (per the guide's logging spec), agent eval cases added to the harness — **due Sep 27**
 - [ ] Reranking + a brief chunking-strategy comparison in the README (lighter than originally planned, to make room for the agent layer) — **due Sep 27**
+- [x] NeetCode: Invert Binary Tree (226) — **done Sep 2**, first of the trees/graphs/BFS/DFS pattern
 - [ ] NeetCode: 1 problem/week (trees, graphs, BFS/DFS — you've done the Platzi course, this is reps) — reduced from 3/week, see Weekly cap above
 
 Exit criterion: README has eval results table covering both RAG and agent behavior; you can explain why you picked your chunking strategy with numbers and walk through one full agent tool-call trace.
