@@ -103,8 +103,17 @@ Per the guide's study checklist — actually inspected each repo (READMEs, file 
 
 **What this means for this project:** both are real, actively-maintained reference implementations for this exact domain, and neither has an eval harness measuring output correctness — only plumbing tests (Invoice repo) or ops monitoring (SEC Insights). `ai_hub/evals/`'s pattern (golden dataset + LLM-as-judge + baseline-diff report) directly closes that gap and is the clearest differentiator against both references — reuse it here rather than reinventing an eval approach.
 
+## Pilot companies (picked 2026-09-03)
+
+| Company | Ticker | CIK |
+|---|---|---|
+| Amazon | AMZN | 0001018724 |
+| NVIDIA | NVDA | 0001045810 |
+| Coca-Cola | KO | 0000021344 |
+
+Chosen for varied risk-factor profiles (supply chain/logistics, AI/regulatory/export-control, commodity/international-currency) so period-over-period risk-factor diffs are substantive rather than boilerplate. All three file standard 10-K/10-Q (no 20-F handling needed).
+
 ## Next steps (not yet done)
 
-- Pick the 2–3 pilot companies and pull their actual filings from SEC EDGAR.
 - Repo plan / first-version scope (guide's `03-start-a-project.md`) — vector store choice already decided in `PLAN.md` (Postgres + pgvector).
 - This stays a Block C item — Block B's exit criterion is still the current priority per `PLAN.md`/`this_week.txt`; this file just closes the "domain-first evidence" milestone so Block C doesn't start from zero when it resumes.

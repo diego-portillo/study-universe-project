@@ -173,6 +173,7 @@ Exit criterion: you can give a 60-sec project pitch and a 25-min AI system desig
 Cadence: **5–10 quality applications/week** + **5 direct outreach messages/week**. Field guide: *"referrals beat cold applications"* and *"top candidates accept offers within 2–3 weeks"* once interviews start — so cluster onsites.
 
 - [ ] Platforms: LinkedIn, Turing, Arc, Talently, Toptal, BairesDev
+- [ ] [80,000 Hours job board](https://jobs.80000hours.org/?jb_source=ai__guide__when-will-agi-arrive&query=ai%20software%20engineer&numericMenu%5Bsalary_limit%5D=54000%3A&refinementList%5Btags_role_type%5D%5B0%5D=Full-time&refinementList%5Btags_exp_required%5D%5B0%5D=Multiple%20experience%20levels&refinementList%5Btags_exp_required%5D%5B1%5D=Junior%20%281-4%20years%20experience%29&refinementList%5Btags_degree_required%5D%5B0%5D=Undergraduate%20degree%20or%20less&refinementList%5Btags_skill%5D%5B0%5D=Software%20engineering&refinementList%5Btags_location_80k%5D%5B0%5D=Remote%2C%20Global) — filtered: AI software engineer, full-time, junior/multiple exp levels, remote global, $54K+ salary floor
 - [ ] Target segments: product AI cos (Cursor-tier), infra (Modal/Pinecone-tier), commerce/real-estate verticals
 - [ ] Weekly review: applications sent, responses, mock-interview gaps emerging from real interviews
 - [ ] Negotiate on equity + total comp, not base (field guide: bands are narrow per level)
