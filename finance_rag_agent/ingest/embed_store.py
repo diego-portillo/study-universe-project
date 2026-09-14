@@ -1,7 +1,7 @@
 import os 
 from openai import OpenAI
-import psycopg2
-from pgvector.psycopg2 import register_vector
+from db.models import FilingChunk
+from db.session import SessionLocal
 
 EMBEDDING_MODEL = "text-embedding-3-small" # to match our chunk sizes
 
@@ -14,19 +14,15 @@ def embed_chunks(chunks: list[str]) -> list[list[float]]:
 def store_chunks(filing_id: int, section: str, chunks: list[str]) -> None:
     embeddings = embed_chunks(chunks)
 
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
-    # register_vector is used to translate between python float list and vector column in the db
-    register_vector(conn)
-    try:
-        with conn.cursor() as cur:
-            for index, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-                cur.execute(
-                    """
-                    INSERT INTO filing_chunks (filing_id, chunk_index, section, chunk_text, embedding)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """,
-                    (filing_id, index, section, chunk, embedding)
-                )
-        conn.commit()
-    finally:
-        conn.close()
+    with SessionLocal() as session:
+        session.add_all(
+            FilingChunk(
+                filing_id=filing_id,
+                chunk_index=index,
+                section=section,
+                chunk_text=chunk,
+                embedding=embedding,
+            )
+            for index, (chunk, embedding) in enumerate(zip(chunks, embeddings))
+        )
+        session.commit()

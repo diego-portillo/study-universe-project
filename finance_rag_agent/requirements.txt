@@ -8,3 +8,7 @@ langchain
 langchain-text-splitters
 openai
 ruff
+fastapi
+uvicorn
+langchain-openai
+langsmith

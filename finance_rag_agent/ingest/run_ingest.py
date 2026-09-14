@@ -1,14 +1,16 @@
-import os
-import requests
-import psycopg2
 from dotenv import load_dotenv
 
-from ingest.edgar_client import  get_filings, build_document_url, SEC_EDGAR_USER_AGENT
-from ingest.extract import html_to_text, split_into_items, select_relevant_sections
-from ingest.chunk import chunk_text, merge_short_chunks
-from ingest.embed_store import store_chunks
-
 load_dotenv()
+
+import requests  # noqa: E402
+from sqlalchemy import exists, select  # noqa: E402
+from db.models import Filing, FilingChunk  # noqa: E402
+from db.session import SessionLocal  # noqa: E402
+
+from ingest.edgar_client import  get_filings, build_document_url, SEC_EDGAR_USER_AGENT  # noqa: E402
+from ingest.extract import html_to_text, split_into_items, select_relevant_sections  # noqa: E402
+from ingest.chunk import chunk_text, merge_short_chunks  # noqa: E402
+from ingest.embed_store import store_chunks  # noqa: E402
 
 COMPANIES = {
     "AMZN": {"cik": "0001018724", "company": "Amazon"},
@@ -25,44 +27,32 @@ def derive_period(report_date: str, form_type: str) -> str:
 
 
 def find_filing_id(accession_number: str) -> int | None:
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id FROM filings WHERE accession_number = %s", (accession_number,))
-            row = cur.fetchone()
-        return row[0] if row else None
-    finally:
-        conn.close()
+    with SessionLocal() as session:
+        return session.scalar(select(Filing.id).where(Filing.accession_number == accession_number))
 
 
 def create_filing(ticker: str, company: str, cik: str, filing: dict, source_url: str) -> int:
     period = derive_period(filing["reportDate"], filing["form"])
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO filings (company, ticker, cik, form_type, period, period_end_date, filing_date, accession_number, source_url)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-                """,
-                (company, ticker, cik, filing["form"], period, filing["reportDate"], filing["filingDate"], filing["accessionNumber"], source_url),
-            )
-            filing_id = cur.fetchone()[0]
-        conn.commit()
-        return filing_id
-    finally:
-        conn.close()
+    with SessionLocal() as session:
+        new_filing = Filing(
+            company=company,
+            ticker=ticker,
+            cik=cik,
+            form_type=filing["form"],
+            period=period,
+            period_end_date=filing["reportDate"],
+            filing_date=filing["filingDate"],
+            accession_number=filing["accessionNumber"],
+            source_url=source_url,
+        )
+        session.add(new_filing)
+        session.commit()
+        return new_filing.id
 
 
 def has_chunks(filing_id: int) -> bool:
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT EXISTS(SELECT 1 FROM filing_chunks WHERE filing_id = %s)", (filing_id,))
-            return cur.fetchone()[0]
-    finally:
-        conn.close()
+    with SessionLocal() as session:
+        return session.scalar(select(exists().where(FilingChunk.filing_id == filing_id)))
 
 def ingest_filing(ticker: str, form_type: str) -> None:
     info = COMPANIES[ticker]

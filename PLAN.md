@@ -134,14 +134,16 @@ Four weeks, ~25 hrs/week. The field guide's reference plan is 8–12 weeks at 6 
 ### Week 1 (Dec 21–27): Coding fundamentals + AI Engineering theory
 
 - [ ] NeetCode: bring total to 150 (you should be at ~90 from build phase → ~60 more this week)
+- [ ] Coding-round drill from the guide's `interview/questions/02-coding.md` — its questions are framed as live-coding/pairing exercises, distinct from NeetCode's LeetCode-style problems
 - [ ] Read Chip Huyen *AI Engineering* (2025), ch. 1–5
+- [ ] Active-recall pass over the guide's `interview/questions/01-theory.md` (LLM fundamentals, transformers, RAG/embeddings basics) — answer aloud from memory, check against the reading above
 - [ ] One LLM implementation-from-scratch exercise on Deep-ML (multi-head attention)
 
 ### Week 2 (Dec 28 – Jan 3): System design for AI
 
 - [ ] Alex Xu *System Design Interview* vol. 1, chs. 1–6
 - [ ] Kleppmann *Designing Data-Intensive Applications*, chs. 1–11 (skim) — field guide's own interview-prep resource list (`interview/03-get-hired.md`, via Yuan Meng's actual prep), paired with the Alex Xu read above; not a Block C/pgvector background read, added Aug 31, 2026
-- [ ] Design exercises (aloud, recorded): "design a RAG-based customer support bot", "design an agent platform with tool use", "design a model-routing layer with cost caps"
+- [ ] Design exercises (aloud, recorded): "design a RAG-based customer support bot", "design an agent platform with tool use", "design a model-routing layer with cost caps" — prompts drawn from the guide's `interview/questions/04-ai-system-design.md`
 - [ ] Chip Huyen *AI Engineering* ch. 6–10
 - [ ] Timed practice take-home #1 (RAG/document Q&A) — pick a real assignment from the guide's `interview/questions/06-home-assignments.md` June 2026 list, do it under its stated time constraint
 - [ ] Eval-tooling positioning (interview prep, ~2h): be able to name and compare LangSmith (LangChain-native tracing — used it), Ragas (RAG metrics — used it), Langfuse (open-source/self-hosted alternative), DeepEval (pytest-style CI eval gates), Arize Phoenix (OTel-native) — postings test eval *design* plus the ability to position tools, not one logo
@@ -150,8 +152,9 @@ Four weeks, ~25 hrs/week. The field guide's reference plan is 8–12 weeks at 6 
 ### Week 3 (Jan 4–10): Mocks + behavioral
 
 - [ ] 3 mock interviews on Pramp or interviewing.io (1 coding, 1 system design, 1 behavioral)
-- [ ] Draft 8 SAIL-format stories (Situation/Action/Impact/Learning) covering: technical leadership, conflict, ambiguity, failure, cross-team work
+- [ ] Draft 8 SAIL-format stories (Situation/Action/Impact/Learning) covering: technical leadership, conflict, ambiguity, failure, cross-team work — question bank: `interview/questions/05-behavioral.md`
 - [ ] Record a 60-second pitch for each portfolio project (problem → user → solution → evidence → ownership) — re-record until smooth
+- [ ] Project deep-dive drill using `interview/questions/03-project-deep-dive.md` (the "walk me through a decision you'd make differently" style questions) — run it against both ai_hub and finance_rag_agent
 - [ ] Timed practice take-home #2 (agentic system) — from the same June 2026 list; note prompt-injection resistance is a recurring take-home requirement
 - [ ] NeetCode review: re-do the "Took time" and "Didn't get it" buckets
 
@@ -162,6 +165,7 @@ Four weeks, ~25 hrs/week. The field guide's reference plan is 8–12 weeks at 6 
 - [ ] Last 3 mock interviews
 - [ ] Resume final pass; LinkedIn headline + about section final
 - [ ] Reference list: line up 2–3 recent manager/colleague references (field guide flags this is increasingly required)
+- [ ] Final gap-check against the guide's consolidated `interview/questions/questions.md` (100+ sourced real interview questions, all categories) — skim for anything not already drilled via 01–06 above
 
 ### Aftermath
 
