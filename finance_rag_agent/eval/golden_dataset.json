@@ -1,0 +1,160 @@
+[
+  {
+    "question": "What was Amazon's net sales in fiscal year 2024 for North America?",
+    "ticker": "AMZN",
+    "ground_truth": "Amazon's net sales were $387,497 million in fiscal year 2024 for North America."
+  },
+  {
+    "question": "What was Amazon's net sales in fiscal year 2025 for North America?",
+    "ticker": "AMZN",
+    "ground_truth": "Amazon's net sales were $426,305 million in fiscal year 2025 for North America."
+  },
+  {
+    "question": "What was Amazon's net sales in fiscal year 2024 for AWS?",
+    "ticker": "AMZN",
+    "ground_truth": "Amazon's net sales were $107,556 million in fiscal year 2024 for AWS."
+  },
+  {
+    "question": "What was Amazon's net sales in fiscal year 2025 for AWS?",
+    "ticker": "AMZN",
+    "ground_truth": "Amazon's net sales were $128,725 million in fiscal year 2025 for AWS."
+  },
+  {
+    "question": "Was 'limitations on the repatriation and investment of funds and foreign currency exchange restrictions' a risk factor for Amazon?",
+    "ticker": "AMZN",
+    "ground_truth": "Yes"
+  },
+  {
+    "question": "Were 'forest fires' an environmental risk factor for Amazon?",
+    "ticker": "AMZN",
+    "ground_truth": "No."
+  },
+  {
+    "question": "Which political risk factor was mentioned for Amazon?",
+    "ticker": "AMZN",
+    "ground_truth": "local economic and political conditions; geopolitical events, including war and terrorism; geopolitical events and security issues (including terrorist attacks, armed hostilities, and political conflicts, including those involving China), labor or trade disputes (including restrictive governmental actions impacting us, our customers, and our third-party sellers and suppliers in China or other foreign countries), tariff policy changes (such as tariffs proposed or implemented by the U.S. and other countries and any retaliatory actions), and similar events;"
+  },
+  {
+    "question": "For the three months ended June 30, 2026, what were Amazon's AWS net sales?",
+    "ticker": "AMZN",
+    "ground_truth": "Amazon's AWS net sales were $42,232 million for the three months ended June 30, 2026."
+  },
+  {
+    "question": "What was Amazon's year-over-year percentage growth for AWS net sales in Q2 2026?",
+    "ticker": "AMZN",
+    "ground_truth": "AWS net sales grew 37% year-over-year in Q2 2026."
+  },
+  {
+    "question": "What was Amazon's consolidated operating income for the three months ended June 30, 2026?",
+    "ticker": "AMZN",
+    "ground_truth": "Amazon's consolidated operating income was $27,461 million for the three months ended June 30, 2026."
+  },
+  {
+    "question": "According to Amazon's Q2 2026 10-Q, what primarily drove the increase in AWS operating income?",
+    "ticker": "AMZN",
+    "ground_truth": "The increase in AWS operating income was primarily due to increased sales, partially offset by spending on technology infrastructure that was primarily driven by additional investments to support AWS business growth."
+  },
+  {
+    "question": "What business risk does Amazon's fiscal year 2025 10-K identify related to expansion into new products, services, and technologies?",
+    "ticker": "AMZN",
+    "ground_truth": "Amazon may have limited or no experience in newer market segments, and profitability or other intended benefits from newer activities — including development and adoption of automation, artificial intelligence, and machine learning technologies — may not meet expectations, which could result in failure to recoup significant investments."
+  },
+  {
+    "question": "Mention Risks factors related to Nvidia's industry and Market in the fiscal year 2026 document",
+    "ticker": "NVDA",
+    "ground_truth": "Failure to meet the evolving needs of our industry and markets may adversely impact our financial results; Competition could adversely impact our market share and financial results."
+  },
+  {
+    "question": "About Nvidia's share repurchase transactions during the fourth quarter of fiscal year 2026 what was the Approximate Dollar Value of Shares that May Yet Be Purchased Under the Program (In billions) between December 22, 2025 - January 25, 2026?",
+    "ticker": "NVDA",
+    "ground_truth": "Nvidia's the Approximate Dollar Value of Shares that May Yet Be Purchased Under the Program (In billions) between December 22, 2025 - January 25, 2026 was 58.5"
+  },
+  {
+    "question": "For Nvidia's Fiscal Year 2026 Summary how much did the Net income changed in percentage from Jan 26, 2025 to Jan 25, 2026?",
+    "ticker": "NVDA",
+    "ground_truth": "For Nvidia's Fiscal Year 2026 Summary the Net income raised 65% from Jan 26, 2025 to Jan 25, 2026"
+  },
+  {
+    "question": "According to NVIDIA's fiscal year 2026 10-K, what risk is associated with its intellectual property license arrangement with Groq, Inc.?",
+    "ticker": "NVDA",
+    "ground_truth": "The arrangement with Groq, Inc. required significant, nonrefundable payments. Successfully incorporating the licensed technology into NVIDIA's architectures and product roadmaps requires significant engineering effort and may not occur on expected timelines, and NVIDIA may be unable to recover the associated costs or realize an adequate return on this spend."
+  },
+  {
+    "question": "What does NVIDIA's fiscal year 2026 10-K say about the resources of some of its competitors?",
+    "ticker": "NVDA",
+    "ground_truth": "Some of NVIDIA's competitors operate their own fabrication facilities and have longer operating histories, larger customer bases, more comprehensive IP portfolios and patent protections, more design wins, and greater financial, sales, marketing, and distribution resources than NVIDIA does."
+  },
+  {
+    "question": "For NVIDIA's quarter ended July 26, 2026, what were total operating expenses and how much did they change year-over-year?",
+    "ticker": "NVDA",
+    "ground_truth": "NVIDIA's total operating expenses were $8,408 million for the quarter ended July 26, 2026, a 55% increase from $5,413 million in the prior-year quarter."
+  },
+  {
+    "question": "What primarily drove the increase in NVIDIA's research and development expenses in the second quarter of fiscal year 2027?",
+    "ticker": "NVDA",
+    "ground_truth": "The increase was primarily driven by a 127% increase in compute infrastructure and a 30% increase in compensation and benefits, including stock-based compensation, reflecting employee growth and compensation increases."
+  },
+  {
+    "question": "How many shares did NVIDIA repurchase in the second quarter of fiscal year 2027, and for what dollar amount?",
+    "ticker": "NVDA",
+    "ground_truth": "NVIDIA repurchased 94 million shares of common stock for $19.7 billion in the second quarter of fiscal year 2027."
+  },
+  {
+    "question": "What was NVIDIA's quarterly cash dividend after the May 18, 2026 increase?",
+    "ticker": "NVDA",
+    "ground_truth": "NVIDIA increased its quarterly cash dividend from $0.01 per share to $0.25 per share on May 18, 2026."
+  },
+  {
+    "question": "What was NVIDIA's cash, cash equivalents, and marketable debt securities balance as of July 26, 2026?",
+    "ticker": "NVDA",
+    "ground_truth": "NVIDIA's cash, cash equivalents, and marketable debt securities balance was $56,586 million as of July 26, 2026, compared to $49,670 million as of January 25, 2026."
+  },
+  {
+    "question": "What was Coca-Cola's effective tax rate for the three months ended July 3, 2026?",
+    "ticker": "KO",
+    "ground_truth": "Coca-Cola recorded income taxes of $1,037 million at an 18.9% effective tax rate for the three months ended July 3, 2026."
+  },
+  {
+    "question": "What was Coca-Cola's net cash provided by operating activities for the six months ended July 3, 2026?",
+    "ticker": "KO",
+    "ground_truth": "Net cash provided by operating activities was $7,543 million for the six months ended July 3, 2026, compared to net cash used in operating activities of $1,391 million for the six months ended June 27, 2025."
+  },
+  {
+    "question": "What was Coca-Cola's total cash, cash equivalents, short-term investments and marketable securities balance as of July 3, 2026?",
+    "ticker": "KO",
+    "ground_truth": "Coca-Cola's cash, cash equivalents, short-term investments and marketable securities totaled $16.4 billion as of July 3, 2026."
+  },
+  {
+    "question": "What quarterly dividend did Coca-Cola's Board of Directors approve at its July 2026 meeting?",
+    "ticker": "KO",
+    "ground_truth": "The Board of Directors approved a regular quarterly dividend of $0.53 per share, payable on October 1, 2026 to shareowners of record as of the close of business on September 15, 2026."
+  },
+  {
+    "question": "What is the status of Coca-Cola's litigation with the IRS over tax years 2007 through 2009?",
+    "ticker": "KO",
+    "ground_truth": "Coca-Cola is in litigation with the IRS over tax years 2007-2009. The Tax Court entered a decision for additional federal income tax of $2.7 billion, bringing total liability with interest to $6.0 billion, which the Company paid as a deposit in September 2024. The Company appealed to the U.S. Court of Appeals for the Eleventh Circuit, which heard the case on June 25, 2026."
+  },
+  {
+    "question": "How much did Coca-Cola pay in dividends during the six months ended July 3, 2026?",
+    "ticker": "KO",
+    "ground_truth": "Coca-Cola paid dividends of $4,562 million during the six months ended July 3, 2026, compared to $2,283 million during the six months ended June 27, 2025."
+  },
+  {
+    "question": "What was Amazon's net sales in fiscal year 2023?",
+    "ticker": "AMZN",
+    "ground_truth": "The context provided does not contain information about Amazon's net sales in fiscal year 2023.",
+    "expect_refusal": true
+  },
+  {
+    "question": "According to Coca-Cola's fiscal year 2025 10-K, what were total net operating revenues?",
+    "ticker": "KO",
+    "ground_truth": "The context provided does not contain information about Coca-Cola's total net operating revenues for fiscal year 2025 from its 10-K.",
+    "expect_refusal": true
+  },
+  {
+    "question": "What is NVIDIA's current stock price?",
+    "ticker": "NVDA",
+    "ground_truth": "The context provided does not contain information about NVIDIA's current stock price.",
+    "expect_refusal": true
+  }
+]

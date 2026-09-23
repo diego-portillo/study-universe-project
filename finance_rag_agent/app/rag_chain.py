@@ -38,7 +38,7 @@ def _format_context(chunks: list[RetrievedChunk]) -> str:
     )
 
 @traceable(name="answer_question")
-def answer_question(question: str, ticker: str, top_k: int = 5) -> AnsweredQuestion:
+def answer_question(question: str, ticker: str, top_k: int = 7) -> AnsweredQuestion:
     chunks = retrieve_chunks(question, ticker, top_k)
     if not chunks:
         return AnsweredQuestion(answer=REFUSAL_ANSWER, citations=[])

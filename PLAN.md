@@ -72,12 +72,14 @@ Plus eval/observability (cross-cutting): LangSmith tracing + Ragas metrics.
 Milestones:
 - [x] `PROJECT_PLAN.md` with saved evidence: 3–5 real job descriptions + 2–3 engineering-blog posts from target-vertical companies; problem statement, user, input/output defined — **due Aug 9, done Aug 28** (late — domain itself flipped to Finance same day, see open decisions)
 - [ ] Vector store + ingest pipeline running — **due Aug 16**
-- [ ] LangSmith tracing wired into the RAG pipeline (LangChain-native, built in from the start rather than retrofit — unlike `ai_hub`)
-- [ ] Baseline RAG endpoint with citations — **due Aug 30**
-- [ ] Eval harness: retrieval@k, faithfulness, answer relevance — **use Ragas** (decided Jul 3: RAG-specific standard, and it publishes into LangSmith traces so the two compose; ai_hub's hand-rolled harness already shows you can build one from scratch) — **due Sep 13**
+- [x] LangSmith tracing wired into the RAG pipeline (LangChain-native, built in from the start rather than retrofit — unlike `ai_hub`) — **done Sep 15** (root-caused a 403 to an AWS-hosted LangSmith endpoint mismatch, not key validity)
+- [x] Baseline RAG endpoint with citations — **due Aug 30, done Sep 15**
+- [x] Eval harness: retrieval@k, faithfulness, answer relevance — **use Ragas** (decided Jul 3: RAG-specific standard, and it publishes into LangSmith traces so the two compose; ai_hub's hand-rolled harness already shows you can build one from scratch) — **due Sep 13, done Sep 22** (harness itself caught a real bug: a risk-factor fact ranked outside `top_k=5` retrieval; fixed by bumping to `top_k=7`, verified net-positive via before/after comparison — `context_recall` +0.17 with no cost to `context_precision`)
 - [ ] Agent layer: ≥2 tools, tool-call logging (per the guide's logging spec), agent eval cases added to the harness — **due Sep 27**
 - [ ] Reranking + a brief chunking-strategy comparison in the README (lighter than originally planned, to make room for the agent layer) — **due Sep 27**
 - [x] NeetCode: Invert Binary Tree (226) — **done Sep 2**, first of the trees/graphs/BFS/DFS pattern
+- [x] NeetCode: Maximum Depth of Binary Tree (104) — **done Sep 17**, 2nd of the trees pattern
+- [x] NeetCode: Diameter of Binary Tree (543) — **done Sep 23**, 3rd of the trees pattern
 - [ ] NeetCode: 1 problem/week (trees, graphs, BFS/DFS — you've done the Platzi course, this is reps) — reduced from 3/week, see Weekly cap above
 
 Exit criterion: README has eval results table covering both RAG and agent behavior; you can explain why you picked your chunking strategy with numbers and walk through one full agent tool-call trace.

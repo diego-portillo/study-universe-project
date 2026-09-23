@@ -20,7 +20,7 @@ class RetrievedChunk:
     chunk_text: str
 
 @traceable(name="retrieve_chunks")
-def retrieve_chunks(question: str, ticker: str, top_k: int=5) -> list[RetrievedChunk]:
+def retrieve_chunks(question: str, ticker: str, top_k: int=7) -> list[RetrievedChunk]:
     query_embedding = embeddings.embed_query(question)
 
     stmt = (

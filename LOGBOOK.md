@@ -38,6 +38,8 @@ PLAN.md correction note below).
 | 2026-08-27 | 3 | Longest Substring Without Repeating Characters | Med. | Sliding window — Block B (2 of 3) |
 | 2026-08-31 | 424 | Longest Repeating Character Replacement | Med. | Sliding window — Block B (3 of 3, closes series 121→3→424) |
 | 2026-09-02 | 226 | Invert Binary Tree | Easy | Trees/graphs/BFS/DFS — Block C (1st, new pattern per PLAN.md) |
+| 2026-09-17 | 104 | Maximum Depth of Binary Tree | Easy | Trees/graphs/BFS/DFS — Block C (2nd, after 226) |
+| 2026-09-23 | 543 | Diameter of Binary Tree | Easy | Trees/graphs/BFS/DFS — Block C (3rd, after 104) |
 
 **PLAN.md correction (2026-09-09):** the Block B bullets for 121/3/424 had
 "done" dates each off by one entry (121 said Aug 27 — actually Jun 30; 3 said
@@ -62,6 +64,8 @@ anything before Sep 2 beyond what's below is unrecoverable.
 | through 2026-08-28 (ongoing background) | `ai-engineering-field-guide` — interview/portfolio/learning-paths/role-data sections | github.com/alexeygrigorev/ai-engineering-field-guide | `PLAN.md`'s May 26 + Aug 20 rewrites; `PROJECT_PLAN.md` (built following the guide's `portfolio/02-how-to-pick-a-project.md` workflow, Block C domain-flip evidence) |
 | 2026-08-31 | Platzi: *Curso de Observabilidad de Agentes AI con LangSmith* (tracing, datasets, LLM-as-judge, cost/retention dashboards) | Platzi | `/metrics` observability milestone (Block B, done Sep 1) |
 | week of Sep 2–8, 2026 | LangChain + pgvector: ingestion/chunking docs | python.langchain.com (`recursive_text_splitter`, text-splitters overview, pgvector integration) | Vector store + ingest pipeline milestone (Block C, done Sep 8) |
+| week of Sep 9–15, 2026 | LangSmith tracing docs | docs.langchain.com/langsmith (`observability-quickstart`, `observability-concepts`, `platform-setup`) | LangSmith tracing milestone (Block C, done Sep 15); `platform-setup` directly explained the AWS-hosted-endpoint 403 bug hit that week |
+| week of Sep 16–22, 2026 | Ragas docs | docs.ragas.io (`getstarted/quickstart`, `concepts/metrics/overview`, `concepts/metrics/available_metrics`) | Eval harness milestone (Block C, done Sep 22) |
 
 Background, not individually dated: 100+ prior Platzi courses (RAG/Azure,
 LangChain, Agents, MCP, Prompt Engineering, NLP, PyTorch, AWS, Node.js, React,
@@ -153,10 +157,46 @@ cost visible per request.
   ingest runner). Per `project_finance-rag-agent-ingest-progress` memory: full
   pipeline verified; AMZN/NVDA loaded in full, KO 10-Q only (KO 10-K
   excluded).
+- **2026-09-15** — baseline RAG endpoint with citations (`app/main.py` FastAPI
+  `POST /ask`, LangChain LCEL chain, pgvector retrieval, refusal path for
+  empty retrieval) and LangSmith tracing (built in from the start, not
+  retrofit) both landed and verified live — grounding manually cross-checked
+  against retrieved chunk text, no hallucination found. Tracing's long-lived
+  403 root-caused to an AWS-hosted LangSmith endpoint mismatch
+  (`LANGSMITH_ENDPOINT`), not a bad key.
+- **2026-09-14** — DB layer migrated `psycopg2` → SQLAlchemy after
+  `<=>` operator resolution broke on a Python-list-to-`vector` cast;
+  re-ran full ingest, chunk counts verified intact post-migration.
+- **2026-09-22** — Ragas eval harness landed (`eval/golden_dataset.json`, 31
+  questions across AMZN/NVDA/KO sourced from real filing text, plus 3
+  refusal cases; `eval/run_eval.py` checks refusals via embedding cosine
+  similarity rather than exact-string match, and runs `ragas.evaluate()`
+  with the 4 core metrics). Two unplanned upstream dependency bugs found and
+  fixed along the way (not app bugs): ragas 0.4.3 crashes on import against
+  modern `langchain-community` (hardcoded, unconditional VertexAI import
+  path that no longer exists — pinned `langchain-community<0.4.2`), and its
+  legacy `answer_relevancy` metric needs embeddings explicitly wrapped in
+  `LangchainEmbeddingsWrapper` or it throws `AttributeError` on `evaluate()`.
+  Real payoff: the harness itself caught a genuine retrieval bug — "was
+  repatriation-related X a risk factor for Amazon" scored wrong because the
+  correct chunk ranked 20th/283 for that ticker, outside `top_k=5`;
+  root-caused to a misleading date phrase in the question dominating the
+  embedding match, compounded by `retrieve_chunks` having no metadata
+  filter at all (confirmed `ticker` is the only structured filter it
+  accepts — period/form_type are not, despite question text implying
+  otherwise). Fixed via a rephrase (drops the date framing, moving the
+  correct chunk from rank 20 to rank 6) plus bumping the app's default
+  `top_k` 5 → 7,
+  verified net-positive on a full before/after eval comparison
+  (`context_recall` 0.71 → 0.89, `context_precision` unchanged — the extra
+  chunks retrieved weren't noise). Two golden-dataset-only bugs also found
+  and fixed (a "billion" vs "million" unit typo affecting 4 rows; the same
+  misleading date-phrase pattern in 2 other questions). Metadata filtering
+  (explicit `form_type`/`period` params), chunking granularity, hybrid
+  search, and reranking were identified as real follow-up improvements but
+  deliberately logged rather than built now, to keep this milestone scoped.
 
-**Still open:** LangSmith tracing wired into the pipeline; baseline RAG
-endpoint with citations (due Aug 30, currently overdue); Ragas eval harness
-(due Sep 13); agent layer, ≥2 tools (due Sep 27); reranking + chunking
+**Still open:** agent layer, ≥2 tools (due Sep 27); reranking + chunking
 write-up (due Sep 27).
 
 ---
@@ -171,9 +211,9 @@ ever diverge; update both together.
 - [ ] Block C — Domain-first RAG + agent (finance filing risk-change assistant) — **active**
   - [x] `PROJECT_PLAN.md` with saved evidence
   - [x] Vector store + ingest pipeline
-  - [ ] LangSmith tracing wired into the RAG pipeline
-  - [ ] Baseline RAG endpoint with citations
-  - [ ] Eval harness (Ragas: retrieval@k, faithfulness, answer relevance)
+  - [x] LangSmith tracing wired into the RAG pipeline
+  - [x] Baseline RAG endpoint with citations
+  - [x] Eval harness (Ragas: retrieval@k, faithfulness, answer relevance)
   - [ ] Agent layer (≥2 tools, tool-call logging, agent eval cases)
   - [ ] Reranking + chunking-strategy comparison write-up
 - [ ] Block D — AWS deployment + monitoring
@@ -219,4 +259,72 @@ Done when
 - Vector store + ingest pipeline runs end-to-end against at least one filing,
   LangChain/pgvector ingestion reading done, LC 226 solved and explainable out
   loud.
+```
+
+### Week: Sep 9 – Sep 15, 2026
+
+```
+Week: Sep 9 - Sep 15, 2026
+(Block C active. Vector store + ingest pipeline closed Sep 8 (AMZN/NVDA full,
+KO 10-Q only). Next up per PLAN.md: baseline RAG endpoint with citations
+(due Aug 30, currently overdue) and LangSmith tracing, which PLAN.md says
+should be "built in from the start rather than retrofit" — so wiring it in
+alongside the endpoint, not after.)
+
+Block C — next milestones (from PLAN.md / PROJECT_PLAN.md)
+- [x] Baseline RAG endpoint with citations — originally due Aug 30
+- [x] LangSmith tracing wired into the RAG pipeline (build in alongside the
+        endpoint above, per PLAN.md's explicit "not retrofit" note)
+
+Reading (1 topic/week cap, decided Aug 27, 2026)
+- [x] LangSmith tracing docs — https://docs.langchain.com/langsmith — feeds
+        directly into this week's tracing milestone (same pattern as last
+        week's LangChain/pgvector pick)
+
+LeetCode (1 problem/week cap, decided Aug 27, 2026 — trees/graphs/BFS/DFS
+pattern, continuing after Invert Binary Tree (226) done Sep 2)
+- [x] Maximum Depth of Binary Tree (104) — next in the standard tree-pattern
+        progression after 226; swap if you'd rather pick a different one
+
+Done when
+- Baseline RAG endpoint answers a question with a citation end-to-end,
+  LangSmith traces show up for a real request, tracing-docs reading done,
+  LC 104 solved and explainable out loud.
+```
+
+### Week: Sep 16 – Sep 22, 2026
+
+```
+Week: Sep 16 - Sep 22, 2026
+(Block C active. Baseline RAG endpoint + LangSmith tracing both closed Sep 15
+— endpoint verified grounded live, tracing verified live after root-causing
+a 403 to an AWS-hosted LangSmith endpoint mismatch. DB layer also migrated
+psycopg2 -> SQLAlchemy Sep 14. Next up per PLAN.md: Ragas eval harness
+(retrieval@k, faithfulness, answer relevance), due Sep 13 and already
+overdue.)
+
+Reading (1 topic/week cap, decided Aug 27, 2026)
+- [x] Ragas docs — feeds directly into this week's eval harness milestone
+        (same pattern as the LangSmith reading two weeks ago)
+        - https://docs.ragas.io/en/stable/getstarted/quickstart/
+        - https://docs.ragas.io/en/stable/concepts/metrics/overview/
+        - https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/
+
+Block C — next milestone (from PLAN.md / PROJECT_PLAN.md)
+- [x] Eval harness: retrieval@k, faithfulness, answer relevance — Ragas
+        (decided Jul 3: RAG-specific standard, publishes into LangSmith
+        traces so the two compose) — originally due Sep 13, done Sep 22
+        (harness caught a real retrieval bug, top_k bumped 5->7, verified
+        net-positive — see LOGBOOK.md)
+
+
+LeetCode (1 problem/week cap, decided Aug 27, 2026 — trees/graphs/BFS/DFS
+pattern, continuing after Maximum Depth of Binary Tree (104) done Sep 17)
+- [x] Diameter of Binary Tree (543) — next in the standard tree-pattern
+        progression after 104; swap if you'd rather pick a different one
+
+Done when
+- Ragas eval harness runs against the RAG endpoint with real retrieval@k /
+  faithfulness / answer-relevance scores, Ragas reading done, LC 543 solved
+  and explainable out loud.
 ```

@@ -3,7 +3,7 @@ from pydantic import BaseModel
 class AskRequest(BaseModel):
     question: str
     ticker: str
-    top_k: int = 5
+    top_k: int = 7
 
 class Citation(BaseModel):
     company: str

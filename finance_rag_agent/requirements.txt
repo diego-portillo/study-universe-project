@@ -12,3 +12,5 @@ fastapi
 uvicorn
 langchain-openai
 langsmith
+ragas
+langchain-community<0.4.2
