@@ -1,0 +1,27 @@
+[
+    {
+        "question":"How did Amazon's risk factors change between Q1 2026 and Q2 2026 10-Q filings?",
+        "ticker": "AMZN",
+        "form_type": "10-Q",
+        "ground_truth": "Amazon's risk factors did not change substantively between the Q1 2026 and Q2 2026 10-Q filings. The only notable edit was to the foreign exchange risk factor, which now also notes exposure from foreign-denominated note balances and payments, in addition to cash equivalents and marketable securities held in foreign currencies."
+    },
+    {
+        "question":"How did NVIDIA's risk factors change between fiscal year 2025 and fiscal year 2026 10-K filings?",
+        "ticker": "NVDA",
+        "form_type": "10-K",
+        "ground_truth": "NVIDIA's risk factors changed substantially between fiscal year 2025 and fiscal year 2026. New risk factors were added covering: an intellectual property license arrangement with Groq, Inc. requiring significant nonrefundable payments; a proposed investment and partnership with OpenAI, not yet finalized; energy and capital constraints limiting customers' and partners' ability to build out AI datacenter infrastructure; and commercial arrangements exposing NVIDIA to counterparty risk, including financing arrangements offered to customers and partners for datacenter buildout. The China export-controls narrative was substantially rewritten to cover the $4.5 billion charge taken in Q1 fiscal 2026 for H20 excess inventory, subsequent USG licenses allowing limited H20 and H200 shipments to China, the rescission and planned replacement of the AI Diffusion IFR, and a Chinese antitrust finding tied to the Mellanox acquisition approval. Revenue concentration also shifted: fiscal 2025 named three direct customers at 12%, 11%, and 11% of revenue, while fiscal 2026 named two direct customers at 22% and 14%. The FDII tax deduction was also renamed FDDEI."
+    },
+    {
+        "question":"How did Coca-Cola's risk factors change between Q2 2026 and Q3 2026 10-Q filings?",
+        "ticker": "KO",
+        "form_type": "10-Q",
+        "ground_truth": "Coca-Cola's risk factors did not change between the Q2 2026 and Q3 2026 10-Q filings. The risk factors sections are substantively identical."
+    },
+    {
+        "question":"How did Tesla's risk factors change between its two most recent 10-K filings?",
+        "ticker": "TSLA",
+        "form_type": "10-K",
+        "ground_truth": "No filings are available for Tesla (TSLA) in the database, so no comparison can be made.",
+        "expect_refusal": true
+    }
+]

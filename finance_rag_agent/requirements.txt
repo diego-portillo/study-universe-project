@@ -14,3 +14,6 @@ langchain-openai
 langsmith
 ragas
 langchain-community<0.4.2
+langgraph
+pydantic
+langchain-core

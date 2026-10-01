@@ -3,7 +3,7 @@ load_dotenv()
 from fastapi import FastAPI  # noqa: E402
 from app.rag_chain import answer_question  # noqa: E402
 from app.schemas import AskRequest, AskResponse, Citation  # noqa: E402
-
+from app.agent import AgentAnswer, run_agent
 
 app = FastAPI(title="Finance RAG Agent")
 
@@ -27,4 +27,8 @@ def ask(request: AskRequest) -> AskResponse:
         for chunk in result.citations
     ]
     return AskResponse(answer=result.answer, citations=citations)
+
+@app.post("/ask_agent", response_model=AgentAnswer)
+def ask_agent(request: AskRequest) -> AgentAnswer:
+    return run_agent(request.question, request.ticker)
 

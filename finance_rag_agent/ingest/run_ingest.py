@@ -54,32 +54,32 @@ def has_chunks(filing_id: int) -> bool:
     with SessionLocal() as session:
         return session.scalar(select(exists().where(FilingChunk.filing_id == filing_id)))
 
-def ingest_filing(ticker: str, form_type: str) -> None:
+def ingest_filing(ticker: str, form_type: str, periods: int = 2) -> None:
     info = COMPANIES[ticker]
     filings = get_filings(info["cik"], [form_type])
-    latest = filings[0] 
 
-    url = build_document_url(info["cik"], latest["accessionNumber"], latest["primaryDocument"])
+    for filing in filings[:periods]:    
+        url = build_document_url(info["cik"], filing["accessionNumber"], filing["primaryDocument"])
 
-    filing_id = find_filing_id(latest["accessionNumber"])
-    if filing_id is None:
-        filing_id = create_filing(ticker, info["company"], info["cik"], latest, url)
-    elif has_chunks(filing_id):
-        print(f"Filing {latest["accessionNumber"]} already ingested (filing_id={filing_id}), skipping")
-        return
+        filing_id = find_filing_id(filing["accessionNumber"])
+        if filing_id is None:
+            filing_id = create_filing(ticker, info["company"], info["cik"], filing, url)
+        elif has_chunks(filing_id):
+            print(f"Filing {filing["accessionNumber"]} already ingested (filing_id={filing_id}), skipping")
+            continue
 
-    response = requests.get(url, headers={"User-Agent": SEC_EDGAR_USER_AGENT})
-    response.raise_for_status()
+        response = requests.get(url, headers={"User-Agent": SEC_EDGAR_USER_AGENT})
+        response.raise_for_status()
 
-    text = html_to_text(response.text)
-    sections = select_relevant_sections(split_into_items(text))
+        text = html_to_text(response.text)
+        sections = select_relevant_sections(split_into_items(text))
 
-    for heading, body in sections.items():
-        chunks = merge_short_chunks(chunk_text(body))
-        store_chunks(filing_id, heading, chunks)
-        print(f"Stored {len(chunks)} chunks for {heading!r}")
+        for heading, body in sections.items():
+            chunks = merge_short_chunks(chunk_text(body))
+            store_chunks(filing_id, heading, chunks)
+            print(f"Stored {len(chunks)} chunks for {heading!r}")
 
 if __name__ == "__main__":
     for ticker in COMPANIES:
-        ingest_filing(ticker, "10-Q")
-        ingest_filing(ticker, "10-K")
+        ingest_filing(ticker, "10-Q", periods=2)
+        ingest_filing(ticker, "10-K", periods=2)

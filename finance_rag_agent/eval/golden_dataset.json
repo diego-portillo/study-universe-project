@@ -140,9 +140,9 @@
     "ground_truth": "Coca-Cola paid dividends of $4,562 million during the six months ended July 3, 2026, compared to $2,283 million during the six months ended June 27, 2025."
   },
   {
-    "question": "What was Amazon's net sales in fiscal year 2023?",
+    "question": "What was Amazon's net sales in fiscal year 2022?",
     "ticker": "AMZN",
-    "ground_truth": "The context provided does not contain information about Amazon's net sales in fiscal year 2023.",
+    "ground_truth": "The context does not directly contain Amazon's net sales in fiscal year 2022. However, it could be estimated from the fiscal year 2023 net sales figure and the stated year-over-year growth rate. Would you like an estimate computed from those figures?",
     "expect_refusal": true
   },
   {

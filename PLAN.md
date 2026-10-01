@@ -75,7 +75,8 @@ Milestones:
 - [x] LangSmith tracing wired into the RAG pipeline (LangChain-native, built in from the start rather than retrofit — unlike `ai_hub`) — **done Sep 15** (root-caused a 403 to an AWS-hosted LangSmith endpoint mismatch, not key validity)
 - [x] Baseline RAG endpoint with citations — **due Aug 30, done Sep 15**
 - [x] Eval harness: retrieval@k, faithfulness, answer relevance — **use Ragas** (decided Jul 3: RAG-specific standard, and it publishes into LangSmith traces so the two compose; ai_hub's hand-rolled harness already shows you can build one from scratch) — **due Sep 13, done Sep 22** (harness itself caught a real bug: a risk-factor fact ranked outside `top_k=5` retrieval; fixed by bumping to `top_k=7`, verified net-positive via before/after comparison — `context_recall` +0.17 with no cost to `context_precision`)
-- [ ] Agent layer: ≥2 tools, tool-call logging (per the guide's logging spec), agent eval cases added to the harness — **due Sep 27**
+- [x] Agent layer: ≥2 tools, tool-call logging (per the guide's logging spec), agent eval cases added to the harness — **due Sep 27, done Oct 1** (`eval/agent_dataset.json`: 4 cases — 2 real cross-period diffs, 1 correct-"no change" case, 1 refusal case — wired into the harness via `evaluate_agent_cases`; the harness itself caught and drove fixes for 8 real bugs along the way, including a citation-schema crash, a redundant `fetch_filing` re-call burning tokens, an answer-truncation bug from an under-sized `max_tokens`, and a silent-computation gap in the RAG refusal prompt)
+  - [ ] Stretch, time-permitting only (does not block the Sep 27 exit criterion): prebuilt `ModelCallLimitMiddleware` + `ToolCallLimitMiddleware` (loop/cost caps), `ModelFallbackMiddleware` (provider fallback); custom company-scope guardrail middleware (reject queries outside AMZN/NVDA/KO or missing doc types), custom numeric-grounding check middleware (reject answers whose numbers aren't traceable to retrieved chunks), custom financial-ratio-calculator tool (deterministic math instead of LLM arithmetic)
 - [ ] Reranking + a brief chunking-strategy comparison in the README (lighter than originally planned, to make room for the agent layer) — **due Sep 27**
 - [x] NeetCode: Invert Binary Tree (226) — **done Sep 2**, first of the trees/graphs/BFS/DFS pattern
 - [x] NeetCode: Maximum Depth of Binary Tree (104) — **done Sep 17**, 2nd of the trees pattern
@@ -109,6 +110,8 @@ Field guide is explicit about what hiring managers spend 5-10 minutes scanning. 
 - [ ] Resume drafted: lead with impact metrics, not tool names; Typst format (not multi-column LaTeX, fails ATS) — **due Dec 6**
 - [ ] NeetCode: 1 problem/week — running total lower than the original ~90 estimate given the reduced pace; not a target to chase
 - [ ] **Decision point:** repo visibility strategy (see `project-repo-visibility` in Claude project memory) — **due Nov 15** so showcase phase can start with repo public
+  - [ ] If going public: rewrite commit author/committer dates first (`git filter-repo`, or interactive rebase + `GIT_AUTHOR_DATE`/`GIT_COMMITTER_DATE`) — GitHub shows exact commit time-of-day (contribution graph + blame view), which would otherwise expose work-hours activity to anyone with the link
+  - [ ] Repo cleanup pass: remove unnecessary debug/scratch artifacts accumulated during development (e.g. `finance_rag_agent/eval/results/` has many interrupted/incomplete runs from Oct 1 debugging, committed as-is for now rather than cleaned up mid-session — prune to the handful of runs worth keeping as eval evidence before publishing)
 
 Exit criterion: a stranger can read either README in 5 min and understand what it does, what it cost, how it was evaluated — and both projects pass the field guide's 9-question "Quick Check" (`06-common-mistakes.md`) with all yeses.
 
@@ -181,6 +184,7 @@ Exit criterion: you can give a 60-sec project pitch and a 25-min AI system desig
 
 Cadence: **5–10 quality applications/week** + **5 direct outreach messages/week**. Field guide: *"referrals beat cold applications"* and *"top candidates accept offers within 2–3 weeks"* once interviews start — so cluster onsites.
 
+- [ ] Platzi: *Cómo buscar trabajo con inteligencia artificial* — https://platzi.com/cursos/ia-busqueda-empleo/ (AI-assisted job-offer analysis, ATS resume/cover-letter optimization, LinkedIn keyword strategy, interview simulation practice)
 - [ ] Platforms: LinkedIn, Turing, Arc, Talently, Toptal, BairesDev
 - [ ] [80,000 Hours job board](https://jobs.80000hours.org/?jb_source=ai__guide__when-will-agi-arrive&query=ai%20software%20engineer&numericMenu%5Bsalary_limit%5D=54000%3A&refinementList%5Btags_role_type%5D%5B0%5D=Full-time&refinementList%5Btags_exp_required%5D%5B0%5D=Multiple%20experience%20levels&refinementList%5Btags_exp_required%5D%5B1%5D=Junior%20%281-4%20years%20experience%29&refinementList%5Btags_degree_required%5D%5B0%5D=Undergraduate%20degree%20or%20less&refinementList%5Btags_skill%5D%5B0%5D=Software%20engineering&refinementList%5Btags_location_80k%5D%5B0%5D=Remote%2C%20Global) — filtered: AI software engineer, full-time, junior/multiple exp levels, remote global, $54K+ salary floor
 - [ ] Target segments: product AI cos (Cursor-tier), infra (Modal/Pinecone-tier), commerce/real-estate verticals

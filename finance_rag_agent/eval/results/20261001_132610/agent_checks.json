@@ -1,0 +1,40 @@
+[
+  {
+    "question": "How did Amazon's risk factors change between Q1 2026 and Q2 2026 10-Q filings?",
+    "ticker": "AMZN",
+    "passed": true,
+    "similarity": 0.8678080449373902,
+    "tool_calls": {
+      "list_filings": 1,
+      "fetch_filing": 2
+    },
+    "actual_answer": "Summary: After a section-by-section review of Amazon\u2019s Item 1A \u2014 Risk Factors in the Q1 2026 and Q2 2026 10\u2011Q filings, I found one substantive wording change. Q2 2026 adds a clause in the foreign-exchange risk paragraph stating that Amazon \u201cissue[s] notes in foreign currencies.\u201d Otherwise, the Risk Factors text is substantively unchanged between the two filings based on the texts provided."
+  },
+  {
+    "question": "How did NVIDIA's risk factors change between fiscal year 2025 and fiscal year 2026 10-K filings?",
+    "ticker": "NVDA",
+    "passed": false,
+    "error": "Could not parse response content as the length limit was reached - CompletionUsage(completion_tokens=4096, prompt_tokens=44021, total_tokens=48117, completion_tokens_details=CompletionTokensDetails(accepted_prediction_tokens=0, audio_tokens=0, reasoning_tokens=4096, rejected_prediction_tokens=0), prompt_tokens_details=PromptTokensDetails(audio_tokens=0, cached_tokens=22528))"
+  },
+  {
+    "question": "How did Coca-Cola's risk factors change between Q2 2026 and Q3 2026 10-Q filings?",
+    "ticker": "KO",
+    "passed": true,
+    "similarity": 0.7491498389241137,
+    "tool_calls": {
+      "list_filings": 1,
+      "fetch_filing": 2
+    },
+    "actual_answer": "The risk factors are substantively unchanged between Q2 2026 and Q3 2026. Both filings contain the same Risk Factors paragraph referring to Item 1A of the 2025 Form 10\u2011K. The only textual difference is a trailing page number (\u201c48\u201d) that appears at the end of the Q3 2026 excerpt (a formatting/page-number difference), not a change in the substance of the risk factors."
+  },
+  {
+    "question": "How did Tesla's risk factors change between its two most recent 10-K filings?",
+    "ticker": "TSLA",
+    "passed": true,
+    "similarity": 0.682421263996053,
+    "tool_calls": {
+      "list_filings": 1
+    },
+    "actual_answer": "I could not find any 10-K filings for ticker TSLA. The filings lookup returned no results, so I cannot fetch or compare the two most recent 10\u2011K risk factor sections. Do you want me to try a different form type (e.g., 10\u2011Q) or a different ticker?"
+  }
+]

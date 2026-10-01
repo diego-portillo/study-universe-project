@@ -1,0 +1,23 @@
+[
+  {
+    "question": "What was Amazon's net sales in fiscal year 2022?",
+    "ticker": "AMZN",
+    "passed": true,
+    "similarity": 0.8799939106245573,
+    "actual_answer": "The provided context does not include Amazon\u2019s consolidated net sales figure for fiscal year 2022. \n\nI can estimate 2022 net sales by backing out the 2023 year-over-year growth rate (the context shows consolidated net sales of $574,785 million for 2023 and a 12% year\u2011over\u2011year increase for 2023). Would you like me to compute that estimate?"
+  },
+  {
+    "question": "According to Coca-Cola's fiscal year 2025 10-K, what were total net operating revenues?",
+    "ticker": "KO",
+    "passed": true,
+    "similarity": 0.8506934420750254,
+    "actual_answer": "The provided context does not contain Coca\u2011Cola\u2019s total net operating revenues for fiscal year 2025 as reported in the 2025 Form 10\u2011K. \n\nThe excerpt does include some related figures (for example, net operating revenues of $23,664 million for the six months ended June 27, 2025 and $11,129 million for the three months ended March 28, 2025) \u2014 would you like me to estimate the full\u2011year 2025 net operating revenues using the available excerpts?"
+  },
+  {
+    "question": "What is NVIDIA's current stock price?",
+    "ticker": "NVDA",
+    "passed": true,
+    "similarity": 0.7204263712970481,
+    "actual_answer": "The provided SEC filing excerpts do not contain NVIDIA\u2019s current stock price. Would you like guidance on where to look up the real\u2011time price?"
+  }
+]

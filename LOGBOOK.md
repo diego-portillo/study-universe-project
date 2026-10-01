@@ -196,8 +196,80 @@ cost visible per request.
   search, and reranking were identified as real follow-up improvements but
   deliberately logged rather than built now, to keep this milestone scoped.
 
-**Still open:** agent layer, ≥2 tools (due Sep 27); reranking + chunking
-write-up (due Sep 27).
+- **2026-10-01** — Agent layer landed: `app/agent.py`'s `create_agent` with 2
+  tools (`list_filings`, `fetch_filing`), a custom `ToolCallLoggingMiddleware`
+  (tool name/args/latency/result-size per call, per the guide's logging spec),
+  `ToolCallLimitMiddleware`, `ContextEditingMiddleware`, and a custom
+  `DedupeFetchFilingMiddleware` added this session (intercepts a period the
+  model already fetched, returning a placeholder instead of a real ~66K-char
+  re-fetch). `eval/agent_dataset.json` (4 cases — real AMZN and NVDA
+  cross-period risk-factor diffs, a KO no-change case, a TSLA refusal case)
+  wired into the harness via `evaluate_agent_cases` in `eval/run_eval.py`,
+  checking both tool-call trajectory and answer similarity to ground truth.
+
+  Mid-flight model swap: `OPENAI_CHAT_MODEL` changed from `gpt-4o-mini` to
+  `gpt-5-mini` (checked current OpenAI pricing live — `gpt-4o-mini` is now a
+  legacy tier; `gpt-5-mini` is the direct successor at $0.25/$2.00 vs.
+  $0.15/$0.60 per 1M tokens, a small premium). Reason: `gpt-4o-mini` could not
+  reliably diff two ~30K-token filing documents even after prompt tightening —
+  it defaulted to false "no change" answers instead of doing the comparison.
+  `gpt-5-mini`'s stronger reasoning fixed this, confirmed via the harness.
+
+  The harness caught 8 real bugs across 3 rounds of fixes, each diagnosed from
+  an actual eval run rather than guessed: the agent hallucinating plausible
+  differences between two near-identical AMZN 10-Qs (the system prompt's
+  grounding guard covered missing periods but not the diff step itself —
+  fixed by requiring every claimed difference to be traceable to text present
+  in one period but not the other); the agent burning its tool-call budget
+  retrying `list_filings` after an empty result instead of treating that as
+  definitive (fixed with an explicit "don't retry an empty result"
+  instruction); a citation missing a required schema field (`company`)
+  crashing the entire harness run rather than just one case (fixed with both
+  a prompt instruction to fill all 7 `Citation` fields and try/except
+  resilience in `evaluate_agent_cases` so one bad case can't take down the
+  run); hitting OpenAI 429 rate limits mid-run, which looked like a hang
+  since the SDK's retry sleep is silent — root-caused via the account's
+  actual usage-tier page (Tier 1, 200K TPM) combined with the agent's
+  multi-turn loop resending the full growing conversation on every call, and
+  addressed via the dedup middleware plus `timeout`/`max_retries` on both
+  `ChatOpenAI` instances and a pacing delay between agent eval cases; the
+  grounding fix overcorrecting so NVDA — the case with by far the most real
+  changes (a new Groq IP license, an OpenAI investment, a full
+  export-controls rewrite) — started reporting "no change" (fixed with an
+  explicit "check both texts section by section before concluding no change"
+  instruction); NVDA's answer coming back truncated to a stub sentence after
+  the model swap despite passing on similarity score, root-caused to
+  `gpt-5-mini` (reasoning-tuned) burning its entire `max_tokens` budget on
+  hidden reasoning before writing any visible answer — confirmed via the
+  exact `reasoning_tokens` vs. `completion_tokens` figures in the error, and
+  fixed by raising `max_tokens` (tried 4096 first, then 8000, deliberately
+  avoiding touching `reasoning_effort` to not risk the quality the
+  section-by-section fix had just bought back); the stronger model computing
+  an unstated prior-year figure from a growth rate in context instead of
+  refusing (`$574,785M / 1.12 ≈ $513,056M`) — decided not to forbid
+  computation outright, instead `app/rag_chain.py`'s prompt now requires
+  flagging when a figure is computable-but-not-stated and asking the user
+  before computing it; and one refusal case (NVIDIA stock price) scoring just
+  under the similarity threshold (0.737 vs. 0.75) on a correct answer purely
+  from paraphrasing, recalibrated to 0.70 against the actual gap to a
+  genuinely wrong answer (0.579).
+
+  Methodology note on why individual eval-case review, not just the RAGAS
+  aggregate: the plain-RAG RAGAS metrics dipped after the model swap
+  (`answer_relevancy` 0.668→0.575, `faithfulness` 0.931→0.851), which looked
+  like a quality regression. Pulling the per-row data (only ~24-27 scored
+  rows, so `ragas`'s own `safe_nanmean` aggregation gives each row ~4%
+  weight) showed most of the dip was scoring noise — one demonstrably correct
+  answer scored `faithfulness=0.00`, another excellent answer scored `NaN`
+  from a crashed scoring job (`ragas` silently degrading `answer_relevancy`'s
+  usual 3-sample averaging to 1 sample since `gpt-5-mini` doesn't support the
+  `n` parameter it expects). Two real misses turned up this way too (NVIDIA
+  questions the model now over-cautiously refuses on) — exactly the signal
+  the aggregate number alone hides with a sample this small. Flagged, not
+  chased further; scope was the agent-eval milestone, not a full RAG prompt
+  audit.
+
+**Still open:** reranking + chunking write-up (due Sep 27).
 
 ---
 
@@ -214,7 +286,7 @@ ever diverge; update both together.
   - [x] LangSmith tracing wired into the RAG pipeline
   - [x] Baseline RAG endpoint with citations
   - [x] Eval harness (Ragas: retrieval@k, faithfulness, answer relevance)
-  - [ ] Agent layer (≥2 tools, tool-call logging, agent eval cases)
+  - [x] Agent layer (≥2 tools, tool-call logging, agent eval cases)
   - [ ] Reranking + chunking-strategy comparison write-up
 - [ ] Block D — AWS deployment + monitoring
 - [ ] Block E — Polish: READMEs, architecture, video script

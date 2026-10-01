@@ -3,12 +3,10 @@ from openai import OpenAI
 from db.models import FilingChunk
 from db.session import SessionLocal
 
-EMBEDDING_MODEL = "text-embedding-3-small" # to match our chunk sizes
-
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 def embed_chunks(chunks: list[str]) -> list[list[float]]:
-    response = client.embeddings.create(model=EMBEDDING_MODEL, input=chunks)
+    response = client.embeddings.create(model=os.environ["EMBEDDING_MODEL"], input=chunks)
     return [item.embedding for item in response.data]
 
 def store_chunks(filing_id: int, section: str, chunks: list[str]) -> None:

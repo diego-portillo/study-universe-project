@@ -1,0 +1,45 @@
+[
+  {
+    "question": "How did Amazon's risk factors change between Q1 2026 and Q2 2026 10-Q filings?",
+    "ticker": "AMZN",
+    "passed": true,
+    "similarity": 0.7501769109219045,
+    "tool_calls": {
+      "list_filings": 1,
+      "fetch_filing": 2
+    },
+    "actual_answer": "The risk factors for Amazon (AMZN) between the Q1 2026 and Q2 2026 10-Q filings show a consistent emphasis on competition, operational challenges, and regulatory risks, but there are notable expansions and updates in the Q2 filing that reflect evolving concerns:\n\n1. **Intense Competition**: Both filings highlight the intense competition Amazon faces across various sectors. However, the Q2 filing elaborates on the impact of new technologies and business models that are intensifying competition, particularly from well-funded new entrants and established companies expanding into Amazon's markets.\n\n2. **Expansion Risks**: The Q1 filing mentions risks associated with expanding into new products and services, while the Q2 filing adds more detail about the challenges of entering new geographic markets and the potential for significant investment without guaranteed returns. This reflects a growing concern about the sustainability of such expansions.\n\n3. **International Operations**: The Q2 filing emphasizes the risks associated with international operations more than the Q1 filing, detailing specific geopolitical risks and regulatory challenges in key markets like China and India. This suggests an increased focus on the complexities of operating in diverse regulatory environments.\n\n4. **Operational Strain**: The Q2 filing discusses the strain on management and operational resources due to rapid expansion, indicating that this is a growing concern as Amazon scales its operations. The Q1 filing touches on this but does not emphasize it as strongly.\n\n5. **Regulatory Scrutiny**: The Q2 filing includes more extensive discussion on regulatory scrutiny and potential legal challenges, reflecting an increase in the complexity of compliance as Amazon's business grows and faces more scrutiny from regulators.\n\nOverall, while the core risk factors remain similar, the Q2 2026 filing provides a more detailed and nuanced view of the challenges Amazon faces, particularly in terms of competition, international operations, and regulatory risks. This indicates a shift in focus as the company navigates a rapidly changing business landscape."
+  },
+  {
+    "question": "How did NVIDIA's risk factors change between fiscal year 2025 and fiscal year 2026 10-K filings?",
+    "ticker": "NVDA",
+    "passed": true,
+    "similarity": 0.7599734885095664,
+    "tool_calls": {
+      "list_filings": 1,
+      "fetch_filing": 2
+    },
+    "actual_answer": "The risk factors outlined in NVIDIA's 10-K filings for fiscal years 2025 and 2026 show several notable changes and continuities. Here are the key differences and similarities:\n\n### Key Changes:\n1. **Increased Focus on AI and Regulatory Scrutiny**: In the FY2026 filing, there is a heightened emphasis on the regulatory landscape surrounding AI technologies. The company discusses the potential impact of the EU AI Act and other regulations that could impose additional compliance costs and operational restrictions. This reflects the growing scrutiny of AI technologies and their implications for business operations, which was less pronounced in the FY2025 filing.\n   - **FY2026 Excerpt**: \"The increasing focus on the risks and strategic importance of AI technologies has resulted in regulatory restrictions that target products and services capable of enabling or facilitating AI and may in the future result in additional restrictions impacting some or all of our product and service offerings.\"\n   - **FY2025 Excerpt**: Less emphasis on AI regulations, focusing more on general market competition and operational risks.\n\n2. **Export Controls and Geopolitical Risks**: The FY2026 filing elaborates on the complexities and burdens of export controls, particularly in relation to China and other regions. The company notes that these controls could significantly impact its ability to compete and operate effectively in international markets.\n   - **FY2026 Excerpt**: \"Export controls targeting GPUs and semiconductors associated with AI have subjected and may in the future subject downstream users of our products to additional restrictions on the use, resale, repair, or transfer of our products, negatively impacting our business and financial results.\"\n   - **FY2025 Excerpt**: General mention of international sales risks but without the detailed focus on specific export controls.\n\n3. **Climate Change and Sustainability**: The FY2026 filing includes a more detailed discussion on the potential long-term impacts of climate change on business operations, reflecting a growing concern in corporate governance.\n   - **FY2026 Excerpt**: \"Climate change may have an increasingly adverse impact on our business and on our customers, partners and vendors.\"\n   - **FY2025 Excerpt**: Mention of climate change but less emphasis on its operational implications.\n\n### Similarities:\n1. **Competition and Market Dynamics**: Both filings emphasize the competitive nature of the semiconductor and AI markets, highlighting the risks associated with failing to meet evolving customer needs and the potential for competitors to gain market share.\n   - **FY2026 Excerpt**: \"Competition could adversely impact our market share and financial results.\"\n   - **FY2025 Excerpt**: Similar language regarding competition and market share.\n\n2. **Supply Chain Risks**: Both filings discuss the risks associated with supply chain dependencies, including reliance on third-party suppliers and the potential for manufacturing disruptions.\n   - **FY2026 Excerpt**: \"Dependency on third-party suppliers and their technology to manufacture, assemble, test, or package our products reduces our control over product quantity and quality.\"\n   - **FY2025 Excerpt**: Similar concerns about supply chain dependencies.\n\n### Conclusion:\nOverall, while NVIDIA's risk factors in FY2026 reflect a continuity in concerns about competition and supply chain risks, they also demonstrate a significant evolution in the context of AI regulation, geopolitical tensions, and climate change considerations. This shift indicates a response to the rapidly changing technological and regulatory landscape affecting the semiconductor industry."
+  },
+  {
+    "question": "How did Coca-Cola's risk factors change between Q2 2026 and Q3 2026 10-Q filings?",
+    "ticker": "KO",
+    "passed": true,
+    "similarity": 0.9237418896561296,
+    "tool_calls": {
+      "list_filings": 1,
+      "fetch_filing": 2
+    },
+    "actual_answer": "The risk factors section for Coca-Cola's Q2 2026 and Q3 2026 10-Q filings appears to be identical. Both filings emphasize the importance of considering the risks discussed in the Annual Report on Form 10-K for the year ended December 31, 2025, and state that the risks described are not exhaustive, indicating that additional risks may exist that could adversely affect the company's business and financial condition. \n\nThere are no changes or new risk factors introduced between the two periods based on the text retrieved."
+  },
+  {
+    "question": "How did Tesla's risk factors change between its two most recent 10-K filings?",
+    "ticker": "TSLA",
+    "passed": true,
+    "similarity": 0.7210254623214661,
+    "tool_calls": {
+      "list_filings": 5
+    },
+    "actual_answer": "I was unable to retrieve the current and prior 10-K filings for Tesla (TSLA) due to a limitation in tool calls. Therefore, I cannot provide a comparison of the risk factors between the two most recent filings. Please check the SEC's EDGAR database or Tesla's investor relations page for the most recent filings."
+  }
+]
