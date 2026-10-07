@@ -1,44 +1,62 @@
-import os
-import json
 import asyncio
-from pathlib import Path
+import json
+import os
+import time
 from datetime import datetime
+from pathlib import Path
+
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 load_dotenv()
 # we use noqa comment because:
-# it suppresses the linter rule "module level import not at top of file" (E402 in flake8/ruff). 
+# it suppresses the linter rule "module level import not at top of file" (E402 in flake8/ruff).
 # It's needed here because load_dotenv() has to run before from app.rag_chain import ...
 #  — that import pulls in ChatOpenAI, which reads OPENAI_API_KEY from the environment at import time.
-#  Without the env vars loaded first, the import would fail. Ruff would normally flag those imports 
+#  Without the env vars loaded first, the import would fail. Ruff would normally flag those imports
 # for not being at the very top of the file, so the comment tells it that's intentional
-from ragas import EvaluationDataset, SingleTurnSample, evaluate # noqa: E402
-from ragas.embeddings import LangchainEmbeddingsWrapper
-from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
-from ragas.embeddings.base import embedding_factory  # noqa: E402
-from ragas.metrics.collections import SemanticSimilarity  # noqa: E402
-from app.rag_chain import answer_question # noqa: E402
-from app.agent import agent as risk_diff_agent
-from langchain_openai import OpenAIEmbeddings
 from langchain_core.messages import ToolMessage
+from langchain_openai import OpenAIEmbeddings
+from ragas import EvaluationDataset, SingleTurnSample, evaluate
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.embeddings.base import embedding_factory
+from ragas.metrics import (
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    faithfulness,
+)
+from ragas.metrics.collections import SemanticSimilarity
+
+from app.agent import agent as risk_diff_agent
+from app.rag_chain import answer_question
 
 REFUSAL_SIMILARITY_THRESHOLD = 0.70
 GOLDEN_DATASET_PATH = Path(__file__).parent / "golden_dataset.json"
 AGENT_DATASET_PATH = Path(__file__).parent / "agent_dataset.json"
-AGENT_SIMILARITY_THRESHOLD = 0.6 # looser than refusal's 0.75 - these are open-ended multi-sentence diffs, not close paraphrases
+AGENT_SIMILARITY_THRESHOLD = 0.6  # looser than refusal's 0.75 - these are open-ended multi-sentence diffs, not close paraphrases
 
 
 embedding_client = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
-embeddings = embedding_factory("openai", model=os.environ["EMBEDDING_MODEL"], client=embedding_client, interface="modern")
+embeddings = embedding_factory(
+    "openai",
+    model=os.environ["EMBEDDING_MODEL"],
+    client=embedding_client,
+    interface="modern",
+)
 semantic_similarity = SemanticSimilarity(embeddings=embeddings)
-evaluation_embeddings = LangchainEmbeddingsWrapper(OpenAIEmbeddings(model=os.environ["EMBEDDING_MODEL"]))
+evaluation_embeddings = LangchainEmbeddingsWrapper(
+    OpenAIEmbeddings(model=os.environ["EMBEDDING_MODEL"])
+)
+
 
 def load_golden_rows() -> list[dict]:
     return json.loads(GOLDEN_DATASET_PATH.read_text())
 
+
 def load_agent_cases() -> list[dict]:
     return json.loads(AGENT_DATASET_PATH.read_text())
+
 
 def count_tool_calls(messages: list) -> dict[str, int]:
     counts: dict[str, int] = {}
@@ -47,9 +65,10 @@ def count_tool_calls(messages: list) -> dict[str, int]:
             counts[message.name] = counts.get(message.name, 0) + 1
     return counts
 
+
 def build_evaluation_dataset(scored_rows: list[dict]) -> EvaluationDataset:
     samples = []
-    for row in scored_rows:
+    for index, row in enumerate(scored_rows):
         print(f"[scoring] {row['ticker']}: {row['question']}")
         result = answer_question(row["question"], row["ticker"])
         samples.append(
@@ -60,14 +79,19 @@ def build_evaluation_dataset(scored_rows: list[dict]) -> EvaluationDataset:
                 reference=row["ground_truth"],
             )
         )
+        if index < len(scored_rows) - 1:
+            time.sleep(7)
     return EvaluationDataset(samples=samples)
+
 
 async def check_refusals(refusal_rows: list[dict]) -> list[dict]:
     results = []
     for row in refusal_rows:
         print(f"[refusal check] {row['ticker']}: {row['question']}")
         result = answer_question(row["question"], row["ticker"])
-        score = await semantic_similarity.ascore(reference=row["ground_truth"], response=result.answer)
+        score = await semantic_similarity.ascore(
+            reference=row["ground_truth"], response=result.answer
+        )
         results.append(
             {
                 "question": row["question"],
@@ -79,22 +103,32 @@ async def check_refusals(refusal_rows: list[dict]) -> list[dict]:
         )
     return results
 
+
 async def evaluate_agent_cases(cases: list[dict]) -> list[dict]:
     results = []
     for index, case in enumerate(cases):
         print(f"[agent eval] {case['ticker']}: {case['question']}")
         try:
             result = risk_diff_agent.invoke(
-                {"messages": [{"role": "user", "content": f"Ticker: {case['ticker']}\n{case['question']}"}]}
+                {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": f"Ticker: {case['ticker']}\n{case['question']}",
+                        }
+                    ]
+                }
             )
         except Exception as exc:
             print(f"[agent eval] ERROR: {exc}")
-            results.append({
-                "question": case["question"],
-                "ticker": case["ticker"],
-                "passed": False,
-                "error": str(exc),
-            })
+            results.append(
+                {
+                    "question": case["question"],
+                    "ticker": case["ticker"],
+                    "passed": False,
+                    "error": str(exc),
+                }
+            )
             continue
 
         answer = result["structured_response"]
@@ -102,23 +136,34 @@ async def evaluate_agent_cases(cases: list[dict]) -> list[dict]:
 
         called_list_filings = tool_calls.get("list_filings", 0) >= 1
         called_fetch_filing_enough = (
-            tool_calls.get("fetch_filing", 0) >= 2 if not case.get("expect_refusal") else True
+            tool_calls.get("fetch_filing", 0) >= 2
+            if not case.get("expect_refusal")
+            else True
         )
 
-        score = await semantic_similarity.ascore(reference=case["ground_truth"], response=answer.answer)
-        passed = score.value >= AGENT_SIMILARITY_THRESHOLD and called_list_filings and called_fetch_filing_enough
+        score = await semantic_similarity.ascore(
+            reference=case["ground_truth"], response=answer.answer
+        )
+        passed = (
+            score.value >= AGENT_SIMILARITY_THRESHOLD
+            and called_list_filings
+            and called_fetch_filing_enough
+        )
 
-        results.append({
-            "question": case["question"],
-            "ticker": case["ticker"],
-            "passed": passed,
-            "similarity": score.value,
-            "tool_calls": tool_calls,
-            "actual_answer": answer.answer
-        })
+        results.append(
+            {
+                "question": case["question"],
+                "ticker": case["ticker"],
+                "passed": passed,
+                "similarity": score.value,
+                "tool_calls": tool_calls,
+                "actual_answer": answer.answer,
+            }
+        )
         if index < len(cases) - 1:
             await asyncio.sleep(10)
     return results
+
 
 # this if block is used to run when we execute this file isolated instead of as an import
 if __name__ == "__main__":
@@ -136,7 +181,9 @@ if __name__ == "__main__":
         print(f"[{status}] refusal check: ({r['similarity']:.3f}): {r['question']}")
         if not r["passed"]:
             print(f"Actual answer: {r['actual_answer']}")
-    (results_dir / "refusal_checks.json").write_text(json.dumps(refusal_results, indent=2))
+    (results_dir / "refusal_checks.json").write_text(
+        json.dumps(refusal_results, indent=2)
+    )
 
     agent_cases = load_agent_cases()
     agent_results = asyncio.run(evaluate_agent_cases(agent_cases))
@@ -146,7 +193,9 @@ if __name__ == "__main__":
             print(f"[{status}] agent eval ERROR: {r['question']}")
             print(f"Error: {r['error']}")
             continue
-        print(f"[{status}] agent eval ({r['similarity']:.3f}, tools={r['tool_calls']}): {r['question']}")
+        print(
+            f"[{status}] agent eval ({r['similarity']:.3f}, tools={r['tool_calls']}): {r['question']}"
+        )
         if not r["passed"]:
             print(f"Actual answer: {r['actual_answer']}")
     (results_dir / "agent_checks.json").write_text(json.dumps(agent_results, indent=2))
@@ -155,8 +204,10 @@ if __name__ == "__main__":
     evaluation_result = evaluate(
         dataset=dataset,
         metrics=[answer_relevancy, context_precision, context_recall, faithfulness],
-        embeddings=evaluation_embeddings
+        embeddings=evaluation_embeddings,
     )
-    evaluation_result.to_pandas().to_csv(results_dir / "scored_dataset.csv", index=False)
+    evaluation_result.to_pandas().to_csv(
+        results_dir / "scored_dataset.csv", index=False
+    )
     print(evaluation_result)
     print(f"Saved run to {results_dir}")

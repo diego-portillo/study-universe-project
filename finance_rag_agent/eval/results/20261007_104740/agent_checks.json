@@ -1,0 +1,45 @@
+[
+  {
+    "question": "How did Amazon's risk factors change between Q1 2026 and Q2 2026 10-Q filings?",
+    "ticker": "AMZN",
+    "passed": true,
+    "similarity": 0.8847875003780543,
+    "tool_calls": {
+      "list_filings": 1,
+      "fetch_filing": 2
+    },
+    "actual_answer": "I reviewed Amazon\u2019s Item 1A \u201cRisk Factors\u201d text in the Q1 2026 and Q2 2026 10\u2011Q filings section by section. The only substantive change I found is in the \u201cWe Have Foreign Exchange Risk\u201d disclosure: the Q2 2026 filing adds that Amazon issues notes in foreign currencies and explicitly calls out foreign\u2011denominated note balances and payments as exposed to translation risk. Otherwise, the Risk Factors language is substantively unchanged between the two filings."
+  },
+  {
+    "question": "How did NVIDIA's risk factors change between fiscal year 2025 and fiscal year 2026 10-K filings?",
+    "ticker": "NVDA",
+    "passed": true,
+    "similarity": 0.8083916491009788,
+    "tool_calls": {
+      "list_filings": 1,
+      "fetch_filing": 2
+    },
+    "actual_answer": "Summary of substantive changes in NVIDIA\u2019s risk factors between the FY2025 and FY2026 Form 10\u2011K filings:\n\n1) New disclosures about a Groq license arrangement (FY2026 only).\n2) New disclosure that NVIDIA is \u201cfinalizing an investment and partnership agreement with OpenAI\u201d (FY2026 only).\n3) Additional, detailed export\u2011control developments and impacts in FY2026 that do not appear in FY2025 \u2014 notably H20/H200 licensing developments, a $4.5 billion inventory/purchase\u2011obligation charge tied to H20, limited licensed H20 revenue, and a February 2026 H200 license that requires U.S. inspections and a 25% tariff on imports shipped under that program.\n4) Stronger language in FY2026 about NVIDIA being \u201ceffectively foreclosed\u201d from China\u2019s data\u2011center compute market (FY2026 wording is materially stronger than FY2025\u2019s statement that offerings are \u201climited by export controls\u201d).\n5) Updated business\u2011mix and personnel figures: fiscal\u2011year geographic revenue mix and Israel employee headcount changed between the filings (FY2025 vs FY2026), and customer concentration disclosures were updated (different percentages and presentation).\n\nBelow I list each of these changes and provide the supporting citation(s) from the filings (period, section, source_url, and an exact excerpt from the filing). I based each stated difference only on language that appears in one period and not the other (or on differing numeric disclosures across the two periods).\n"
+  },
+  {
+    "question": "How did Coca-Cola's risk factors change between Q2 2026 and Q3 2026 10-Q filings?",
+    "ticker": "KO",
+    "passed": true,
+    "similarity": 0.8756958150980174,
+    "tool_calls": {
+      "list_filings": 1,
+      "fetch_filing": 2
+    },
+    "actual_answer": "I compared the Item 1A (\u201cRisk Factors\u201d) text in Coca\u2011Cola\u2019s Q2 2026 and Q3 2026 Form 10\u2011Q filings and found the risk factors section to be substantively unchanged between the two periods. Both filings contain the same boilerplate directing readers to the Company\u2019s annual report (Item 1A) for the year ended December 31, 2025, and no new, removed, or reworded risk-factor language, figures, named events, or deals appear in the Q3 2026 risk-factors excerpt returned versus the Q2 2026 excerpt returned."
+  },
+  {
+    "question": "How did Tesla's risk factors change between its two most recent 10-K filings?",
+    "ticker": "TSLA",
+    "passed": true,
+    "similarity": 0.6686700929152511,
+    "tool_calls": {
+      "list_filings": 1
+    },
+    "actual_answer": "I could not find any 10-K filings for TSLA. The list_filings call returned no results for that ticker and form type, so I\u2019m unable to fetch or compare the most recent and prior 10-K risk factors. Would you like me to try a different ticker or a different form type (e.g., 10-Q)?"
+  }
+]
