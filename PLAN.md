@@ -89,8 +89,9 @@ Exit criterion: README has eval results table covering both RAG and agent behavi
 
 Why: AWS is in 40% of postings (field guide #3 skill); a live URL is on the field guide's portfolio must-list. `tasks.txt` already names ECS/EKS + GitHub Actions deploy.
 
-- [ ] Both projects on Vercel (free) as first live URLs — **due Oct 5** (fast win; do this even if AWS is in progress)
-- [ ] ai_hub deployed to ECS Express Mode (service + health check verified live) — **due Oct 26**
+- [ ] Both projects on Vercel (free) as first live URLs — **deferred** (was due Oct 5; see Open decisions #4 — skipped while the repo is still under active development, so this throwaway link isn't worth maintaining twice)
+- [ ] Public-demo cost safety: per-IP + global daily rate limit, hard spend cap, cheap-model default, and gated/disabled image & audio modes for any publicly-reachable deployment — **built in before any live URL goes up**, not bolted on after (see Open decisions #4)
+- [ ] ai_hub deployed to ECS Express Mode (service + health check verified live) — **due Oct 26** (depends on the cost-safety item above landing first)
 - [x] CI/CD pipeline: ECR push + ECS Express Mode deploy on merge to main (OIDC, no long-lived keys) — **done May 27** *(workflows migrated May 28)*
 - [x] ECR repository provisioned, IAM role + OIDC provider configured — **done May 27**
 - [ ] Provision ECS Express Mode IAM roles: execution-role + infrastructure-role; grant `iam:PassRole` on both to the OIDC role; add `ECS_EXECUTION_ROLE_ARN` + `ECS_INFRA_ROLE_ARN` GitHub secrets — **due Oct 26**
@@ -124,7 +125,7 @@ Exit criterion: a stranger can read either README in 5 min and understand what i
 Two weeks. Distribution only, no new features.
 
 - [ ] Record Loom videos (one per project, 60–90 sec) — **due Dec 11**
-- [ ] Landing/personal site: links to both projects, both Looms, resume, contact — **due Dec 13**
+- [ ] Landing/personal site (`github.com/diego-portillo/profesional-website-portfolio`): migrate to React, swap in the updated resume, replace the old project list with ai_hub + finance_rag_agent, remove outdated projects/videos, links to both Looms + contact, deploy — **due Dec 13** (depends on Looms done Dec 11 and resume done Dec 6 above)
 - [ ] LinkedIn launch post with video + screenshots — **Dec 14**
 - [ ] LinkedIn follow-up posts: one technical deep-dive per project — **Dec 17 & Dec 20**
 - [ ] Direct outreach: 10 messages to founders/hiring managers at LATAM-friendly US companies (commerce/real-estate verticals first) — **due Dec 20**
@@ -216,3 +217,4 @@ These appear in the guide but are deprioritized for Diego's profile and timeline
 1. **Repo visibility strategy** — due Nov 15. See `project-repo-visibility` in Claude project memory.
 2. ~~**Second project choice** (Block C) — Algorithm Tutor RAG vs. PDF RAG. Decide by **Aug 3**.~~ ~~**Decided Jul 3, 2026: domain-first commerce/e-commerce RAG + agent**~~ **Flipped to Finance, Aug 28, 2026**: highest demand of any domain in the guide's data (2,321 mentions/9.5%, vs. 226/0.9% for retail/e-commerce) with a lower-risk data story (SEC filings/earnings calls are public record, unlike catalog/inventory data which is proprietary per-retailer) and a stronger comp story for the engineering seat. See `this_week.txt` for the full comparison against healthcare (also higher-demand than e-commerce, but ruled out here on data-access risk — clinical/PHI data isn't usable without deliberate scoping the way public filings are).
 3. ~~**AWS service for Block D** — ECS Fargate (recommended) vs. EKS. Decide by **Sep 28**.~~ ~~**Decided May 27: App Runner**~~ **Decided May 2026: ECS Express Mode** (App Runner no longer accepts new customers as of Apr 30 2026; ECS Express Mode is AWS's official replacement — auto-provisions ALB, Fargate, auto-scaling, CloudWatch).
+4. **Vercel fast-win live URL — deferred, decided Oct 8, 2026.** A public demo of ai_hub exposes real OpenAI/Anthropic/Google/ElevenLabs API keys to anyone with the link; without a spend cap/rate limit, that's an open-ended cost risk (same class of problem as the Block D AWS idle-cost incident, just API tokens instead of idle infra). That safety work (per-IP + global rate limit, hard spend cap, cheap-model default, gated image/audio modes) is needed regardless of host — Vercel or AWS — so it's not worth building twice: once hastily for a throwaway Vercel link, once properly for the real AWS deployment. Skipping the Oct 5 Vercel step entirely; the cost-safety work is now a prerequisite line item ahead of the Oct 26 ECS deployment above, and that becomes the first live URL. Interim showcase artifact until then: the Loom video (Phase 2) + screenshots, not a live link.

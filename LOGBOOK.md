@@ -40,6 +40,7 @@ PLAN.md correction note below).
 | 2026-09-02 | 226 | Invert Binary Tree | Easy | Trees/graphs/BFS/DFS — Block C (1st, new pattern per PLAN.md) |
 | 2026-09-17 | 104 | Maximum Depth of Binary Tree | Easy | Trees/graphs/BFS/DFS — Block C (2nd, after 226) |
 | 2026-09-23 | 543 | Diameter of Binary Tree | Easy | Trees/graphs/BFS/DFS — Block C (3rd, after 104) |
+| 2026-10-08 | 110 | Balanced Binary Tree | Easy | Trees/graphs/BFS/DFS — Block C (4th, closes series 226→104→543→110) |
 
 **PLAN.md correction (2026-09-09):** the Block B bullets for 121/3/424 had
 "done" dates each off by one entry (121 said Aug 27 — actually Jun 30; 3 said
@@ -66,6 +67,7 @@ anything before Sep 2 beyond what's below is unrecoverable.
 | week of Sep 2–8, 2026 | LangChain + pgvector: ingestion/chunking docs | python.langchain.com (`recursive_text_splitter`, text-splitters overview, pgvector integration) | Vector store + ingest pipeline milestone (Block C, done Sep 8) |
 | week of Sep 9–15, 2026 | LangSmith tracing docs | docs.langchain.com/langsmith (`observability-quickstart`, `observability-concepts`, `platform-setup`) | LangSmith tracing milestone (Block C, done Sep 15); `platform-setup` directly explained the AWS-hosted-endpoint 403 bug hit that week |
 | week of Sep 16–22, 2026 | Ragas docs | docs.ragas.io (`getstarted/quickstart`, `concepts/metrics/overview`, `concepts/metrics/available_metrics`) | Eval harness milestone (Block C, done Sep 22) |
+| week of Sep 23–29, 2026 | LangChain agents docs (`create_agent` + middleware) | docs.langchain.com/oss/python/langchain/agents; reference.langchain.com/python/langchain/agents/factory/create_agent; reference.langchain.com/python/langchain/middleware | Agent layer milestone (Block C, done Oct 1); noted `create_react_agent` (LangGraph's older prebuilt) is deprecated in favor of `create_agent` |
 
 Background, not individually dated: 100+ prior Platzi courses (RAG/Azure,
 LangChain, Agents, MCP, Prompt Engineering, NLP, PyTorch, AWS, Node.js, React,
@@ -269,7 +271,9 @@ cost visible per request.
   chased further; scope was the agent-eval milestone, not a full RAG prompt
   audit.
 
-**Still open:** reranking + chunking write-up (due Sep 27).
+- **2026-10-07** — Reranking + chunking-strategy comparison landed, closing Block C's last open milestone. Cohere rerank added on top of retrieval: +0.13 on both `context_precision` and `context_recall` in a before/after eval comparison, kept. Semantic chunking tested against the existing `RecursiveCharacterTextSplitter` and found a wash — no meaningful metric movement either way — so kept the simpler recursive splitter rather than switching. README updated with both comparisons and numbers.
+
+**Exit criterion met — Block C fully closed 2026-10-07/08, 2026** (README has an eval results table covering RAG + agent behavior; chunking strategy explainable with numbers; full agent tool-call trace walked and verified, see Oct 1 entry above).
 
 ---
 
@@ -280,15 +284,15 @@ ever diverge; update both together.
 
 - [x] Block A — Containerize + CI/CD foundation
 - [x] Block B — Evaluation harness + tests + observability
-- [ ] Block C — Domain-first RAG + agent (finance filing risk-change assistant) — **active**
+- [x] Block C — Domain-first RAG + agent (finance filing risk-change assistant)
   - [x] `PROJECT_PLAN.md` with saved evidence
   - [x] Vector store + ingest pipeline
   - [x] LangSmith tracing wired into the RAG pipeline
   - [x] Baseline RAG endpoint with citations
   - [x] Eval harness (Ragas: retrieval@k, faithfulness, answer relevance)
   - [x] Agent layer (≥2 tools, tool-call logging, agent eval cases)
-  - [ ] Reranking + chunking-strategy comparison write-up
-- [ ] Block D — AWS deployment + monitoring
+  - [x] Reranking + chunking-strategy comparison write-up
+- [ ] Block D — AWS deployment + monitoring — **active**
 - [ ] Block E — Polish: READMEs, architecture, video script
 - [ ] Phase 2 — Showcase
 - [ ] Phase 3 — Interview prep
@@ -400,3 +404,54 @@ Done when
   faithfulness / answer-relevance scores, Ragas reading done, LC 543 solved
   and explainable out loud.
 ```
+
+### Week: Sep 23 – Sep 29, 2026
+
+```
+Week: Sep 23 - Sep 29, 2026
+(Block C active. Eval harness closed Sep 22 (harness caught a real retrieval
+bug, top_k bumped 5->7, verified net-positive). Two milestones remain, both
+due Sep 27 — Block C's own exit date: agent layer (>=2 tools, tool-call
+logging, agent eval cases) and reranking + chunking-strategy write-up. Both
+land in the same 5-day window this week covers.)
+
+Block C — final milestones (from PLAN.md / PROJECT_PLAN.md), due Sep 27
+- [x] Agent layer: >=2 tools, tool-call logging (per the guide's logging
+        spec), agent eval cases added to the harness — done Oct 1 (see
+        LOGBOOK.md for the full fix list and model-swap rationale)
+- [x] Reranking + a brief chunking-strategy comparison in the README — done
+        Oct 7 (Cohere rerank +0.13 context_precision/context_recall, kept;
+        semantic chunking tested and found a wash, kept
+        RecursiveCharacterTextSplitter instead)
+
+Reading (1 topic/week cap, decided Aug 27, 2026)
+- [x] LangChain agents docs (create_agent + middleware) — feeds directly
+        into this week's agent-layer milestone; note create_react_agent
+        (LangGraph's older prebuilt) is deprecated in favor of langchain's
+        create_agent, so building against the current API, not training-data
+        recall (per ai_hub/AGENTS.md's same warning, applied here too)
+        - https://docs.langchain.com/oss/python/langchain/agents
+        - https://reference.langchain.com/python/langchain/agents/factory/create_agent
+        - https://reference.langchain.com/python/langchain/middleware
+
+LeetCode (1 problem/week cap, decided Aug 27, 2026 — trees/graphs/BFS/DFS
+pattern, continuing after Diameter of Binary Tree (543) done Sep 23)
+- [x] Balanced Binary Tree (110) — next in the standard tree-pattern
+        progression after 543; swap if you'd rather pick a different one
+
+Done when
+- Agent layer answers a question using >=2 tools with logged tool calls and
+  passing eval cases, reranking + chunking-strategy write-up added to the
+  README, LangChain agents reading done, LC 110 solved and explainable out
+  loud.
+```
+
+This week ran long past its nominal Sep 29 end date — the agent layer (Oct 1)
+and reranking/chunking (Oct 7) milestones both slipped past the Sep 27 Block C
+exit date, and LC 110 wasn't solved until Oct 8. Per the "don't rotate early"
+rule, this stayed the active `this_week.txt` until all three — Reading,
+milestones, LeetCode — were done, rather than rotating on the calendar
+boundary. **This close-out also marks Block C fully closed** (see the Oct 7
+entry and task checklist above) — Block D (AWS deployment + monitoring) is
+now active, with the Oct 8, 2026 decision to defer the Vercel fast-win step
+(see `PLAN.md` Open decisions #4).
