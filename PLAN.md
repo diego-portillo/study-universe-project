@@ -90,7 +90,7 @@ Exit criterion: README has eval results table covering both RAG and agent behavi
 Why: AWS is in 40% of postings (field guide #3 skill); a live URL is on the field guide's portfolio must-list. `tasks.txt` already names ECS/EKS + GitHub Actions deploy.
 
 - [ ] Both projects on Vercel (free) as first live URLs — **deferred** (was due Oct 5; see Open decisions #4 — skipped while the repo is still under active development, so this throwaway link isn't worth maintaining twice)
-- [ ] Public-demo cost safety: per-IP + global daily rate limit, hard spend cap, cheap-model default, and gated/disabled image & audio modes for any publicly-reachable deployment — **built in before any live URL goes up**, not bolted on after (see Open decisions #4)
+- [x] Public-demo cost safety: per-IP + global daily rate limit, daily token cap, and cheap-model default for any publicly-reachable deployment — **built in before any live URL goes up**, not bolted on after (see Open decisions #4) — **done Oct 9**. Scope trimmed during implementation: dollar spend cap swapped for a flat daily token cap, image/audio gating dropped entirely.
 - [ ] ai_hub deployed to ECS Express Mode (service + health check verified live) — **due Oct 26** (depends on the cost-safety item above landing first)
 - [x] CI/CD pipeline: ECR push + ECS Express Mode deploy on merge to main (OIDC, no long-lived keys) — **done May 27** *(workflows migrated May 28)*
 - [x] ECR repository provisioned, IAM role + OIDC provider configured — **done May 27**

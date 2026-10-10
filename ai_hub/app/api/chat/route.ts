@@ -5,7 +5,8 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { applyLowDetailToImages, messagesIncludeVision } from '../lib/messages';
 import { estimateCostUsd } from '../lib/cost';
-import { recordCompletion } from '../lib/metrics';
+import { recordCompletion, getTodayTokenUsage } from '../lib/metrics';
+import { isPublicDemoMode, demoDailyTokenCap, demoCheapModel } from '../lib/demoMode';
 import { PROMPT_VERSION } from '../../constants';
 import type { ChatBody } from '../lib/types';
 import type { Message } from '../../types';
@@ -176,14 +177,28 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
 
-    const maxTokens =
+    const maxTokensEnv =
       provider === 'anthropic'
-        ? Math.min(4096, Math.max(64, Number(process.env.ANTHROPIC_MAX_TOKENS) || 1024))
-        : undefined;
+        ? process.env.ANTHROPIC_MAX_TOKENS
+        : provider === 'openai'
+          ? process.env.OPENAI_MAX_TOKENS
+          : undefined;
+    const maxTokens = Math.min(4096, Math.max(64, Number(maxTokensEnv) || 1024));
 
-    const providerConfig = resolveProvider(provider, model, normalized);
+    const effectiveModel = isPublicDemoMode()
+      ? demoCheapModel(provider === 'anthropic' || provider === 'google' ? provider : 'openai')
+      : model;
+
+    const providerConfig = resolveProvider(provider, effectiveModel, normalized);
     if (providerConfig instanceof Response) return providerConfig;
     const { modelId, resolvedModel, tools } = providerConfig;
+
+    if (isPublicDemoMode() && getTodayTokenUsage() >= demoDailyTokenCap()) {
+      return new Response(
+        JSON.stringify({ error: 'Daily demo token limit reached — try again tomorrow' }),
+        { status: 429 },
+      );
+    }
 
     const requestId = crypto.randomUUID();
     const startTime = Date.now();

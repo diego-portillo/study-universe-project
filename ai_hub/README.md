@@ -49,7 +49,7 @@ graph TD
 - **Single page, three modes** — `chat`, `image`, `audio` share state and the same input bar; mode switch is instant.
 - **Provider abstraction via Vercel AI SDK** — `streamText` wraps OpenAI, Anthropic, and Google. Adding a new provider is one line in `api/chat/route.ts`.
 - **Server-side conversation memory** — `Map<conversationId, Message[]>` in the Node process, capped and trimmed to 8 messages. Per-session UUID prevents cross-user memory leaks. Designed to be replaced with Redis for multi-instance deployments.
-- **Rate limiting** — `middleware.ts` caps each IP at 20 requests/60s via an in-memory `Map`, returning `429` + `Retry-After: 60` over the limit. Same caveat as conversation memory: correct as long as the ECS service runs a single task (`desiredCount: 1`, true today); would need a shared store (Redis/DynamoDB) if scaled to multiple tasks.
+- **Rate limiting** — `proxy.ts` caps each IP at 20 requests/60s via an in-memory `Map`, returning `429` + `Retry-After: 60` over the limit. Same caveat as conversation memory: correct as long as the ECS service runs a single task (`desiredCount: 1`, true today); would need a shared store (Redis/DynamoDB) if scaled to multiple tasks.
 - **Image inputs** — always downsampled to `detail: "low"` server-side before forwarding to the model, keeping vision costs predictable.
 - **Streaming** — the chat route returns `toTextStreamResponse()` (AI SDK v6); the client reads raw chunks via `ReadableStream.getReader()`.
 

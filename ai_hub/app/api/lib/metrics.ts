@@ -108,3 +108,10 @@ export function getMetricsSnapshot(): MetricsSnapshot {
 export function resetMetrics(): void {
   completions.length = 0;
 }
+
+export function getTodayTokenUsage(): number {
+  const today = new Date().toISOString().slice(0, 10);
+  return completions
+    .filter((metric) => metric.timestamp.slice(0, 10) === today)
+    .reduce((sum, metric) => sum + metric.tokensIn + metric.tokensOut, 0);
+}
