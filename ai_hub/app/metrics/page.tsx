@@ -1,4 +1,6 @@
+import { notFound } from 'next/navigation';
 import { getMetricsSnapshot } from '../api/lib/metrics';
+import { isPublicDemoMode } from '../api/lib/demoMode';
 import { MetricsView } from './MetricsView';
 import { RefreshButton } from './RefreshButton';
 import './metrics.css';
@@ -10,6 +12,10 @@ import './metrics.css';
 export const dynamic = 'force-dynamic';
 
 export default function MetricsPage() {
+  // Unauthenticated — fine for local/internal use, not for a public demo
+  // where it would expose every visitor's aggregate cost/usage data.
+  if (isPublicDemoMode()) notFound();
+
   const snapshot = getMetricsSnapshot();
 
   return (

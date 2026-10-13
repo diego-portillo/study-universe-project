@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { experimental_transcribe as generateTranscription } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
+export const maxDuration = 60;
+
 async function transcribeWithElevenLabs(audio: File): Promise<string> {
   const elevenLabsForm = new FormData();
   elevenLabsForm.append('file', audio);

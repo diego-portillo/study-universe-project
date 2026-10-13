@@ -1,14 +1,12 @@
 name: AI Hub — Deploy
 
 on:
-  # Auto-deploy when ai_hub/ changes land on main
-  push:
-    branches: [main]
-    paths:
-      - "ai_hub/**"
-      - ".github/workflows/ai_hub-deploy.yml"
-
-  # Manual trigger from GitHub UI (Actions tab → Run workflow)
+  # Manual trigger only (GitHub UI → Actions tab → Run workflow). Not wired
+  # to push/PR on purpose — this deploys to AWS ECS Express Mode, which bills
+  # for 24/7 Fargate/ALB regardless of traffic (~$53/mo), so a merge to main
+  # should never trigger it by accident. The live demo runs on Vercel instead
+  # (see ai_hub/README.md's Cost Estimate section); this workflow stays
+  # available for when the real AWS deployment is actually wanted.
   workflow_dispatch:
 
 env:

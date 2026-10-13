@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { MAX_PROMPT_CHARS } from '../../constants';
 import type { SpeechVoice } from '../../types';
+
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +21,12 @@ export async function POST(request: NextRequest) {
 
     if (!text || typeof text !== 'string')
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
+
+    if (text.length > MAX_PROMPT_CHARS)
+      return NextResponse.json(
+        { error: `Text exceeds ${MAX_PROMPT_CHARS} characters` },
+        { status: 400 },
+      );
 
     let audioBytes: Uint8Array;
 

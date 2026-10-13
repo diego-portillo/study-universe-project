@@ -7,9 +7,11 @@ import { applyLowDetailToImages, messagesIncludeVision } from '../lib/messages';
 import { estimateCostUsd } from '../lib/cost';
 import { recordCompletion, getTodayTokenUsage } from '../lib/metrics';
 import { isPublicDemoMode, demoDailyTokenCap, demoCheapModel } from '../lib/demoMode';
-import { PROMPT_VERSION } from '../../constants';
+import { MAX_PROMPT_CHARS, PROMPT_VERSION } from '../../constants';
 import type { ChatBody } from '../lib/types';
 import type { Message } from '../../types';
+
+export const maxDuration = 60;
 
 const MAX_MESSAGES = 8;
 const memoryStore = new Map<string, Message[]>();
@@ -59,6 +61,15 @@ function describeStreamError(error: unknown): string {
     }
   }
   return String(error);
+}
+
+// MAX_PROMPT_CHARS is enforced client-side too (useChat.ts), but a direct
+// API call bypasses that — this is the real cap for cost-safety purposes.
+function findOversizedTextPart(messages: Message[], maxChars: number): boolean {
+  return messages.some((message) => {
+    if (typeof message.content === 'string') return message.content.length > maxChars;
+    return message.content.some((part) => part.type === 'text' && part.text.length > maxChars);
+  });
 }
 
 function extractSystemPrompt(messages: Message[]): string | undefined {
@@ -152,6 +163,12 @@ export async function POST(request: NextRequest) {
   if (reset) memoryStore.delete(conversationId);
 
   const previous = memoryStore.get(conversationId) ?? [];
+
+  if (findOversizedTextPart(messages, MAX_PROMPT_CHARS))
+    return new Response(
+      JSON.stringify({ error: `Message text exceeds ${MAX_PROMPT_CHARS} characters` }),
+      { status: 400 },
+    );
 
   let normalized: Message[];
   try {

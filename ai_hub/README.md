@@ -15,7 +15,7 @@ A production-ready Next.js 16 + React 19 web app that unifies **chat, image gene
 | Mode | What you can do |
 |---|---|
 | 💬 **Chat** | Streaming text conversation with OpenAI, Anthropic, or Google models |
-| 🎨 **Image** | Generate images (DALL·E 2/3, GPT-image) or upload one for vision analysis |
+| 🎨 **Image** | Generate images (OpenAI `gpt-image-1-mini`) or upload one for vision analysis |
 | 🔊 **Audio** | Text-to-speech with OpenAI TTS or ElevenLabs; speech-to-text with Whisper or ElevenLabs Scribe v2 |
 
 ---
@@ -27,9 +27,9 @@ graph TD
     Browser -->|HTTPS| ALB[AWS ALB]
     ALB --> ECS[ECS Express Mode\nFargate container :3000]
 
-    ECS -->|streamText| OpenAI[OpenAI\nGPT-4o · DALL·E · Whisper · TTS]
-    ECS -->|streamText| Anthropic[Anthropic\nClaude Sonnet 4.6 · Haiku · Opus]
-    ECS -->|streamText| Google[Google\nGemini 2.5 Flash]
+    ECS -->|streamText| OpenAI[OpenAI\nGPT-4o mini · gpt-image-1-mini · Whisper · TTS]
+    ECS -->|streamText| Anthropic[Anthropic\nClaude Sonnet 4.6 · Haiku 4.5]
+    ECS -->|streamText| Google[Google\nGemini 3 Flash]
     ECS -->|REST| ElevenLabs[ElevenLabs\nTTS · Scribe v2 STT]
 
     GHA[GitHub Actions] -->|build + push| ECR[AWS ECR\nDocker image]
@@ -57,12 +57,16 @@ graph TD
 
 ## Provider & Model Matrix
 
-| Provider | Chat | Image | TTS | STT | Models |
+| Provider | Chat | Image | TTS | STT | Default models |
 |---|:---:|:---:|:---:|:---:|---|
-| **OpenAI** | ✅ | ✅ | ✅ | ✅ | GPT-4o, GPT-4o mini, GPT-4 Turbo; DALL·E 2/3; Whisper; TTS |
-| **Anthropic** | ✅ | ❌ | ❌ | ❌ | Claude Sonnet 4.6, Haiku 4.5, Opus 4.6 |
-| **Google** | ✅ | ❌ | ❌ | ❌ | Gemini 2.5 Flash, Gemini 2.5 Flash Lite |
-| **ElevenLabs** | ❌ | ❌ | ✅ | ✅ | TTS (multilingual v2), Scribe v2 STT |
+| **OpenAI** | ✅ | ✅ | ✅ | ✅ | `gpt-4o-mini` (chat + vision); `gpt-image-1-mini`; `tts-1`; `whisper-1` |
+| **Anthropic** | ✅ | ❌ | ❌ | ❌ | `claude-sonnet-4-6` (also selectable: `claude-haiku-4-5`) |
+| **Google** | ✅ | ❌ | ❌ | ❌ | `gemini-3-flash-preview` |
+| **ElevenLabs** | ❌ | ❌ | ✅ | ✅ | `eleven_multilingual_v2` (TTS); Scribe v2 (STT) |
+
+All model IDs are env-overridable (see [Environment variables](#environment-variables)) — the table above shows what ships if you don't override anything.
+
+**On the public demo** (`PUBLIC_DEMO_MODE=true`), chat always forces a cheaper model per provider regardless of the selection above, to keep a publicly-reachable link's cost bounded: `gpt-5-nano` (OpenAI), `claude-haiku-5-5` (Anthropic), `gemini-3.5-flash-lite` (Google). Image and audio modes are not gated to a cheap model in demo mode — a deliberate scope trim (see `LOGBOOK.md`'s Oct 9 entry) — but all routes are still covered by the per-IP and global daily request caps in `proxy.ts`.
 
 ---
 
@@ -95,13 +99,18 @@ ANTHROPIC_API_KEY=
 GOOGLE_GENERATIVE_AI_API_KEY=
 ELEVENLABS_API_KEY=
 
-# Optional model overrides
-OPENAI_MODEL=gpt-4o
+# Optional model overrides — defaults shown
+OPENAI_MODEL=gpt-4o-mini
 OPENAI_VISION_MODEL=gpt-4o-mini
-OPENAI_IMAGE_MODEL=dall-e-2
+OPENAI_IMAGE_MODEL=gpt-image-1-mini
 ANTHROPIC_MODEL=claude-sonnet-4-6
 ANTHROPIC_MAX_TOKENS=1024
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3-flash-preview
+
+# Public-demo safety — see Provider & Model Matrix above
+PUBLIC_DEMO_MODE=        # "true" on a publicly-reachable deployment, unset for local dev
+DEMO_DAILY_REQUEST_CAP=100
+DEMO_DAILY_TOKEN_CAP=150000
 ```
 
 Each route returns `500` if its provider key is missing — you only need keys for the providers you use.
@@ -132,13 +141,15 @@ Four workflows under `.github/workflows/`:
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ai_hub-ci.yml` | Push or PR touching `ai_hub/` | Lint + vitest; Docker smoke build on PRs to `main` |
-| `ai_hub-deploy.yml` | Merge to `main` (or manual) | Build image → push to ECR → create/update ECS Express Mode service |
+| `ai_hub-deploy.yml` | Manual only | Build image → push to ECR → create/update ECS Express Mode service |
 | `ai_hub-teardown.yml` | Manual only | Delete ECS service + cluster (stops Fargate billing) |
 | `ai_hub-eval.yml` | Manual only | Run the golden-dataset eval suite against the deployed chat route; see [Evaluation Harness](#evaluation-harness) |
 
 Auth uses **OIDC** — no long-lived AWS keys stored in GitHub secrets.
 
 **Why `ai_hub-eval.yml` is manual-only, not wired to push/PR:** each run makes real paid calls to the provider(s) under test plus the LLM judge. Automatic wiring means every push/PR silently spends API budget with no way to throttle it. Keeping it a `workflow_dispatch` trades away automatic regression coverage on every change for deliberate control over when that spend happens — acceptable for a low-traffic portfolio project where a human is already reviewing every change anyway. Revisit if this project ever needs unattended CI gating.
+
+**Why `ai_hub-deploy.yml` is manual-only too:** it was originally wired to auto-deploy on every merge to `main`, but that deploys to AWS ECS Express Mode, which bills for 24/7 Fargate + ALB regardless of traffic (~$53/mo) — an unattended merge should never be able to trigger real infra spend. The live demo link runs on Vercel instead (see [Cost Estimate](#cost-estimate)); this workflow stays available to run by hand whenever the actual AWS deployment is wanted.
 
 ---
 
@@ -221,6 +232,8 @@ Runs a golden dataset of 31 prompts (`evals/golden_dataset.json`) against the ch
 | **Total (all providers active)** | **~$35/month** |
 
 In practice only one provider is active per session — real cost will be lower.
+
+> **In practice, the live demo link runs on Vercel's free Hobby tier, not AWS ECS.** The AWS infra above (ECR, OIDC, ECS Express Mode) is built and deployable, but running it 24/7 just for a portfolio demo costs ~$53/month in idle infra for near-zero traffic — the same class of unnecessary always-on spend flagged elsewhere in this project. Vercel's free tier has no infra cost at all (hard-capped, not billed on overage) and only charges nothing at these traffic levels, so the public-demo link points there instead; AWS ECS deployment stays documented and ready as the production-shaped path, not the one actually serving the demo.
 
 ---
 

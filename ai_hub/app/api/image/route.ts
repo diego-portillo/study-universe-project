@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import type { ImageRequestBody } from '../lib/types';
 
+export const maxDuration = 60;
+
 // gpt-image-2 shares a org-wide rate-limit bucket this account's tier caps at 0 TPM
 // (every request 429s: "Request too large ... for limit gpt-image ... Limit 0") —
 // gpt-image-1-mini works today; re-verify tier access before switching back.
@@ -33,19 +35,7 @@ export async function POST(request: NextRequest) {
 
   const clippedPrompt = prompt.slice(0, maxPromptLength);
 
-  console.log('[api/image] request', {
-    model: IMAGE_MODEL,
-    promptLength: clippedPrompt.length,
-  });
-
   try {
-    console.log('[api/image] calling OpenAI images.generate', {
-      model: IMAGE_MODEL,
-      n: 1,
-      size: '1024x1024',
-      quality: 'low',
-      promptLength: clippedPrompt.length,
-    });
     const imageResponse = await openaiClient.images.generate({
       model: IMAGE_MODEL,
       prompt: clippedPrompt,
@@ -59,12 +49,6 @@ export async function POST(request: NextRequest) {
     const url = result?.b64_json
       ? `data:image/png;base64,${result.b64_json}`
       : result?.url;
-
-    console.log('[api/image] OpenAI response', {
-      hasB64: !!result?.b64_json,
-      hasUrl: !!result?.url,
-      hasRevisedPrompt: !!result?.revised_prompt,
-    });
 
     if (!url)
       return NextResponse.json(

@@ -1,5 +1,11 @@
 'use client';
 
+// This file is ~1000 lines, well past "a screenful" per this repo's own
+// component-sizing guideline (CLAUDE.md). It works and is tested, but it
+// needs to be split into smaller components before much more is added here —
+// flagged as a future rewrite, not tackled now to avoid destabilizing things
+// right before the public deploy.
+
 import {
   ChangeEvent,
   Dispatch,
