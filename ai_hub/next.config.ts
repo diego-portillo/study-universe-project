@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Only for the Docker/AWS self-hosted build — Vercel runs its own
+  // serverless packaging, and forcing "standalone" there too moves
+  // .next/server/pages-manifest.json to where Vercel's builder doesn't look
+  // for it, breaking the build with "ENOENT ... pages-manifest.json".
+  // Vercel sets VERCEL=1 during its builds, so gate on that.
+  ...(process.env.VERCEL ? {} : { output: "standalone" }),
   // Pins tracing to this subproject instead of the monorepo root — without it,
   // Next detects the root-level package-lock.json and nests .next/standalone
   // output under an extra ai_hub/ directory, which breaks scripts that assume
