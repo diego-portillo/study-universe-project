@@ -46,6 +46,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# Neon skills (npx neon skills) — local agent tooling, not project code
+.agents/
+.claude/
+skills-lock.json
+
 # Vercel
 .vercel/
 

@@ -4,6 +4,8 @@ A RAG + agent system that answers natural-language questions about public compan
 
 **Problem:** reading a 10-K/10-Q to answer a specific question (a number, a risk factor, a change between periods) means manually searching a 50+ page filing. **Who it's for:** anyone who wants to query a company's filings directly instead of reading them. **Input:** a natural-language question + ticker (AMZN, NVDA, or KO — the pilot companies). **Output:** a grounded answer with citations to the exact filing excerpts used, or an explicit refusal when the filings don't contain the answer.
 
+**Live:** [finance-rag-agent-i0ca.onrender.com](https://finance-rag-agent-i0ca.onrender.com) *(Render free tier + Neon free Postgres/pgvector — no AWS, no always-on cost)*. Try it: `POST /ask` or `POST /ask_agent` with `{"question": "...", "ticker": "AMZN"}`. First request after idle may be slow (free-tier cold start).
+
 ---
 
 ## Why This Project
@@ -102,6 +104,53 @@ Both write a timestamped results folder under `eval/results/` with the raw Ragas
 
 ---
 
+## Full Eval Results: Refusal + Agent Behavior
+
+The RAG retrieval metrics are above (Reranking/Chunking tables); this covers the other two eval categories the harness runs — refusal correctness and agent tool-use correctness — previously split across `eval/results/*/refusal_checks.json` and `agent_checks.json`. Latest run: `eval/results/20261007_104740/`.
+
+**Refusal checks (3/3 passed)** — the model must decline to answer when the filings don't contain the requested figure, not fabricate one:
+
+| Question | Ticker | Passed | Behavior |
+|---|---|---|---|
+| What was Amazon's net sales in fiscal year 2022? | AMZN | ✅ | Refused the exact figure; offered to compute an estimate from numbers actually in context instead of inventing one |
+| According to Coca-Cola's FY2025 10-K, what were total net operating revenues? | KO | ✅ | Refused — the figure isn't in the retrieved context — and offered alternatives instead of guessing |
+| What is NVIDIA's current stock price? | NVDA | ✅ | Refused — out of scope for filings data — and explained why |
+
+**Agent eval cases (4/4 passed)** — cross-period risk-factor comparisons requiring `list_filings` + `fetch_filing` tool use:
+
+| Question | Ticker | Passed | Tool calls | Behavior |
+|---|---|---|---|---|
+| How did Amazon's risk factors change between Q1 2026 and Q2 2026 10-Q filings? | AMZN | ✅ | `list_filings`×1, `fetch_filing`×2 | Found one real addition (foreign-exchange note disclosure), correctly called the rest unchanged |
+| How did NVIDIA's risk factors change between FY2025 and FY2026 10-K filings? | NVDA | ✅ | `list_filings`×1, `fetch_filing`×2 | Found five substantive changes (export-control developments, new partnership disclosures, revenue-mix/headcount updates) with citations |
+| How did Coca-Cola's risk factors change between Q2 2026 and Q3 2026 10-Q filings? | KO | ✅ | `list_filings`×1, `fetch_filing`×2 | Correctly identified the risk factors as substantively unchanged (boilerplate cross-reference in both periods) |
+| How did Tesla's risk factors change between its two most recent 10-K filings? | TSLA | ✅ | `list_filings`×1 | TSLA isn't a pilot company — `list_filings` returned nothing, and the agent reported that directly instead of retrying or guessing |
+
+---
+
+## Agent Tool-Call Trace Walkthrough
+
+One real `/ask_agent` call, captured end-to-end (question: *"How did Amazon's risk factors change between the Q1 2026 and Q2 2026 10-Q filings?"*, ticker `AMZN`) via `ToolCallLoggingMiddleware`'s per-call logging:
+
+```
+[tool_call] tool=list_filings args={'ticker': 'AMZN', 'form_type': '10-Q'} latency_ms=3283.0 result_chars=625
+[tool_call] tool=fetch_filing args={'ticker': 'AMZN', 'form_type': '10-Q', 'period': 'Q2 2026'} latency_ms=897.7 result_chars=66277
+[tool_call] tool=fetch_filing args={'ticker': 'AMZN', 'form_type': '10-Q', 'period': 'Q1 2026'} latency_ms=930.9 result_chars=66296
+```
+
+1. **`list_filings(ticker=AMZN, form_type=10-Q)`** — the agent first asks what periods exist at all, rather than guessing period names; returns the two most recent 10-Qs (Q1 2026, Q2 2026).
+2. **`fetch_filing(..., period=Q2 2026)`** then **`fetch_filing(..., period=Q1 2026)`** — pulls the full Item 1A text for each period exactly once each (`DedupeFetchFilingMiddleware` blocks a third, redundant fetch of either period if the model tries).
+3. No further tool calls — `ToolCallLimitMiddleware(run_limit=4)` caps the run at 4 tool calls, but the agent only needed 3 here before it had enough to answer.
+
+Final answer (grounded in the two fetched texts, not in the model's own knowledge):
+
+> I compared Amazon's Item 1A "Risk Factors" text in the Q1 2026 and Q2 2026 10-Q filings section-by-section. The risk factor disclosures are substantively unchanged between the two filings except for one explicit addition in Q2 2026: Q2 expands the foreign-exchange disclosure to state that Amazon issues notes in foreign currencies and that foreign-denominated note balances and payments are exposed to translation risk. No other new or removed risk factor headings, named events, transactions, or materially different risk descriptions were found in the texts provided.
+
+Citations returned alongside it:
+- Amazon (AMZN) 10-Q Q2 2026 — *We Have Foreign Exchange Risk* — [source](https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm)
+- Amazon (AMZN) 10-Q Q1 2026 — *We Have Foreign Exchange Risk* — [source](https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm)
+
+---
+
 ## Status
 
 - [x] Baseline RAG endpoint with citations and refusal behavior
@@ -109,5 +158,6 @@ Both write a timestamped results folder under `eval/results/` with the raw Ragas
 - [x] Ragas eval harness (retrieval@k, faithfulness, answer relevance)
 - [x] Agent layer (cross-period filing comparison, 2+ tools, tool-call logging)
 - [x] Reranking + chunking-strategy comparison (this section)
-- [ ] Full eval results table covering refusal + agent behavior in one place (currently split across `eval/results/*/refusal_checks.json` and `agent_checks.json`)
-- [ ] Walkthrough of one full agent tool-call trace
+- [x] Live deployment (Render + Neon, free tier — see Live link above)
+- [x] Full eval results table covering refusal + agent behavior in one place (see Full Eval Results section)
+- [x] Walkthrough of one full agent tool-call trace (see Agent Tool-Call Trace Walkthrough section)
