@@ -2,6 +2,10 @@
 *.txt
 !requirements.txt
 
+# Local planning docs — only the logbook is tracked
+docs/*
+!docs/LOGBOOK.md
+
 # Python
 __pycache__/
 .venv/

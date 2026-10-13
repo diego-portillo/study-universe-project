@@ -68,6 +68,7 @@ anything before Sep 2 beyond what's below is unrecoverable.
 | week of Sep 9–15, 2026 | LangSmith tracing docs | docs.langchain.com/langsmith (`observability-quickstart`, `observability-concepts`, `platform-setup`) | LangSmith tracing milestone (Block C, done Sep 15); `platform-setup` directly explained the AWS-hosted-endpoint 403 bug hit that week |
 | week of Sep 16–22, 2026 | Ragas docs | docs.ragas.io (`getstarted/quickstart`, `concepts/metrics/overview`, `concepts/metrics/available_metrics`) | Eval harness milestone (Block C, done Sep 22) |
 | week of Sep 23–29, 2026 | LangChain agents docs (`create_agent` + middleware) | docs.langchain.com/oss/python/langchain/agents; reference.langchain.com/python/langchain/agents/factory/create_agent; reference.langchain.com/python/langchain/middleware | Agent layer milestone (Block C, done Oct 1); noted `create_react_agent` (LangGraph's older prebuilt) is deprecated in favor of `create_agent` |
+| week of Oct 8–13, 2026 | Next.js 16 `proxy.ts` (renamed from `middleware.ts`, now runs on the Node runtime instead of Edge) | nextjs.org/docs/app/api-reference/file-conventions/proxy | Public-demo cost safety milestone (Block D, done Oct 9) — per-IP rate limiter's `proxy.ts` rewrite; noted CVE-2025-29927 means proxy/middleware shouldn't be relied on alone for auth-style gating |
 
 Background, not individually dated: 100+ prior Platzi courses (RAG/Azure,
 LangChain, Agents, MCP, Prompt Engineering, NLP, PyTorch, AWS, Node.js, React,
@@ -275,6 +276,25 @@ cost visible per request.
 
 **Exit criterion met — Block C fully closed 2026-10-07/08, 2026** (README has an eval results table covering RAG + agent behavior; chunking strategy explainable with numbers; full agent tool-call trace walked and verified, see Oct 1 entry above).
 
+### Block D — AWS deployment + monitoring (Oct 8, 2026 – active)
+
+- **2026-10-08** — Vercel "fast-win live URL" step deferred, not done: a
+  public ai_hub URL exposes real OpenAI/Anthropic/Google/ElevenLabs keys to
+  anyone with the link, and the rate-limit/spend-cap safety work needed to
+  de-risk that is needed regardless of host, so building it once as part of
+  the real ECS deployment beats building it twice. See `PLAN.md` Open
+  decisions #4. New prerequisite milestone added ahead of the Oct 26 ECS
+  deployment: public-demo cost safety in ai_hub.
+- **2026-10-09** — Public-demo cost safety landed: `ai_hub/middleware.ts`
+  renamed to `proxy.ts` per Next.js 16's convention (now Node runtime, not
+  Edge); `PUBLIC_DEMO_MODE`-gated global daily request cap added alongside
+  the existing per-IP limiter; the output-token cap generalized to all chat
+  providers; a flat daily token cap added as the cost backstop (scope
+  trimmed from the original dollar-spend-cap plan — simpler, no dependency
+  on `cost.ts` pricing staying accurate); a verified non-deprecated cheap
+  model forced per provider when demo mode is on. Image/audio gating was
+  dropped entirely from scope, same day.
+
 ---
 
 ## Task checklist (current status snapshot)
@@ -293,6 +313,7 @@ ever diverge; update both together.
   - [x] Agent layer (≥2 tools, tool-call logging, agent eval cases)
   - [x] Reranking + chunking-strategy comparison write-up
 - [ ] Block D — AWS deployment + monitoring — **active**
+  - [x] Public-demo cost safety (rate limits, daily token cap, cheap-model default)
 - [ ] Block E — Polish: READMEs, architecture, video script
 - [ ] Phase 2 — Showcase
 - [ ] Phase 3 — Interview prep
@@ -455,3 +476,60 @@ boundary. **This close-out also marks Block C fully closed** (see the Oct 7
 entry and task checklist above) — Block D (AWS deployment + monitoring) is
 now active, with the Oct 8, 2026 decision to defer the Vercel fast-win step
 (see `PLAN.md` Open decisions #4).
+
+### Week: Oct 8 – Oct 14, 2026
+
+```
+Week: Oct 8 - Oct 14, 2026
+(Block C fully closed Oct 7/8 — agent layer, reranking/chunking write-up,
+LC 110, and this week's reading all done; see LOGBOOK.md's Oct 7 entry and
+task checklist. Block D (AWS deployment + monitoring) is now active.
+
+Decided Oct 8, 2026: the "Vercel fast-win live URL" step (PLAN.md, originally
+due Oct 5) is deferred, not done. ai_hub's public URL exposes real
+OpenAI/Anthropic/Google/ElevenLabs keys to anyone with the link — without a
+rate limit/spend cap that's an open-ended cost risk, same class of problem as
+the earlier AWS idle-cost incident. That safety work is needed regardless of
+host (Vercel or AWS), so building it once, properly, as part of the real ECS
+deployment beats building it twice — once hastily for a throwaway Vercel
+link. See PLAN.md Open decisions #4 for the full rationale. Interim showcase
+until a live URL exists: the Loom video (Phase 2) + screenshots.)
+
+Block D — first milestone (from PLAN.md), new prerequisite ahead of the
+Oct 26 ECS deployment
+- [x] Public-demo cost safety in ai_hub: per-IP + global daily rate limit,
+        daily token cap, and cheap-model default for any publicly-reachable
+        deployment — built in before any live URL goes up, not bolted on
+        after. (Scope trimmed from the original plan during implementation:
+        dollar spend cap swapped for a flat daily token cap — simpler, no
+        dependency on cost.ts pricing staying accurate — and image/audio
+        gating dropped entirely, decided Oct 9, 2026.)
+
+Reading (1 topic/week cap, decided Aug 27, 2026)
+- [x] Next.js 16 proxy.ts (renamed from middleware.ts, now runs on the Node
+        runtime instead of Edge) — directly relevant to implementing the
+        per-IP rate limiter above; per ai_hub/AGENTS.md's warning, confirm
+        against ai_hub/node_modules/next/dist/docs/ (local, version-matched)
+        rather than relying on a public page or training-data recall of the
+        old middleware.ts convention
+        - https://nextjs.org/docs/app/api-reference/file-conventions/proxy
+        - note: proxy.ts handles request/response manipulation, not auth —
+          CVE-2025-29927 means middleware/proxy should not be relied on alone
+          for auth-style gating
+
+LeetCode (1 problem/week cap, decided Aug 27, 2026 — new pattern per PLAN.md's
+Block D line: DP intro, greedy, intervals, after closing the trees/graphs/
+BFS/DFS series with Balanced Binary Tree (110) on Oct 8)
+- [ ] Climbing Stairs (70) — standard first DP-intro problem; swap if you'd
+        rather pick a different one
+
+Done when
+- Rate limit + token cap + demo-mode safety work lands in ai_hub (even if not
+  yet deployed), Next.js proxy.ts reading done, LC 70 solved and explainable
+  out loud.
+```
+
+Closed out 2026-10-13 with LC 70 (Climbing Stairs) explicitly dropped, not
+done — Diego's call, not a slip. Reading and the Block D milestone (public-
+demo cost safety) were both done; LeetCode was the only open item. The
+DP-intro series (Climbing Stairs → ...) restarts whenever LeetCode resumes.

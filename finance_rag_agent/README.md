@@ -6,6 +6,43 @@ A RAG + agent system that answers natural-language questions about public compan
 
 ---
 
+## Why This Project
+
+**Domain: Finance**, picked over e-commerce (the original choice) and healthcare (the runner-up) on three axes:
+- **Demand:** highest of any domain in the [AI engineering field guide](https://github.com/alexeygrigorev/ai-engineering-field-guide)'s use-case data — 2,321 mentions (9.5% of use cases), vs. 1,783 for healthcare and 226 for retail/e-commerce.
+- **Data-access risk:** lowest of the three once scoped correctly — SEC EDGAR filings are public record with a free, keyless API, vs. e-commerce's proprietary per-retailer catalogs or healthcare's HIPAA/PHI exposure on anything clinical.
+- **Comp:** fintech/banking pays an above-market premium for engineering talent generally.
+
+**Evidence from the job market** — five real job descriptions and three engineering blogs/case studies were reviewed before picking the problem:
+
+| Company | Job description | What it signals |
+|---|---|---|
+| Capital One | [Senior Lead AI Engineer, GenAI Platform Services](https://builtin.com/job/senior-lead-ai-engineer-gen-ai-platform-services/9420327) | Platform-level GenAI engineering, not research — building the infra other teams build on. |
+| Wells Fargo | [Lead Specialty AI Java Software Engineer, Electronic Trading](https://builtin.com/job/lead-specialty-ai-java-software-engineer-electronic-trading/9879596) | AI applied directly inside a trading workflow, not a bolt-on chatbot. |
+| BlackRock | [Rust AI Engineer, Director](https://builtin.com/job/rust-ai-engineer-director/9629914) | Asset-manager-side AI engineering — performance-sensitive, not just prototyping. |
+| Bloomberg | [Senior GenAI Platform Engineer](https://bloomberg.avature.net/careers/JobDetail/Senior-GenAI-Platform-Engineer-Artificial-Intelligence/18586) | "Build better search, discovery, and workflow solutions" — Bloomberg's core business *is* financial-document retrieval. Requires MCP/A2A/LangGraph/LlamaIndex/Pydantic AI — the same tool-use stack this project uses. |
+| Morgan Stanley | [AI Engineer](https://morganstanley.eightfold.ai/careers/job/549797703474) | Building/deploying AI agents at scale; LangChain/LangGraph/CrewAI/AutoGen required. |
+
+The most concrete validation is Morgan Stanley's own production system: the [Morgan Stanley × OpenAI case study](https://openai.com/index/morgan-stanley/) describes "AI @ Morgan Stanley Assistant," which gives financial advisors RAG access to ~100,000 internal research reports with 98% advisor-team adoption, rolled out via evaluation-driven development (human graders scoring summarization accuracy/coherence before shipping) — the same eval-first approach this project follows.
+
+**Prior art studied** — two actively-maintained reference repos for this exact domain, inspected directly (READMEs, file tree, real test code):
+- [SEC Insights](https://github.com/run-llama/sec-insights) — RAG over 10-K/10-Q PDFs with streamed, cited answers. Weak on proof: one test file total, no eval set; the README itself admits "room for improvement in RAG performance."
+- [Invoice Extract and Reconcile](https://github.com/run-llama/template-workflow-extract-reconcile-invoice) — invoice-vs-contract reconciliation. Better tested (3 real pytest tests against a fake server + a real sample PDF, two of them genuine regression tests), but none test whether the *extraction or match is actually correct* — only that the plumbing/schema holds.
+
+Neither reference has an eval harness measuring output correctness — only plumbing tests or ops monitoring. The eval harness in this project (Ragas: retrieval@k, faithfulness, answer relevance — see below) directly closes that gap.
+
+**Pilot companies:**
+
+| Company | Ticker | Why |
+|---|---|---|
+| Amazon | AMZN | Supply chain/logistics risk profile |
+| NVIDIA | NVDA | AI/regulatory/export-control risk profile |
+| Coca-Cola | KO | Commodity/international-currency risk profile |
+
+Chosen for varied risk-factor profiles so period-over-period risk-factor diffs are substantive rather than boilerplate. All three file standard 10-K/10-Q (no 20-F handling needed).
+
+---
+
 ## Architecture
 
 ```
