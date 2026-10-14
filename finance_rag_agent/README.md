@@ -10,10 +10,9 @@ A RAG + agent system that answers natural-language questions about public compan
 
 ## Why This Project
 
-**Domain: Finance**, picked over e-commerce (the original choice) and healthcare (the runner-up) on three axes:
+**Domain: Finance**, picked over e-commerce (the original choice) and healthcare (the runner-up) on two axes:
 - **Demand:** highest of any domain in the [AI engineering field guide](https://github.com/alexeygrigorev/ai-engineering-field-guide)'s use-case data — 2,321 mentions (9.5% of use cases), vs. 1,783 for healthcare and 226 for retail/e-commerce.
 - **Data-access risk:** lowest of the three once scoped correctly — SEC EDGAR filings are public record with a free, keyless API, vs. e-commerce's proprietary per-retailer catalogs or healthcare's HIPAA/PHI exposure on anything clinical.
-- **Comp:** fintech/banking pays an above-market premium for engineering talent generally.
 
 **Evidence from the job market** — five real job descriptions and three engineering blogs/case studies were reviewed before picking the problem:
 
@@ -47,15 +46,76 @@ Chosen for varied risk-factor profiles so period-over-period risk-factor diffs a
 
 ## Architecture
 
-```
-SEC EDGAR → ingest (extract Item 1A/MD&A sections → chunk → embed) → Postgres + pgvector
-                                                                            │
-question + ticker → embed → pgvector cosine search (over-fetch) → Cohere rerank → top-k chunks
-                                                                            │
-                                                              prompt + chunks → OpenAI chat → answer + citations
+```mermaid
+graph TD
+    EDGAR[SEC EDGAR] -->|10-K / 10-Q HTML| Ingest["ingest pipeline<br/>extract Item 1A / MD&A → chunk → embed"]
+    Ingest --> DB[(Postgres + pgvector)]
+
+    Q["question + ticker"] --> QEmbed[embed question]
+    QEmbed --> Search["pgvector cosine search<br/>over-fetch 3x top_k"]
+    DB --> Search
+    Search --> Rerank["Cohere rerank-v3.5<br/>truncate to top_k=7"]
+    Rerank --> Prompt[prompt + chunks]
+    Prompt --> Chat[OpenAI chat model]
+    Chat --> Answer["answer + citations (/ask)"]
+
+    subgraph Agent["agent layer (/ask_agent)"]
+        AgentLLM[LangGraph agent] -->|tool call| ListFilings[list_filings]
+        AgentLLM -->|tool call x2| FetchFiling[fetch_filing]
+        ListFilings --> DB
+        FetchFiling --> DB
+        FetchFiling --> AgentLLM
+        AgentLLM --> AgentAnswer["diffed answer + citations"]
+    end
 ```
 
-The agent layer (`app/agent.py`, LangGraph) wraps the same filings in two tools — `list_filings` and `fetch_filing` — so it can pull two periods' risk-factor text and diff them, for questions a single RAG query can't answer (e.g. "how did Amazon's risk factors change between Q1 and Q2 2026?").
+The agent layer (`app/agent.py`, LangGraph) wraps the same filings in two tools — `list_filings` and `fetch_filing` — so it can pull two periods' risk-factor text and diff them, for questions a single RAG query can't answer (e.g. "how did Amazon's risk factors change between Q1 and Q2 2026?"). Middleware enforces correctness and cost bounds: `DedupeFetchFilingMiddleware` blocks refetching a period already pulled in the same run, `ToolCallLimitMiddleware(run_limit=4)` caps tool calls per question, and `ToolCallLoggingMiddleware` logs every call (see the [trace walkthrough](#agent-tool-call-trace-walkthrough) below).
+
+Both the RAG pipeline and the agent loop are instrumented with **LangSmith** (LangChain-native, wired in from the start): every retrieval, rerank, and LLM call is a span in a full request trace, with per-span latency and token counts — the same multi-step tool-calling sequence in the trace walkthrough below is visible there with full nested detail, not just the summarized log line.
+
+---
+
+## Models & Providers Matrix
+
+| Layer | Provider | Model | Used for | Env override |
+|---|---|---|---|---|
+| Embeddings | OpenAI | `text-embedding-3-small` | Chunk + query embeddings for pgvector cosine search | `EMBEDDING_MODEL` |
+| Chat / generation | OpenAI | `gpt-5-mini` (default) | RAG answer synthesis (`/ask`) and agent reasoning (`/ask_agent`) | `OPENAI_CHAT_MODEL` |
+| Reranking | Cohere | `rerank-v3.5` | Re-scores the over-fetched candidate pool before truncating to `top_k` | `RERANK_MODEL` |
+| Orchestration | LangChain + LangGraph | — | Agent tool-calling loop; middleware for dedup/logging/call-limits | — |
+| Tracing | LangSmith | — | Full RAG + agent pipeline observability | `LANGSMITH_*` |
+
+One provider per layer, deliberately — unlike `ai_hub` (which demonstrates multi-provider chat), this project keeps one primary LLM vendor so eval comparisons (reranking, chunking) aren't confounded by also varying the model; see [Trade-offs](#trade-offs).
+
+---
+
+## Running Locally
+
+```bash
+cd finance_rag_agent
+python -m venv .venv
+source .venv/Scripts/activate      # Git Bash on Windows; use .venv/bin/activate on macOS/Linux
+pip install -r requirements.txt
+
+cp .env.example .env               # fill in OPENAI_API_KEY, COHERE_API_KEY, SEC_EDGAR_USER_AGENT, etc.
+docker compose up -d               # local Postgres + pgvector on :5432
+psql "$DATABASE_URL" -f db/schema.sql
+
+python -m ingest.run_ingest        # pulls AMZN/NVDA/KO filings from EDGAR, chunks, embeds, stores
+uvicorn app.main:app --reload      # http://localhost:8000
+```
+
+Then query it:
+
+```bash
+curl -X POST localhost:8000/ask -H "Content-Type: application/json" \
+  -d '{"question": "What are Amazon'"'"'s main supply chain risks?", "ticker": "AMZN", "top_k": 5}'
+
+curl -X POST localhost:8000/ask_agent -H "Content-Type: application/json" \
+  -d '{"question": "How did NVIDIA'"'"'s risk factors change between FY2025 and FY2026?", "ticker": "NVDA"}'
+```
+
+Required env vars: `OPENAI_API_KEY`, `COHERE_API_KEY`, `DATABASE_URL`, `SEC_EDGAR_USER_AGENT` (SEC requires an identifying string on every request). Optional: `OPENAI_CHAT_MODEL`, `EMBEDDING_MODEL`, `RERANK_MODEL`, `LANGSMITH_*` (tracing) — see `.env.example` for the full list.
 
 ---
 
@@ -148,6 +208,36 @@ Final answer (grounded in the two fetched texts, not in the model's own knowledg
 Citations returned alongside it:
 - Amazon (AMZN) 10-Q Q2 2026 — *We Have Foreign Exchange Risk* — [source](https://www.sec.gov/Archives/edgar/data/1018724/000101872426000026/amzn-20260630.htm)
 - Amazon (AMZN) 10-Q Q1 2026 — *We Have Foreign Exchange Risk* — [source](https://www.sec.gov/Archives/edgar/data/1018724/000101872426000014/amzn-20260331.htm)
+
+---
+
+## Cost Estimate
+
+Per-request cost, current defaults (`gpt-5-mini`, `text-embedding-3-small`, `rerank-v3.5`):
+
+| Request | What runs | Approx. cost |
+|---|---|---|
+| `POST /ask` | 1 query embedding + 1 Cohere rerank (≤100 docs) + 1 chat completion (~2.5K input / ~400 output tokens) | **~$0.003–0.004** |
+| `POST /ask_agent` | `list_filings` + 2×`fetch_filing` (large filing text re-sent as context across 3–4 LLM turns, ~35–50K cumulative input tokens) + final synthesis | **~$0.01–0.02** |
+| One-time ingest (all 12 pilot filings, 1,344 chunks) | Chunk embeddings only (`text-embedding-3-small`) | **< $0.01 total** |
+
+Rates used: OpenAI `gpt-5-mini` $0.25 / $2.00 per 1M input/output tokens; `text-embedding-3-small` $0.02 per 1M tokens; Cohere rerank $2.00 per 1,000 searches (1 search ≤ 100 docs). Verify current rates on each provider's pricing page before budgeting — these move.
+
+**Hosting: $0/month.** Render's free web-service tier (750 instance-hrs/month, sleeps after ~15 min idle) + Neon's free Postgres/pgvector tier (1 GB storage, pgvector preinstalled). No AWS, no always-on infra — see [Trade-offs](#trade-offs) for why this skipped the ECS path `ai_hub` uses.
+
+---
+
+## Trade-offs
+
+| Decision | Chose | Over | Why |
+|---|---|---|---|
+| Application framework | FastAPI | Flask, Django | Async + Pydantic is the AI-serving standard; `ai_hub` already covers the React/Next.js half of the portfolio |
+| Orchestration | LangChain + LangGraph | LlamaIndex, CrewAI | LangChain appears in 34.3% of job listings in the field guide's data; LangGraph is its agent layer, not a competing framework |
+| Vector store | Postgres + pgvector | Pinecone, Weaviate | One DB for relational + vector data (agent tools need SQL joins anyway); cheapest option below ~10M vectors |
+| Reranking | Cohere hosted `rerank-v3.5` | Local cross-encoder | Pay-per-use fits a portfolio project's traffic; a local model needs a permanently-billed container regardless of traffic (see [Retrieval Quality](#retrieval-quality)) |
+| Chunking | `RecursiveCharacterTextSplitter` | `SemanticChunker` | Measured a wash in Ragas scores (see [Retrieval Quality](#retrieval-quality)) at the cost of extra embedding calls — kept the simpler, cheaper option |
+| Hosting | Render + Neon (free tier) | AWS ECS (the `ai_hub` path) | Zero idle cost; the agent's multi-step tool-calling loop also doesn't fit cleanly inside a serverless-function timeout model |
+| LLM provider | One primary provider (OpenAI) | Multi-provider | `ai_hub` already demonstrates provider abstraction; this project stays "boring" on the LLM layer so eval comparisons (reranking, chunking) aren't confounded by also varying the model |
 
 ---
 

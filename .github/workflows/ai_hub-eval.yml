@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       provider:
-        description: "Comma-separated provider filter — only 'openai' is verified working as of Aug 2026 (see this_week.txt)"
+        description: "Comma-separated provider filter — only 'openai' is verified working as of Aug 2026"
         required: false
         default: "openai"
       pr_number:

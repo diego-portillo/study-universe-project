@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Layout
 
-This is a multi-project monorepo. Each top-level directory is an independent project; there is no shared build at the root (only Prettier/Tailwind config).
+This is a two-project monorepo (an AI backend engineering portfolio). Each top-level project directory is independent; there is no shared build at the root (only Prettier/Tailwind config).
 
 - `ai_hub/` — **primary active subproject.** Next.js 16 + React 19 chat/image/audio UI over OpenAI, Anthropic, Google, and ElevenLabs via the Vercel AI SDK.
-- `backend_flask/`, `backend_node/` — tiny Flask and Express hello-world services, wired into `docker-compose.yaml` and the `static_website/` frontend.
-- `static_website/` — static HTML/JS frontend that calls `backend_flask` (served via the root `docker-compose.yaml`).
-- `balancer/` — docker compose / swarm nginx load-balancer experiments.
-- `RAG/`, `data/algorithms/` — RAG loader for indexing algorithm files in `data/`.
+- `finance_rag_agent/` — **second project.** FastAPI RAG + agent system over SEC filings (10-K/10-Q): Postgres+pgvector retrieval, Cohere reranking, a Ragas eval harness, and a LangGraph agent layer.
+- `docs/` — planning docs (`PLAN.md`, `interview_prep.md`, etc.); only `docs/LOGBOOK.md` is git-tracked (see `.gitignore`), the rest are local scratch.
+- `infra/` — CloudFormation + deploy/teardown scripts for `ai_hub`'s documented-but-dormant AWS ECS path (see `ai_hub/README.md`'s AWS Deployment section).
+- `samples/` — test-fixture images used by `ai_hub`'s vision/eval tests.
 
 When asked to work "on the app" without further context, assume `ai_hub/`.
 
@@ -21,20 +21,20 @@ Each subproject manages its own dependencies and is independently deployable —
 - **Root `package.json` / `node_modules`** — repo-wide tooling only (Prettier, Tailwind plugin, ESLint-Prettier config). Used by format-on-save across every subproject. Not for app code.
 - **Subproject `package.json` / `node_modules`** (e.g. `ai_hub/`) — that app's runtime + dev deps. Each subproject pins its own versions and ships in its own Docker image with only its own deps installed.
 
-No npm workspaces: subprojects don't share code (different runtimes — Next.js, Flask, static HTML, Python RAG), so workspaces would be ceremony for no benefit.
+No npm workspaces: the two subprojects don't share code (Next.js/TypeScript vs. Python/FastAPI, different runtimes entirely), so workspaces would be ceremony for no benefit.
 
 ## Deployment target
 
-- **Domain:** `www.diegoportillo.dev` (owned by Diego).
-- **Host:** AWS (not Vercel).
-- **Routing:** each subproject is served at a subpath, e.g. `www.diegoportillo.dev/ai_hub`. A reverse proxy (nginx / ALB / CloudFront) fans the subpaths out to per-subproject containers.
-- **Container model:** one Docker image per subproject (see [Dependencies convention](#dependencies-convention)). No global app image.
+- **Domain:** `www.diegoportillo.dev` (owned by Diego) is reserved for a separate personal/portfolio site project — not served from this repo.
+- **ai_hub:** deployed standalone on Vercel (free Hobby tier). An AWS ECS Express Mode path (ECR + OIDC + Fargate) is also built and documented, but isn't what serves the live demo — see `ai_hub/README.md`'s Cost Estimate section for why.
+- **finance_rag_agent:** deployed standalone on Render (free tier) with a free Neon Postgres+pgvector add-on.
+- **Container model:** each subproject still ships its own Docker image for local dev/CI (see [Dependencies convention](#dependencies-convention)); no global app image, no shared reverse proxy.
 
 Implications when writing code or infra:
 
-- Next.js subprojects need `basePath` set to their subpath for production builds (e.g. `basePath: '/ai_hub'`) so client-side links and `_next/static` assets resolve correctly behind the proxy. `basePath` is build-time in Next.js — gate it behind an env var so local dev (`localhost:3000`) stays prefix-free.
-- Don't lean on Vercel-isms (Vercel-specific env vars, the Vercel image optimizer's defaults, Edge runtime assumptions). Stick to what runs on a generic Node container.
-- For AWS, expect: ECR (image registry) + ECS Express Mode (Fargate-based, auto-provisions ALB and auto-scaling) + CloudFront or ALB in front for TLS and subpath routing.
+- `ai_hub`'s `basePath` is env-gated (`NEXT_PUBLIC_BASE_PATH`) for a possible future subpath deployment, but builds with no prefix today — don't assume a subpath in local dev or on Vercel.
+- Vercel-isms are fine for `ai_hub` now (that's the active deploy target) — just don't assume they'd work unchanged if the documented AWS ECS path is ever revisited.
+- For the AWS path specifically, expect: ECR (image registry) + ECS Express Mode (Fargate-based, auto-provisions ALB and auto-scaling) + CloudFront or ALB in front for TLS.
 
 ## ai_hub — important constraint
 
@@ -83,10 +83,6 @@ The whole app is one client page (`app/page.tsx`) with three modes — `chat`, `
 ### Required env vars (`ai_hub/.env.local`)
 
 `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `ELEVENLABS_API_KEY` — each provider's route returns 500 if its key is missing. Optional overrides: `OPENAI_MODEL`, `OPENAI_VISION_MODEL`, `OPENAI_IMAGE_MODEL`, `OPENAI_IMAGE_SIZE`, `ANTHROPIC_MODEL`, `ANTHROPIC_MAX_TOKENS`, `GEMINI_MODEL`.
-
-## Root project (Flask + static site)
-
-`docker-compose.yaml` at the repo root builds and runs `backend_flask` (port 8082) + `static_website` (port 8080, nginx). `static_website/request.js` calls the Flask backend. Bring up with `docker compose up --build`.
 
 ## Formatting
 
