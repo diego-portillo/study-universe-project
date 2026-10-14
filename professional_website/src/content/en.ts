@@ -10,12 +10,14 @@ export const en: SiteContent = {
   },
   languageToggleLabel: 'Ver en Español',
   hero: {
-    titleLines: ["Welcome! I'm Diego", 'Software Developer'],
+    titleLines: ["Welcome! I'm Diego", 'Fullstack AI Software Engineer'],
     subtitleParts: [
-      'Here you can see',
-      'my AI & backend projects',
-      'and contact me, so we can start',
-      'working together...',
+      "Here's my work",
+      'for companies',
+      'and my',
+      'personal projects,',
+      'so you can see them and',
+      'contact me to start working together',
     ],
   },
   about: {

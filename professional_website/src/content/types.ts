@@ -46,7 +46,7 @@ export interface SiteContent {
   languageToggleLabel: string;
   hero: {
     titleLines: [string, string];
-    subtitleParts: [string, string, string, string];
+    subtitleParts: string[];
   };
   about: {
     heading: string;
