@@ -6,6 +6,8 @@ A RAG + agent system that answers natural-language questions about public compan
 
 **Live:** [finance-rag-agent-i0ca.onrender.com](https://finance-rag-agent-i0ca.onrender.com) *(Render free tier + Neon free Postgres/pgvector — no AWS, no always-on cost)*. Try it: `POST /ask` or `POST /ask_agent` with `{"question": "...", "ticker": "AMZN"}`. First request after idle may be slow (free-tier cold start).
 
+**Demo video:** [youtu.be/WUIBx6V2yR8](https://youtu.be/WUIBx6V2yR8)
+
 ---
 
 ## Why This Project

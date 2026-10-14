@@ -6,6 +6,8 @@ A production-ready Next.js 16 + React 19 web app that unifies **chat, image gene
 
 **Live:** [ai-2z4c4itsf-diegoportillos-projects.vercel.app](https://ai-2z4c4itsf-diegoportillos-projects.vercel.app/) *(Vercel Hobby tier — see [Cost Estimate](#cost-estimate) for why the live demo runs here instead of the AWS infra documented below)*
 
+**Demo video:** [youtu.be/RKUtU4oiTFc](https://youtu.be/RKUtU4oiTFc)
+
 ---
 
 ## What It Does
