@@ -4,9 +4,7 @@ A production-ready Next.js 16 + React 19 web app that unifies **chat, image gene
 
 **Problem:** switching between OpenAI, Anthropic, Google, and ElevenLabs playgrounds to compare models means juggling separate UIs, API shapes, and pricing pages. **Who it's for:** developers evaluating providers/models for a project, and anyone who wants one chat/image/audio interface instead of four. **Input:** text, images, or audio (mic or file upload). **Output:** streamed text, generated images, or synthesized/transcribed audio — routed to whichever provider and model you pick per request.
 
-**Live:** `https://ai-<ecs-id>.ecs.us-east-1.on.aws` *(ECS Express Mode endpoint, served at root; custom domain `www.diegoportillo.dev/ai_hub` routing still pending — see [AWS Deployment](#aws-deployment))*
-
-> ⚠️ **`<ecs-id>` changes whenever the ECS service is recreated** (e.g. after running `ai_hub-teardown.yml` and redeploying) — see [AWS Deployment](#aws-deployment) for how to find the current value.
+**Live:** [ai-2z4c4itsf-diegoportillos-projects.vercel.app](https://ai-2z4c4itsf-diegoportillos-projects.vercel.app/) *(Vercel Hobby tier — see [Cost Estimate](#cost-estimate) for why the live demo runs here instead of the AWS infra documented below)*
 
 ---
 
