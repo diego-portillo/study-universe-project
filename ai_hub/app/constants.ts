@@ -22,7 +22,13 @@ export const PROVIDER_LABELS = {
 
 export const UNSUPPORTED_AUDIO_TEXT_PROVIDERS = 'Anthropic, Google' as const;
 
-export const MODEL_OPTIONS: ModelOption[] = [
+// Google billing is opt-in, so the provider is hidden unless explicitly enabled —
+// the public demo deployment leaves this unset (and GOOGLE_GENERATIVE_AI_API_KEY
+// unset) to avoid taking on Google API cost. Set to "true" in .env.local for
+// local dev.
+const GOOGLE_PROVIDER_ENABLED = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_PROVIDER === 'true';
+
+const ALL_MODEL_OPTIONS: ModelOption[] = [
   { id: 'gpt-4o-mini', label: 'GPT-4o mini', provider: 'openai' },
   {
     id: 'claude-sonnet-4-6',
@@ -41,6 +47,10 @@ export const MODEL_OPTIONS: ModelOption[] = [
     provider: 'elevenlabs',
   },
 ];
+
+export const MODEL_OPTIONS: ModelOption[] = GOOGLE_PROVIDER_ENABLED
+  ? ALL_MODEL_OPTIONS
+  : ALL_MODEL_OPTIONS.filter((model) => model.provider !== 'google');
 
 export const DEFAULT_MODEL = MODEL_OPTIONS[0];
 

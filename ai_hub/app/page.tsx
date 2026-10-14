@@ -743,13 +743,15 @@ function ModelSelector({
               </option>
             ))}
           </optgroup>
-          <optgroup label="Google">
-            {googleModels.map((model) => (
-              <option key={model.id} value={model.id}>
-                {model.label}
-              </option>
-            ))}
-          </optgroup>
+          {googleModels.length > 0 && (
+            <optgroup label="Google">
+              {googleModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.label}
+                </option>
+              ))}
+            </optgroup>
+          )}
           <optgroup label="ElevenLabs">
             {elevenLabsModels.map((model) => (
               <option key={model.id} value={model.id}>

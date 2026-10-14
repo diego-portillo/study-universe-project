@@ -66,6 +66,8 @@ All model IDs are env-overridable (see [Environment variables](#environment-vari
 
 **On the public demo** (`PUBLIC_DEMO_MODE=true`), chat always forces a cheaper model per provider regardless of the selection above, to keep a publicly-reachable link's cost bounded: `gpt-5-nano` (OpenAI), `claude-haiku-5-5` (Anthropic), `gemini-3.5-flash-lite` (Google). Image and audio modes are not gated to a cheap model in demo mode — a deliberate scope trim (see `LOGBOOK.md`'s Oct 9 entry) — but all routes are still covered by the per-IP and global daily request caps in `proxy.ts`.
 
+**Google is hidden from the live demo entirely** — `NEXT_PUBLIC_ENABLE_GOOGLE_PROVIDER` and `GOOGLE_GENERATIVE_AI_API_KEY` are both left unset on Vercel, so the model picker never offers Google and the chat route 500s cleanly if it's requested directly. This avoids taking on Google API billing for a free-tier demo; the code path is still fully tested (see `app/tests/setup.ts`) and works locally with the key + flag set.
+
 ---
 
 ## Running Locally
@@ -104,6 +106,11 @@ OPENAI_IMAGE_MODEL=gpt-image-1-mini
 ANTHROPIC_MODEL=claude-sonnet-4-6
 ANTHROPIC_MAX_TOKENS=1024
 GEMINI_MODEL=gemini-3-flash-preview
+
+# Google is hidden from the model picker unless this is "true" — the live demo
+# leaves it unset (and GOOGLE_GENERATIVE_AI_API_KEY unset) to avoid taking on
+# Google API billing. Set to "true" locally to develop against it.
+NEXT_PUBLIC_ENABLE_GOOGLE_PROVIDER=
 
 # Public-demo safety — see Provider & Model Matrix above
 PUBLIC_DEMO_MODE=        # "true" on a publicly-reachable deployment, unset for local dev
@@ -240,7 +247,7 @@ In practice only one provider is active per session — real cost will be lower.
 | Streaming | AI SDK's `toTextStreamResponse()` + manual `ReadableStream` reader | `useChat` from `ai/react` | Built before adopting the SDK's React hook; could be swapped in later to drop the manual parser (`app/hooks/useChat.ts`) |
 | CI/CD gating | Manual-only (`workflow_dispatch`) for deploy + eval workflows | Auto-run on every push/PR | Deploy auto-triggers real AWS spend (~$53/mo Fargate+ALB) and eval auto-triggers real paid API calls — both need a human in the loop before spending money |
 | Public demo hosting | Vercel free Hobby tier | AWS ECS Express Mode (the documented production path) | ECS bills 24/7 regardless of traffic; Vercel's free tier is hard-capped at $0 for this traffic level — see [Cost Estimate](#cost-estimate) |
-| LLM provider strategy | Multi-provider (OpenAI/Anthropic/Google) | Single provider | Demonstrates provider abstraction directly — unlike `finance_rag_agent`, which stays single-provider so its eval comparisons (reranking, chunking) aren't confounded by also varying the model |
+| LLM provider strategy | Multi-provider (OpenAI/Anthropic/Google) in code, Google disabled on the live demo | Dropping Google entirely | Demonstrates provider abstraction directly in the codebase without taking on Google API billing for a free-tier demo — unlike `finance_rag_agent`, which stays single-provider so its eval comparisons (reranking, chunking) aren't confounded by also varying the model |
 
 ---
 
