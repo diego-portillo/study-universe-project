@@ -9,6 +9,7 @@ export interface TechCategory {
   label: string;
   logos: {
     alt: string;
+    href: string;
     /** icon file to use when the active theme is light (Spanish) */
     forLightTheme: string;
     /** icon file to use when the active theme is dark (English) */
@@ -18,21 +19,28 @@ export interface TechCategory {
 
 export interface WorkProject {
   id: string;
-  orientation: 'horizontal' | 'vertical';
-  /** DOM order: the original markup doesn't always put the display before the info block */
-  displayFirst: boolean;
   href: string;
-  logo: string;
-  logoId?: string;
   preview: string;
   title: string;
   stack: string;
   clientLogos?: { id: string; src: string; alt: string }[];
 }
 
-export interface PersonalProject extends WorkProject {
-  demoHref?: string;
-  demoLabel?: string;
+export interface AIProject {
+  id: string;
+  title: string;
+  stack: string;
+  /** YouTube video id used both for the thumbnail and the embedded player */
+  youtubeId: string;
+  liveHref: string;
+  repoHref: string;
+}
+
+export interface FeaturedClient {
+  heading: string;
+  description: string;
+  href: string;
+  preview: string;
 }
 
 export interface SiteContent {
@@ -59,17 +67,18 @@ export interface SiteContent {
   };
   projects: {
     heading: string;
+    aiHeading: string;
+    ai: AIProject[];
+    featuredClient: FeaturedClient;
     workSubtitle: string;
     work: WorkProject[];
-    personalHeading: string;
-    personal: PersonalProject[];
   };
   contact: {
-    availabilityLabel: string;
     headline: string;
     emailLabel: string;
     copyLabel: string;
     copiedLabel: string;
+    backToTopLabel: string;
     copyrightLabel: string;
   };
 }

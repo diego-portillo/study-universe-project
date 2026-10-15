@@ -3,6 +3,11 @@ import type { SiteContent } from '../content/types';
 import { useSectionFadeIn } from '../hooks/useSectionFadeIn';
 import { scrollToSection } from '../scrollToSection';
 import { ChevronDownIcon } from '../icons';
+import { YEARS_OF_EXPERIENCE } from '../constants';
+
+function fillTemplate(text: string): string {
+  return text.replace('{years}', String(YEARS_OF_EXPERIENCE));
+}
 
 export function About({ about }: { about: SiteContent['about'] }) {
   const ref = useRef<HTMLElement>(null);
@@ -28,10 +33,10 @@ export function About({ about }: { about: SiteContent['about'] }) {
               {paragraph.map((segment, segmentIndex) =>
                 segment.href ? (
                   <a key={segmentIndex} href={segment.href}>
-                    {segment.text}
+                    {fillTemplate(segment.text)}
                   </a>
                 ) : (
-                  <span key={segmentIndex}>{segment.text}</span>
+                  <span key={segmentIndex}>{fillTemplate(segment.text)}</span>
                 ),
               )}
             </p>

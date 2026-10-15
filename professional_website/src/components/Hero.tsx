@@ -20,6 +20,9 @@ export function Hero({
 
   const iconClass = (extra: string) =>
     `${extra} header-icon${typewriter.iconsVisible ? ' visible' : ''}`;
+  const iconDelayStyle = (index: number) => ({
+    transitionDelay: `${index * 700}ms`,
+  });
 
   return (
     <header className="hero" id="home">
@@ -57,17 +60,29 @@ export function Hero({
         </div>
         <ul className="social-icons">
           <li>
-            <a href={LINKEDIN_URL} className={iconClass('social-icon')}>
+            <a
+              href={LINKEDIN_URL}
+              className={iconClass('social-icon')}
+              style={iconDelayStyle(1)}
+            >
               <LinkedInIcon />
             </a>
           </li>
           <li>
-            <a href={GITHUB_URL} className={iconClass('social-icon')}>
+            <a
+              href={GITHUB_URL}
+              className={iconClass('social-icon')}
+              style={iconDelayStyle(2)}
+            >
               <GitHubIcon />
             </a>
           </li>
           <li>
-            <a href={EMAIL_HREF} className={iconClass('social-icon')}>
+            <a
+              href={EMAIL_HREF}
+              className={iconClass('social-icon')}
+              style={iconDelayStyle(3)}
+            >
               <MailIcon />
             </a>
           </li>
@@ -75,6 +90,7 @@ export function Hero({
         <a
           href="#about"
           className={iconClass('header-arrow')}
+          style={iconDelayStyle(4)}
           onClick={(e) => {
             e.preventDefault();
             scrollToSection('about');

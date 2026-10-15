@@ -22,7 +22,7 @@ function AppContent() {
 
   return (
     <>
-      <Navbar onOpenSidebar={sidebar.open} iconsVisible={iconsVisible} />
+      <Navbar onOpenSidebar={sidebar.open} />
       <LanguageToggle
         label={content.languageToggleLabel}
         iconsVisible={iconsVisible}
@@ -37,7 +37,7 @@ function AppContent() {
       <About about={content.about} />
       <Technologies technologies={content.technologies} lang={lang} />
       <Projects projects={content.projects} />
-      <Contact contact={content.contact} lang={lang} />
+      <Contact contact={content.contact} />
     </>
   );
 }

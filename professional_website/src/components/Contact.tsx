@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import type { Language, SiteContent } from '../content/types';
+import type { SiteContent } from '../content/types';
 import { scrollToSection } from '../scrollToSection';
-import { LinkedInIcon, GitHubIcon, MailIcon, CopyIcon } from '../icons';
+import {
+  LinkedInIcon,
+  GitHubIcon,
+  MailIcon,
+  CopyIcon,
+  ArrowUpIcon,
+} from '../icons';
 import { LINKEDIN_URL, GITHUB_URL, EMAIL, EMAIL_HREF } from '../constants';
 
 const COPIED_LABEL_DURATION_MS = 2000;
 const CURRENT_YEAR = new Date().getFullYear();
 
-export function Contact({
-  contact,
-  lang,
-}: {
-  contact: SiteContent['contact'];
-  lang: Language;
-}) {
+export function Contact({ contact }: { contact: SiteContent['contact'] }) {
   const [justCopied, setJustCopied] = useState(false);
 
   async function handleCopy() {
@@ -25,23 +25,28 @@ export function Contact({
   return (
     <div id="contact">
       <div id="contact-text">
-        <a href={EMAIL_HREF} className="availability">
-          <div className="circle" />
-          <span className="rem1">{contact.availabilityLabel}</span>
-        </a>
         <h1>{contact.headline}</h1>
         <h4 id="email-label">{contact.emailLabel}</h4>
-        <div style={{ width: '100%' }}>
+        <div id="email-row">
           <h3 id="email-value">{EMAIL}</h3>
-          <span
-            className="availability rem1"
+          <button
+            type="button"
+            id="email-copy-icon"
             onClick={handleCopy}
-            id="clipboard-copy"
+            aria-label={justCopied ? contact.copiedLabel : contact.copyLabel}
+            title={justCopied ? contact.copiedLabel : contact.copyLabel}
           >
-            <CopyIcon style={{ margin: '1rem' }} />
-            {justCopied ? contact.copiedLabel : contact.copyLabel}
-          </span>
+            <CopyIcon />
+          </button>
         </div>
+        <span
+          className="availability rem1"
+          onClick={() => scrollToSection('home')}
+          id="back-to-top"
+        >
+          <ArrowUpIcon style={{ margin: '1rem' }} />
+          {contact.backToTopLabel}
+        </span>
         <div className="footer-container">
           <ul className="footer-icons">
             <li>
@@ -65,20 +70,6 @@ export function Contact({
           </p>
         </div>
       </div>
-      <a
-        href="#home"
-        className="background-image"
-        onClick={(e) => {
-          e.preventDefault();
-          scrollToSection('home');
-        }}
-      >
-        <img
-          loading="lazy"
-          src={`/images/logo-pixel${lang === 'es' ? '-white' : ''}.svg`}
-          alt=""
-        />
-      </a>
     </div>
   );
 }

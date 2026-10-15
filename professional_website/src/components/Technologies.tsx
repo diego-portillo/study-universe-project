@@ -27,13 +27,21 @@ export function Technologies({
               <h3>{category.label}</h3>
               <div className="logos-container">
                 {category.logos.map((logo) => (
-                  <img
+                  <a
                     key={logo.alt}
-                    loading="lazy"
-                    className="tech-logo"
-                    src={`/images/${lang === 'en' ? logo.forDarkTheme : logo.forLightTheme}`}
-                    alt={logo.alt}
-                  />
+                    className="tech-logo-link"
+                    href={logo.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={logo.alt}
+                  >
+                    <img
+                      loading="lazy"
+                      className="tech-logo"
+                      src={`/images/${lang === 'en' ? logo.forDarkTheme : logo.forLightTheme}`}
+                      alt={logo.alt}
+                    />
+                  </a>
                 ))}
               </div>
             </div>

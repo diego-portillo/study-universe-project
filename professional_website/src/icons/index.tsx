@@ -82,10 +82,26 @@ export function MailIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function PlayIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M9 7.5v9l8-4.5-8-4.5Z" />
+    </BaseIcon>
+  );
+}
+
 export function CopyIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <BaseIcon {...props}>
       <path d="M9 3h9a2 2 0 0 1 2 2v12h-2V5H9V3Zm-3 4h9a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm0 2v12h9V9H6Z" />
     </BaseIcon>
+  );
+}
+
+export function ArrowUpIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <StrokeIcon {...props}>
+      <path d="M12 19V5M6 11l6-6 6 6" />
+    </StrokeIcon>
   );
 }
