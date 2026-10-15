@@ -6,13 +6,31 @@ on:
       - "ai_hub/**"
       - ".github/workflows/ai_hub-*.yml"
   pull_request:
-    paths:
-      - "ai_hub/**"
-      - ".github/workflows/ai_hub-*.yml"
+    branches: [main]
 
 jobs:
+  changes:
+    name: Detect ai_hub changes
+    runs-on: ubuntu-latest
+    outputs:
+      ai_hub: ${{ steps.filter.outputs.ai_hub }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ai_hub:
+              - 'ai_hub/**'
+              - '.github/workflows/ai_hub-*.yml'
+
   test:
     name: Lint + Tests
+    needs: changes
+    # On a direct push, the "paths" filter above already guarantees relevance;
+    # on a pull_request, only run the real checks when ai_hub actually changed —
+    # a skipped job still satisfies this as a required status check.
+    if: github.event_name == 'push' || needs.changes.outputs.ai_hub == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,10 +56,11 @@ jobs:
 
   docker-build:
     name: Docker Build (smoke check)
+    needs: changes
     runs-on: ubuntu-latest
-    # Only build the image on PRs targeting main — confirms it compiles before merge.
-    # On feature branch pushes, lint+tests above are enough.
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    # Only build the image on PRs targeting main that actually touch ai_hub —
+    # confirms it compiles before merge. On feature branch pushes, lint+tests above are enough.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main' && needs.changes.outputs.ai_hub == 'true'
 
     steps:
       - uses: actions/checkout@v4
