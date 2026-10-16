@@ -300,7 +300,7 @@ export const en: SiteContent = {
         title: 'Finance RAG Agent over SEC Filings',
         stack: 'FastAPI, LangChain, LangGraph, Cohere, pgvector, RAGAS',
         youtubeId: 'WUIBx6V2yR8',
-        liveHref: 'https://finance-rag-agent-i0ca.onrender.com',
+        liveHref: 'https://rag.diegoportillo.dev',
         repoHref:
           'https://github.com/diego-portillo/study-universe-project/tree/main/finance_rag_agent',
       },
@@ -310,7 +310,7 @@ export const en: SiteContent = {
         stack:
           'Next.js, TypeScript, Vercel AI SDK, OpenAI, Anthropic, Google, ElevenLabs',
         youtubeId: 'RKUtU4oiTFc',
-        liveHref: 'https://ai-2z4c4itsf-diegoportillos-projects.vercel.app/',
+        liveHref: 'https://ai-hub.diegoportillo.dev',
         repoHref:
           'https://github.com/diego-portillo/study-universe-project/tree/main/ai_hub',
       },

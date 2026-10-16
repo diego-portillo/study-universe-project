@@ -295,6 +295,93 @@ cost visible per request.
   model forced per provider when demo mode is on. Image/audio gating was
   dropped entirely from scope, same day.
 
+- **2026-10-13** — ai_hub's Vercel deploy fixed: two build failures
+  root-caused and fixed (`output: "standalone"` conflicting with Vercel's own
+  serverless builder, then `outputFileTracingRoot` doubling the app's subpath
+  in traced file paths — a known Next.js 16 + Turbopack monorepo bug — both
+  gated on `VERCEL=1` since Vercel's Root Directory setting already does
+  that scoping). `/metrics` gating reverted same day after misreading "drop
+  the unauthenticated metrics" as disable-the-page instead of leave-as-is.
+  Live demo links added to both READMEs (ai_hub's Vercel URL,
+  finance_rag_agent's Render+Neon URL), plus a combined refusal/agent eval
+  results table and a real agent tool-call trace walkthrough added to
+  finance_rag_agent's README; `eval/results/` pruned from 21 runs down to
+  the 5 that back numbers cited in the README.
+
+- **2026-10-14** — `CLAUDE.md` and both READMEs refreshed to match the
+  actual two-project layout and standalone free-tier deployments (they still
+  described a stale shared-domain/AWS plan). Google chat provider hidden
+  from the public ai_hub demo behind `NEXT_PUBLIC_ENABLE_GOOGLE_PROVIDER`
+  (off by default) to avoid taking on Google API billing, without removing
+  the code path. Demo video links added to both READMEs (PR #11).
+  **`professional_website/` added** — a full Vite + React 19 + TypeScript
+  rebuild replacing the old hand-rolled HTML/CSS/jQuery personal site,
+  retiring the CCP/FiloBlog course-demo projects and vendored Font Awesome
+  copies; content refreshed from the current CV with new AI Hub and Finance
+  RAG Agent project cards alongside the existing TAXit! and Reuma Images
+  work. This moved the repo from a two-project to a **three-project
+  monorepo**.
+
+- **2026-10-15** — `professional_website` reworked further: hero/about/
+  technologies/projects/contact sections redone, contact section gets a
+  working copy-to-clipboard + back-to-top action, years-of-experience figure
+  now auto-updates each year (PR #12, "adding the static website to showcase
+  work"). Separately, the root-`main` required `Lint + Tests` status check
+  was found to only trigger on `ai_hub/**` changes, so the
+  `professional_website` PR sat permanently blocked — fixed by adding a
+  `dorny/paths-filter` gate so the real checks skip (a skipped required
+  check still passes) when `ai_hub` didn't change (PR #13).
+
+  **Custom domains go live:** `diegoportillo.dev` (Vercel →
+  professional_website), `ai-hub.diegoportillo.dev` (Vercel → ai_hub), and
+  `rag.diegoportillo.dev` (Render → finance_rag_agent) all pointed at their
+  subprojects. Two real DNS issues hit and fixed along the way:
+  `www.diegoportillo.dev` had no DNS record at all (confirmed NXDOMAIN on
+  three independent public resolvers — Google, Cloudflare, OpenDNS — not
+  just a caching artifact), fixed by adding the `www` CNAME in Vercel; and
+  `rag.diegoportillo.dev`'s TLS cert was still mid-provisioning on Render
+  when first checked (fatal TLS alert on `ClientHello`), which resolved on
+  its own shortly after. Confirmed no CORS change was needed anywhere — the
+  three deployments don't call each other cross-origin, and
+  `finance_rag_agent` has no `CORSMiddleware` configured at all.
+  `professional_website`'s hardcoded old demo links (the Vercel preview URL,
+  the Render default `onrender.com` URL) updated to the new custom domains
+  across its content files and both subproject READMEs; root `README.md`
+  and `CLAUDE.md` updated to list `professional_website` as a project and
+  describe the new domain split; a `professional_website/README.md` added
+  (didn't exist before). CV PDF (`Diego_Portillo_CV_EN_ES.pdf`) gets
+  `diegoportillo.dev` added to its contact line on both the EN and ES pages;
+  the ReportLab generator script used to make that edit — previously
+  recreated from scratch in a prior session via `pdfplumber`
+  reverse-engineering because no source script existed in the repo — was
+  recovered from that session's scratchpad this time and committed to
+  `professional_website/cv/generate_cv.py`, so it won't need to be
+  re-derived again. Root `README.md`/`CLAUDE.md` also gained brief
+  descriptions of the non-project support directories (`.github/`,
+  `.vscode/`, `docs/`, `infra/`, `samples/`).
+
+  **Still open as of this entry:** `www.diegoportillo.dev` was fixed, but
+  the bare apex `diegoportillo.dev` itself started throwing
+  `DNS_PROBE_FINISHED_NXDOMAIN` in-browser even after an OS-level
+  `ipconfig /flushdns` — likely the home router/ISP resolver caching a
+  negative answer from before the record existed (that layer survives a
+  local flush). Confirmed still resolving correctly from outside (Google/
+  Cloudflare/OpenDNS). Diego also reports the sites aren't reachable on his
+  phone over mobile data either, which — unlike a single shared router/ISP
+  cache — is a stronger signal and not yet explained; still investigating.
+
+  Note: this domain/CV/README work effectively completes the "fast-win live
+  URL" step the Oct 8 entry had deferred — all three subprojects are now
+  live at custom `diegoportillo.dev` subdomains, via Vercel/Render rather
+  than the AWS ECS path `PLAN.md`'s Block D still targets. Not yet
+  reconciled into `PLAN.md` or the task checklist below — flagging for
+  Diego to decide whether this changes Block D's remaining scope.
+
+  *(As of this entry, the domain/CV/README work above is done but not yet
+  committed — working tree has `CLAUDE.md`, `README.md`, `ai_hub/README.md`,
+  `finance_rag_agent/README.md`, and several `professional_website/` files
+  modified or untracked.)*
+
 ---
 
 ## Task checklist (current status snapshot)

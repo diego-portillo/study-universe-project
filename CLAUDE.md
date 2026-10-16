@@ -4,13 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Layout
 
-This is a two-project monorepo (an AI backend engineering portfolio). Each top-level project directory is independent; there is no shared build at the root (only Prettier/Tailwind config).
+This is a three-project monorepo (an AI backend engineering portfolio). Each top-level project directory is independent; there is no shared build at the root (only Prettier/Tailwind config).
 
 - `ai_hub/` — **primary active subproject.** Next.js 16 + React 19 chat/image/audio UI over OpenAI, Anthropic, Google, and ElevenLabs via the Vercel AI SDK.
 - `finance_rag_agent/` — **second project.** FastAPI RAG + agent system over SEC filings (10-K/10-Q): Postgres+pgvector retrieval, Cohere reranking, a Ragas eval harness, and a LangGraph agent layer.
+- `professional_website/` — Vite + React 19 + TypeScript personal site presenting the CV, work history, and both AI projects above. No build/deploy convention beyond its own `package.json`.
 - `docs/` — planning docs (`PLAN.md`, `interview_prep.md`, etc.); only `docs/LOGBOOK.md` is git-tracked (see `.gitignore`), the rest are local scratch.
 - `infra/` — CloudFormation + deploy/teardown scripts for `ai_hub`'s documented-but-dormant AWS ECS path (see `ai_hub/README.md`'s AWS Deployment section).
 - `samples/` — test-fixture images used by `ai_hub`'s vision/eval tests.
+- `.github/workflows/` — CI (lint/test, scoped to `ai_hub` changes), manual-only deploy/eval/teardown workflows for `ai_hub`, and the Claude Code GitHub App (`@claude` mentions on issues/PRs).
+- `.vscode/` — shared editor settings (format-on-save with Prettier) for consistency across subprojects.
 
 When asked to work "on the app" without further context, assume `ai_hub/`.
 
@@ -25,9 +28,10 @@ No npm workspaces: the two subprojects don't share code (Next.js/TypeScript vs. 
 
 ## Deployment target
 
-- **Domain:** `www.diegoportillo.dev` (owned by Diego) is reserved for a separate personal/portfolio site project — not served from this repo.
-- **ai_hub:** deployed standalone on Vercel (free Hobby tier). An AWS ECS Express Mode path (ECR + OIDC + Fargate) is also built and documented, but isn't what serves the live demo — see `ai_hub/README.md`'s Cost Estimate section for why.
-- **finance_rag_agent:** deployed standalone on Render (free tier) with a free Neon Postgres+pgvector add-on.
+- **Domain:** `diegoportillo.dev` (owned by Diego) is split across subdomains, each pointed at one subproject: apex → `professional_website`, `ai-hub.diegoportillo.dev` → `ai_hub`, `rag.diegoportillo.dev` → `finance_rag_agent`. No shared backend or reverse proxy between them.
+- **professional_website:** deployed standalone on Vercel (free Hobby tier) at the apex domain.
+- **ai_hub:** deployed standalone on Vercel (free Hobby tier) at `ai-hub.diegoportillo.dev`. An AWS ECS Express Mode path (ECR + OIDC + Fargate) is also built and documented, but isn't what serves the live demo — see `ai_hub/README.md`'s Cost Estimate section for why.
+- **finance_rag_agent:** deployed standalone on Render (free tier) at `rag.diegoportillo.dev`, with a free Neon Postgres+pgvector add-on.
 - **Container model:** each subproject still ships its own Docker image for local dev/CI (see [Dependencies convention](#dependencies-convention)); no global app image, no shared reverse proxy.
 
 Implications when writing code or infra:
