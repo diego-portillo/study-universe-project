@@ -318,7 +318,7 @@ export const en: SiteContent = {
     featuredClient: {
       heading: 'Working for Approach.app',
       description:
-        "Since February 2024 I've worked remotely as a Contract Software Developer for Approach, a US company building bouldering and climbing gym management software. I refactored a legacy Node.js shopping-cart backend to improve system efficiency by 40%, built multi-location features for memberships, check-ins, promo codes, payments, calendars and tickets, and resolved over 100 production bug tickets — all in a stateless CRM used by gyms across the US, Canada and Australia, working fullstack with Node.js, React, MySQL and AWS.",
+        "Since February 2024 I've worked remotely as a Contract Software Developer for Approach, a US company building bouldering and climbing gym management software. I refactored a legacy Node.js shopping-cart backend to improve system efficiency by 40%, built multi-location features for memberships, check-ins, promo codes, payments, calendars and tickets, and resolved over 100 production bug tickets — all in a stateless CRM used by 150+ gyms and an estimated 10M+ customers across the US, Canada and Australia, working fullstack with Node.js, React, MySQL and AWS.",
       href: 'https://www.approach.app/',
       preview: 'approach-preview.jpg',
     },

@@ -318,7 +318,7 @@ export const es: SiteContent = {
     featuredClient: {
       heading: 'Trabajando para Approach.app',
       description:
-        'Desde febrero de 2024 trabajo de forma remota como Desarrollador de Software Contratista para Approach, una empresa de EE. UU. que desarrolla software de gestión para gimnasios de escalada y boulder. Refactoricé un backend legacy de carritos de compra en Node.js, mejorando la eficiencia del sistema en un 40%, desarrollé funcionalidades multi-locación para membresías, check-ins, códigos promocionales, pagos, calendarios y tickets, y resolví más de 100 tickets de bugs en producción, todo en un CRM stateless usado por gimnasios en EE. UU., Canadá y Australia, trabajando fullstack con Node.js, React, MySQL y AWS.',
+        'Desde febrero de 2024 trabajo de forma remota como Desarrollador de Software Contratista para Approach, una empresa de EE. UU. que desarrolla software de gestión para gimnasios de escalada y boulder. Refactoricé un backend legacy de carritos de compra en Node.js, mejorando la eficiencia del sistema en un 40%, desarrollé funcionalidades multi-locación para membresías, check-ins, códigos promocionales, pagos, calendarios y tickets, y resolví más de 100 tickets de bugs en producción, todo en un CRM stateless usado por más de 150 gimnasios y un estimado de más de 10 millones de clientes en EE. UU., Canadá y Australia, trabajando fullstack con Node.js, React, MySQL y AWS.',
       href: 'https://www.approach.app/',
       preview: 'approach-preview.jpg',
     },

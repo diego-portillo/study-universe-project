@@ -203,12 +203,12 @@ def build_page(lang):
             "Feb 2024 – Oct 2026",
         ))
         story.append(Spacer(1, 3))
-        story.append(bullet("Refactored a legacy Node.js shopping-cart backend, improving system efficiency by 40%."))
         story.append(bullet(
             "Developed multi-location features for memberships, check-ins, promo codes, payments, "
-            "calendars and tickets in a scalable, stateless climbing-gym CRM used by clients in the "
-            "US, Canada and Australia."
+            "calendars and tickets in a scalable, stateless climbing-gym CRM used by 150+ gyms and "
+            "an estimated 10M+ customers across the US, Canada and Australia."
         ))
+        story.append(bullet("Refactored a legacy Node.js shopping-cart backend, improving system efficiency by 40%."))
         story.append(bullet("Resolved over 100 bug tickets, including production issues in payment and transaction flows."))
         story.append(bullet("Fullstack delivery with Node.js, React, MySQL and AWS in a remote US team."))
 
@@ -322,12 +322,13 @@ def build_page(lang):
             "Feb 2024 – Oct 2026",
         ))
         story.append(Spacer(1, 3))
-        story.append(bullet("Refactoricé el backend legacy de carritos de compra en Node.js, aumentando la eficiencia del sistema en un 40%."))
         story.append(bullet(
             "Desarrollé funcionalidades multi-locación de membresías, check-ins, "
             "códigos promocionales, pagos, calendarios y tickets para un CRM de gimnasios de "
-            "escalada escalable y stateless, con clientes en EE. UU., Canadá y Australia."
+            "escalada escalable y stateless, usado por más de 150 gimnasios y un estimado de "
+            "más de 10 millones de clientes en EE. UU., Canadá y Australia."
         ))
+        story.append(bullet("Refactoricé el backend legacy de carritos de compra en Node.js, aumentando la eficiencia del sistema en un 40%."))
         story.append(bullet("Resolví más de 100 tickets de bugs, incluyendo errores en producción en flujos de pagos y transacciones."))
         story.append(bullet("Desarrollo fullstack con Node.js, React, MySQL y AWS en un equipo remoto de EE. UU."))
 
