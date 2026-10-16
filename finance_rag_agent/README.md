@@ -4,7 +4,7 @@ A RAG + agent system that answers natural-language questions about public compan
 
 **Problem:** reading a 10-K/10-Q to answer a specific question (a number, a risk factor, a change between periods) means manually searching a 50+ page filing. **Who it's for:** anyone who wants to query a company's filings directly instead of reading them. **Input:** a natural-language question + ticker (AMZN, NVDA, or KO — the pilot companies). **Output:** a grounded answer with citations to the exact filing excerpts used, or an explicit refusal when the filings don't contain the answer.
 
-**Live:** [finance-rag-agent-i0ca.onrender.com](https://finance-rag-agent-i0ca.onrender.com) *(Render free tier + Neon free Postgres/pgvector — no AWS, no always-on cost)*. Try it: `POST /ask` or `POST /ask_agent` with `{"question": "...", "ticker": "AMZN"}`. First request after idle may be slow (free-tier cold start).
+**Live:** [rag.diegoportillo.dev](https://rag.diegoportillo.dev) *(Render free tier + Neon free Postgres/pgvector — no AWS, no always-on cost)*. Try it: `POST /ask` or `POST /ask_agent` with `{"question": "...", "ticker": "AMZN"}`. First request after idle may be slow (free-tier cold start).
 
 **Demo video:** [youtu.be/WUIBx6V2yR8](https://youtu.be/WUIBx6V2yR8)
 
