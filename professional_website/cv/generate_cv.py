@@ -218,8 +218,15 @@ def build_page(lang):
             "2022 – 2024",
         ))
         story.append(Spacer(1, 3))
-        story.append(bullet("Integrated external APIs for electronic invoicing for enterprise clients such as Burger King, Última Hora and PedidosYa."))
-        story.append(bullet("Built fullstack features for a tax fintech platform with Java Spring Boot, Python Django and PostgreSQL."))
+        story.append(bullet(
+            "Integrated external APIs for electronic invoicing for enterprise clients such as Burger King, "
+            "Última Hora and PedidosYa, issuing 7M+ electronic documents per month."
+        ))
+        story.append(bullet(
+            "Built fullstack features for a tax fintech platform serving 27k+ clients, processing 580k+ "
+            "receipts per month and 120k+ tax returns filed per year, with Java Spring Boot, Python Django "
+            "and PostgreSQL."
+        ))
         story.append(bullet("Managed manual deployments and server maintenance on Linux."))
         story.append(bullet("Led small teams of junior developers in the absence of senior leads."))
 
@@ -338,8 +345,15 @@ def build_page(lang):
             "2022 – 2024",
         ))
         story.append(Spacer(1, 3))
-        story.append(bullet("Integré APIs externas de facturación electrónica para clientes como Burger King, Última Hora y PedidosYa."))
-        story.append(bullet("Desarrollé funcionalidades fullstack para una plataforma fintech tributaria con Java Spring Boot, Python Django y PostgreSQL."))
+        story.append(bullet(
+            "Integré APIs externas de facturación electrónica para clientes como Burger King, Última Hora y "
+            "PedidosYa, emitiendo más de 7 millones de documentos electrónicos al mes."
+        ))
+        story.append(bullet(
+            "Desarrollé funcionalidades fullstack para una plataforma fintech tributaria que atiende a más "
+            "de 27 mil clientes, procesando más de 580 mil comprobantes al mes y más de 120 mil "
+            "declaraciones presentadas al año, con Java Spring Boot, Python Django y PostgreSQL."
+        ))
         story.append(bullet("Gestioné despliegues manuales y mantenimiento de servidores Linux."))
         story.append(bullet("Lideré pequeños equipos de desarrolladores junior en ausencia de los líderes senior."))
 

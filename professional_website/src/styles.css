@@ -688,6 +688,26 @@ Projects
 .work-project-info h3 a:hover {
   color: var(--clr-primary-5);
 }
+.work-project-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+}
+.work-project-stat {
+  display: flex;
+  flex-direction: column;
+}
+.work-project-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--clr-primary-5);
+}
+.work-project-stat-label {
+  font-size: 0.8rem;
+  color: var(--fg);
+  opacity: 0.75;
+}
 .work-project-info #clients-logos-container {
   margin-top: 0.75rem;
   flex-wrap: wrap;
