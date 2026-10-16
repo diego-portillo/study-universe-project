@@ -23,6 +23,16 @@ export function WorkProjectCard({ project }: { project: WorkProject }) {
           </a>
         </h3>
         <p className="rem1">{project.stack}</p>
+        {project.stats && (
+          <div className="work-project-stats">
+            {project.stats.map((stat) => (
+              <div className="work-project-stat" key={stat.label}>
+                <span className="work-project-stat-value">{stat.value}</span>
+                <span className="work-project-stat-label">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
         {project.clientLogos && (
           <div id="clients-logos-container">
             {project.clientLogos.map((client) => (
