@@ -26,6 +26,13 @@ BLACK = colors.black
 
 MARGIN = 56.4
 CONTENT_WIDTH = letter[0] - 2 * MARGIN
+# SimpleDocTemplate's default Frame adds 6pt of padding on each side on top of
+# the margins, which every Paragraph respects. A Table sized to CONTENT_WIDTH is
+# wider than that padded area, so reportlab falls back to drawing it flush with
+# the raw margin instead — 6pt left of everything else. Row tables (job_row,
+# edu_row) must use this narrower width to stay aligned with surrounding text.
+FRAME_PADDING = 6
+ROW_TABLE_WIDTH = CONTENT_WIDTH - 2 * FRAME_PADDING
 
 
 def link(text, url):
@@ -50,8 +57,8 @@ styles = {
         textColor=BLACK, spaceAfter=10,
     ),
     "header": ParagraphStyle(
-        "header", fontName="Helvetica-Bold", fontSize=10.5, leading=13,
-        textColor=NAVY, spaceBefore=7, spaceAfter=1,
+        "header", fontName="Helvetica-Bold", fontSize=9.5, leading=11.5,
+        textColor=NAVY, spaceBefore=5, spaceAfter=1,
     ),
     "body": ParagraphStyle(
         "body", fontName="Helvetica", fontSize=9, leading=12,
@@ -110,7 +117,7 @@ def section_header(text):
 def job_row(title_markup, date_text):
     t = Table(
         [[P("jobTitle", title_markup), P("date", date_text)]],
-        colWidths=[CONTENT_WIDTH - 110, 110],
+        colWidths=[ROW_TABLE_WIDTH - 110, 110],
     )
     t.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -125,7 +132,7 @@ def job_row(title_markup, date_text):
 def edu_row(left_markup, date_text):
     t = Table(
         [[P("eduLeft", left_markup), P("date", date_text)]],
-        colWidths=[CONTENT_WIDTH - 110, 110],
+        colWidths=[ROW_TABLE_WIDTH - 110, 110],
     )
     t.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -141,11 +148,11 @@ def build_page(lang):
     story = []
 
     if lang == "en":
-        story.append(P("name", "DIEGO JOSÉ PORTILLO MARTÍNEZ"))
+        story.append(P("name", "DIEGO JOSE PORTILLO MARTINEZ"))
         story.append(P("subtitle", "Software Developer"))
         story.append(P(
             "infoBold",
-            "Based in Asunción, Paraguay | Working remotely | "
+            "Based in Asuncion, Paraguay | Working remotely | "
             "Dual nationality: Spanish and Paraguayan",
         ))
         story.append(P(
@@ -220,7 +227,7 @@ def build_page(lang):
         story.append(Spacer(1, 3))
         story.append(bullet(
             "Integrated external APIs for electronic invoicing for enterprise clients such as Burger King, "
-            "Última Hora and PedidosYa, issuing 7M+ electronic documents per month."
+            "Ultima Hora and PedidosYa, issuing 7M+ electronic documents per month."
         ))
         story.append(bullet(
             "Built fullstack features for a tax fintech platform serving 27k+ clients, processing 580k+ "
