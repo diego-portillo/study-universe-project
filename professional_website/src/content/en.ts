@@ -330,6 +330,10 @@ export const en: SiteContent = {
         preview: 'taxit-web.png',
         title: 'Personal Finances and Tax Accounting Services',
         stack: 'Django, Jquery, PostgreSQL, Spring, Azure',
+        stats: [
+          { value: '580k+', label: 'Receipts processed per month' },
+          { value: '120k+', label: 'Tax returns filed per year' },
+        ],
       },
       {
         id: 'taxit-support',
@@ -337,6 +341,7 @@ export const en: SiteContent = {
         preview: 'taxit-support.png',
         title: 'Customer Support Portal with Content Management System',
         stack: 'Django, Wagtail, PostgreSQL, HTML, CSS, Nginx, Gunicorn',
+        stats: [{ value: '27k+', label: 'Clients who trust us' }],
       },
       {
         id: 'taxit-cloud',
@@ -345,6 +350,9 @@ export const en: SiteContent = {
         title: 'Electronic Invoicing Services for Individuals and Companies',
         stack:
           'Docker, Redis, Spring Boot, Keycloak, Django, PostgreSQL, MySQL',
+        stats: [
+          { value: '7M+', label: 'Electronic documents issued per month' },
+        ],
         clientLogos: [
           { id: 'biggie', src: 'biggie.svg', alt: 'Biggie' },
           { id: 'burger-king', src: 'bk.svg', alt: 'Burger King' },

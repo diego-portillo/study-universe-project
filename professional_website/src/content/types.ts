@@ -23,6 +23,7 @@ export interface WorkProject {
   preview: string;
   title: string;
   stack: string;
+  stats?: { value: string; label: string }[];
   clientLogos?: { id: string; src: string; alt: string }[];
 }
 
