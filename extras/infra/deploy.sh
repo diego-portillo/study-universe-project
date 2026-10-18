@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Usage:
-#   ./infra/deploy.sh                  # first deploy (creates OIDC provider)
-#   ./infra/deploy.sh --no-oidc        # re-deploy without re-creating OIDC provider
+#   ./extras/infra/deploy.sh                  # first deploy (creates OIDC provider)
+#   ./extras/infra/deploy.sh --no-oidc        # re-deploy without re-creating OIDC provider
 set -euo pipefail
 
 STACK_NAME="ai-hub-infra"

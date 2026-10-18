@@ -344,7 +344,7 @@
           {
             "type": "image_url",
             "image_url": {
-              "localImage": "samples/generated-image (1).jpg",
+              "localImage": "extras/samples/generated-image (1).jpg",
               "url": "TODO (runner fills this in): base64 data: URL generated from localImage at eval-run time",
               "detail": "low"
             }
@@ -375,7 +375,7 @@
           {
             "type": "image_url",
             "image_url": {
-              "localImage": "samples/el_robo_del_siglo.jpg",
+              "localImage": "extras/samples/el_robo_del_siglo.jpg",
               "url": "TODO (runner fills this in): base64 data: URL generated from localImage at eval-run time",
               "detail": "low"
             }
@@ -407,7 +407,7 @@
           {
             "type": "image_url",
             "image_url": {
-              "localImage": "samples/dog.webp",
+              "localImage": "extras/samples/dog.webp",
               "url": "TODO (runner fills this in): base64 data: URL generated from localImage at eval-run time",
               "detail": "low"
             }
@@ -447,7 +447,7 @@
           {
             "type": "image_url",
             "image_url": {
-              "localImage": "samples/plant.jpg",
+              "localImage": "extras/samples/plant.jpg",
               "url": "TODO (runner fills this in): base64 data: URL generated from localImage at eval-run time",
               "detail": "low"
             }

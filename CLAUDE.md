@@ -9,9 +9,9 @@ This is a three-project monorepo (an AI fullstack engineering portfolio). Each t
 - `ai_hub/` — **primary active subproject.** Next.js 16 + React 19 chat/image/audio UI over OpenAI, Anthropic, Google, and ElevenLabs via the Vercel AI SDK.
 - `finance_rag_agent/` — **second project.** FastAPI RAG + agent system over SEC filings (10-K/10-Q): Postgres+pgvector retrieval, Cohere reranking, a Ragas eval harness, and a LangGraph agent layer.
 - `professional_website/` — Vite + React 19 + TypeScript personal site presenting the CV, work history, and both AI projects above. No build/deploy convention beyond its own `package.json`.
-- `docs/` — planning docs (`PLAN.md`, `interview_prep.md`, etc.); only `docs/LOGBOOK.md` is git-tracked (see `.gitignore`), the rest are local scratch.
-- `infra/` — CloudFormation + deploy/teardown scripts for `ai_hub`'s documented-but-dormant AWS ECS path (see `ai_hub/README.md`'s AWS Deployment section).
-- `samples/` — test-fixture images used by `ai_hub`'s vision/eval tests.
+- `extras/docs/` — planning docs (`PLAN.md`, `interview_prep.md`, etc.); only `extras/docs/LOGBOOK.md` is git-tracked (see `.gitignore`), the rest are local scratch.
+- `extras/infra/` — CloudFormation + deploy/teardown scripts for `ai_hub`'s documented-but-dormant AWS ECS path (see `ai_hub/README.md`'s AWS Deployment section).
+- `extras/samples/` — test-fixture images used by `ai_hub`'s vision/eval tests.
 - `.github/workflows/` — CI (lint/test, scoped to `ai_hub` changes), manual-only deploy/eval/teardown workflows for `ai_hub`, and the Claude Code GitHub App (`@claude` mentions on issues/PRs).
 - `.vscode/` — shared editor settings (format-on-save with Prettier) for consistency across subprojects.
 

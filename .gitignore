@@ -3,8 +3,8 @@
 !requirements.txt
 
 # Local planning docs — only the logbook is tracked
-docs/*
-!docs/LOGBOOK.md
+extras/docs/*
+!extras/docs/LOGBOOK.md
 
 # Python
 __pycache__/
@@ -61,8 +61,8 @@ next-env.d.ts
 # Samples for tests — audio recordings stay local-only; the eval harness's golden
 # dataset references these images by path (see evals/golden_dataset.json), so they
 # need to exist in every checkout, including CI.
-samples/*
-!samples/dog.webp
-!samples/plant.jpg
-!samples/el_robo_del_siglo.jpg
-!samples/generated-image (1).jpg
+extras/samples/*
+!extras/samples/dog.webp
+!extras/samples/plant.jpg
+!extras/samples/el_robo_del_siglo.jpg
+!extras/samples/generated-image (1).jpg

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run after the teardown workflow to confirm all cost-generating resources
 # were removed. Expected output for each section is noted inline.
-# Usage: bash infra/verify-teardown.sh
+# Usage: bash extras/infra/verify-teardown.sh
 set -euo pipefail
 
 REGION="us-east-1"
