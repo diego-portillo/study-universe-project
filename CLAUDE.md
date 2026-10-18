@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Layout
 
-This is a three-project monorepo (an AI backend engineering portfolio). Each top-level project directory is independent; there is no shared build at the root (only Prettier/Tailwind config).
+This is a three-project monorepo (an AI fullstack engineering portfolio). Each top-level project directory is independent; there is no shared build at the root (only Prettier/Tailwind config).
 
 - `ai_hub/` — **primary active subproject.** Next.js 16 + React 19 chat/image/audio UI over OpenAI, Anthropic, Google, and ElevenLabs via the Vercel AI SDK.
 - `finance_rag_agent/` — **second project.** FastAPI RAG + agent system over SEC filings (10-K/10-Q): Postgres+pgvector retrieval, Cohere reranking, a Ragas eval harness, and a LangGraph agent layer.
@@ -161,11 +161,11 @@ Keep commit messages short and conceptual. Do not mention specific values like m
 
 ---
 
-# Diego – AI Backend Engineering Portfolio
+# Diego – AI Fullstack Engineering Portfolio
 
 ## About Me
 
-- **Goal:** Land an AI backend engineering role (targeting US market from Paraguay)
+- **Goal:** Land an AI fullstack engineering role (targeting US market from Paraguay)
 - **Portfolio:** [study-universe-project](https://github.com/diego-portillo/study-universe-project) — private repo
 - **Timeline:** Portfolio development through December → interview prep after
 
@@ -191,7 +191,7 @@ Two standing directives from the field guide's Jun 2026 revision (see PLAN.md):
 1. **Keep answers short.**
 2. **Coding problems:** Teach Socratically — break into steps, ask guiding questions, don't give solutions directly. Build problem-solving skills.
 3. **Strategic decisions** (what to study, how long, job market): Give direct answers.
-4. **Stay market-aware:** Pull current job posting requirements for AI backend roles, US-remote LATAM-friendly positions, realistic salaries for Paraguay-based devs. Context over general advice.
+4. **Stay market-aware:** Pull current job posting requirements for AI fullstack roles, US-remote LATAM-friendly positions, realistic salaries for Paraguay-based devs. Context over general advice.
 
 ## Reference Files
 

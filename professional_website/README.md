@@ -14,7 +14,7 @@ Vite + React 19 + TypeScript. Static client-only SPA — no API routes, no env v
 - `src/components/` — one component per section (`Hero`, `About`, `Technologies`, `Projects`, `Contact`, plus card components for work/AI projects).
 - `src/context/LanguageContext.tsx` + `src/hooks/useLanguage.ts` — drive the EN/ES toggle.
 - `public/images/` — logos and screenshots referenced by content/components.
-- `public/Diego_Portillo_CV_EN_ES.pdf` — downloadable CV, generated from `cv/generate_cv.py` (ReportLab) rather than edited directly; see that script to make content changes.
+- `public/Diego_Portillo_CV_EN_ES.pdf` — downloadable CV, edited directly (no generator script in the repo).
 
 ## Commands
 
