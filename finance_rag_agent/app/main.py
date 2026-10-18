@@ -1,11 +1,16 @@
 from dotenv import load_dotenv
 load_dotenv()
 from fastapi import FastAPI  # noqa: E402
+from fastapi.responses import RedirectResponse  # noqa: E402
 from app.rag_chain import answer_question  # noqa: E402
 from app.schemas import AskRequest, AskResponse, Citation  # noqa: E402
 from app.agent import AgentAnswer, run_agent
 
 app = FastAPI(title="Finance RAG Agent")
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/docs")
 
 @app.get("/health")
 def health_check() -> dict[str, str]:

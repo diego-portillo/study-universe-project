@@ -1,6 +1,6 @@
 # study-universe-project
 
-Diego Portillo's AI backend engineering portfolio — two deployed, evaluated AI projects demonstrating production RAG, agentic tool use, multi-provider LLM integration, and deployment/cost discipline — plus the personal site they're presented on.
+Diego Portillo's AI fullstack engineering portfolio — two deployed, evaluated AI projects demonstrating production RAG, agentic tool use, multi-provider LLM integration, and deployment/cost discipline — plus the personal site they're presented on.
 
 ## Projects
 
