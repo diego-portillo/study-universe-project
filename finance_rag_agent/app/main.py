@@ -37,3 +37,9 @@ def ask(request: AskRequest) -> AskResponse:
 def ask_agent(request: AskRequest) -> AgentAnswer:
     return run_agent(request.question, request.ticker)
 
+from app.mcp_server import mcp, BearerTokenMiddleware  # noqa: E402
+
+mcp_app = mcp.streamable_http_app(streamable_http_path="/")
+mcp_app.add_middleware(BearerTokenMiddleware)
+app.mount("/mcp", mcp_app)
+app.router.lifespan_context = mcp_app.router.lifespan_context
