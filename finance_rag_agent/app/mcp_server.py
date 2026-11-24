@@ -5,19 +5,13 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 from mcp.server.mcpserver import MCPServer # noqa: E402
-from mcp.server.transport_security import TransportSecuritySettings # noqa: E402
 from app.rag_chain import answer_question #noqa: E402
 from app.schemas import AskResponse, Citation # noqa: E402
 from starlette.middleware.base import BaseHTTPMiddleware # noqa:E402
 from starlette.requests import Request # noqa:E402
 from starlette.responses import PlainTextResponse # noqa:E402
 
-mcp = MCPServer(
-    "finance-rag-agent",
-    transport_security=TransportSecuritySettings(
-        allowed_hosts=["rag.diegoportillo.dev", "127.0.0.1:*", "localhost:*"],
-    ),
-)
+mcp = MCPServer("finance-rag-agent")
 
 @mcp.tool()
 def ask_finance_question(ticker: str, question: str, top_k: int=7) -> dict:

@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
+from mcp.server.transport_security import TransportSecuritySettings
 from fastapi import FastAPI  # noqa: E402
 from fastapi.responses import RedirectResponse  # noqa: E402
 from app.rag_chain import answer_question  # noqa: E402
@@ -39,7 +40,12 @@ def ask_agent(request: AskRequest) -> AgentAnswer:
 
 from app.mcp_server import mcp, BearerTokenMiddleware  # noqa: E402
 
-mcp_app = mcp.streamable_http_app(streamable_http_path="/")
+mcp_app = mcp.streamable_http_app(
+    streamable_http_path="/",
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=["rag.diegoportillo.dev", "127.0.0.1:*", "localhost:*"],
+    ),
+)
 mcp_app.add_middleware(BearerTokenMiddleware)
 app.mount("/mcp", mcp_app)
 app.router.lifespan_context = mcp_app.router.lifespan_context
