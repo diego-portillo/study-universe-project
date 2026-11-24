@@ -1,5 +1,5 @@
 export const LINKEDIN_URL =
-  'https://www.linkedin.com/in/diego-jose-portillo-martinez';
+  'https://www.linkedin.com/in/diego-jose-portillo-martinez-a0a1b01a3';
 export const GITHUB_URL = 'https://github.com/diego-portillo';
 export const EMAIL = 'dportillodeveloper@gmail.com';
 export const EMAIL_HREF = `mailto:${EMAIL}`;
