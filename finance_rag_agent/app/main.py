@@ -41,11 +41,10 @@ def ask_agent(request: AskRequest) -> AgentAnswer:
 from app.mcp_server import mcp, BearerTokenMiddleware  # noqa: E402
 
 mcp_app = mcp.streamable_http_app(
-    streamable_http_path="/",
     transport_security=TransportSecuritySettings(
         allowed_hosts=["rag.diegoportillo.dev", "127.0.0.1:*", "localhost:*"],
     ),
 )
 mcp_app.add_middleware(BearerTokenMiddleware)
-app.mount("/mcp", mcp_app)
 app.router.lifespan_context = mcp_app.router.lifespan_context
+app.mount("", mcp_app)
